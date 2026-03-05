@@ -280,3 +280,51 @@ gsap.fromTo(header,
 8. ❌ Font hệ thống mặc định — Luôn import Google Fonts phù hợp
 9. ❌ Nút bấm, card không có hover effect — MỌI interactive element phải có transition
 10. ❌ Animation chạy nhiều lần — Dùng `once: true` trong ScrollTrigger
+
+---
+
+## 🔐 Auth Pages (Login / Register / Forgot Password)
+
+### Cấu trúc file
+```
+src/
+├── app/auth/page.tsx            # Orchestrator — chỉ chứa layout, import AuthCard
+└── components/auth/
+    ├── AuthCard.tsx             # Card wrapper + GSAP animation controller
+    ├── LoginForm.tsx            # Form đăng nhập
+    ├── RegisterForm.tsx         # Form đăng ký
+    ├── ForgotForm.tsx           # Form quên mật khẩu
+    ├── InputField.tsx           # Input có icon + toggle show/hide password
+    └── SocialButtons.tsx        # Google + Facebook + divider
+```
+
+### Card Style
+```
+bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl shadow-[#17409A]/10
+max-w-md px-10 py-10
+```
+> Nền trắng **70% opacity** + **backdrop-blur-xl** — background blobs hiện qua
+
+### Background Layout
+- `/login-background.png` (pastel blob theme) fill toàn trang — `object-cover`
+- Left `w-full lg:w-[48%]` → AuthCard
+- Right `hidden lg:flex flex-1` → teddy bear float + brand text
+
+### Animation Pattern (GSAP)
+```js
+// Exit: fly UP
+gsap.to(fields, { y: -36, opacity: 0, duration: 0.25, stagger: 0.04, ease: "power2.in" })
+// Sau đó setMode(next)
+
+// Enter: fly IN từ dưới (trong useEffect[mode])
+gsap.set(fields, { y: 36, opacity: 0 });
+gsap.to(fields, { y: 0, opacity: 1, duration: 0.38, stagger: 0.07, ease: "power2.out" })
+```
+- Mỗi section trong form phải có class **`field-item`** để GSAP target đúng
+- Dùng `isAnimating` ref để tránh click spam gây animation glitch
+
+### Font & Rules
+- Font: **Nunito** (700/800/900) với Vietnamese subset — KHÔNG dùng Fredoka cho tiếng Việt
+- ❌ Không để toàn bộ logic trong 1 file page.tsx — tách từng form ra component
+- ❌ Card KHÔNG dùng nền tối — glassmorphism trắng + blur
+- ✅ Social login (Google + Facebook) có mặt ở cả 3 mode

@@ -8,408 +8,303 @@ import {
   IoLogoInstagram,
   IoLogoTwitter,
   IoLogoYoutube,
-  IoMailOutline,
-  IoCallOutline,
-  IoLocationOutline,
   IoArrowForward,
 } from "react-icons/io5";
-import { GiBearFace } from "react-icons/gi";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const BRAND_TEXT = "DESIGN A BEAR";
+
 export default function Footer() {
   const footerRef = useRef<HTMLElement>(null);
-  const bearsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const textRefs = useRef<(HTMLElement | null)[]>([]);
-  const heroTextRef = useRef<HTMLHeadingElement>(null);
+  const brandTextRef = useRef<HTMLDivElement>(null);
+  const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [email, setEmail] = useState("");
 
   useEffect(() => {
-    if (footerRef.current) {
-      // Hero text animation
-      if (heroTextRef.current) {
+    if (!footerRef.current) return;
+
+    // ── Wavy letter animation on scroll ──
+    const letters = letterRefs.current.filter(Boolean) as HTMLSpanElement[];
+    if (letters.length > 0) {
+      letters.forEach((letter, i) => {
+        // Each letter gets a unique wave phase based on its index
+        const waveAmplitude = 28;
+        const phase = (i / letters.length) * Math.PI * 2;
+
         gsap.fromTo(
-          heroTextRef.current,
-          { y: 100, opacity: 0, scale: 0.9 },
+          letter,
+          { y: waveAmplitude * Math.sin(phase) },
           {
-            y: 0,
-            opacity: 1,
-            scale: 1,
-            duration: 1.2,
-            ease: "power3.out",
+            y: -waveAmplitude * Math.sin(phase),
+            ease: "sine.inOut",
             scrollTrigger: {
               trigger: footerRef.current,
-              start: "top 80%",
-              end: "top 40%",
-              scrub: 1,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: 1.5,
             },
-          },
+          }
         );
-      }
-
-      // Text wave effect on scroll
-      textRefs.current.forEach((text, index) => {
-        if (text) {
-          gsap.fromTo(
-            text,
-            { y: 30, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
-              duration: 0.8,
-              ease: "power2.out",
-              scrollTrigger: {
-                trigger: text,
-                start: "top 90%",
-                end: "top 70%",
-                scrub: 1,
-              },
-              delay: index * 0.1,
-            },
-          );
-        }
-      });
-
-      // Simple fade in for bears
-      bearsRef.current.forEach((bear) => {
-        if (bear) {
-          gsap.fromTo(
-            bear,
-            { opacity: 0, scale: 0.9 },
-            {
-              opacity: 1,
-              scale: 1,
-              duration: 1,
-              ease: "power2.out",
-              scrollTrigger: {
-                trigger: footerRef.current,
-                start: "top 70%",
-                end: "top 40%",
-                scrub: 1,
-              },
-            },
-          );
-        }
       });
     }
+
+    // ── Brand text container fade in ──
+    if (brandTextRef.current) {
+      gsap.fromTo(
+        brandTextRef.current,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: 0.7,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: footerRef.current,
+            start: "top 90%",
+            once: true,
+          },
+        }
+      );
+    }
+
+    // ── Content stagger ──
+    if (contentRef.current) {
+      gsap.fromTo(
+        contentRef.current.children,
+        { y: 20, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.5,
+          stagger: 0.08,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: contentRef.current,
+            start: "top 85%",
+            once: true,
+          },
+        }
+      );
+    }
+
+    return () => {
+      ScrollTrigger.getAll().forEach((t) => t.kill());
+    };
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Email submitted:", email);
     setEmail("");
   };
 
   return (
     <footer
       ref={footerRef}
-      className="relative min-h-screen bg-[#F4F7FF] overflow-hidden"
+      className="relative bg-[#0E2A66] overflow-hidden m-0"
     >
-      {/* Background Image Overlay */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/background.png"
-          alt="Footer Background"
-          fill
-          className="object-cover"
-          priority
-        />
+      {/* ── Brand Name Section ── */}
+      <div className="relative pt-16 pb-0 overflow-hidden">
+        <div
+          ref={brandTextRef}
+          className="relative w-full text-center select-none flex items-end justify-center"
+          style={{ fontSize: "clamp(4rem, 18vw, 14rem)", lineHeight: 1 }}
+          aria-label={BRAND_TEXT}
+        >
+          {BRAND_TEXT.split("").map((char, i) => (
+            <span
+              key={i}
+              ref={(el) => { letterRefs.current[i] = el; }}
+              className="inline-block font-black tracking-tighter text-[#F4F7FF]/10"
+              style={{
+                // space character needs explicit width
+                minWidth: char === " " ? "0.3em" : undefined,
+              }}
+            >
+              {char === " " ? "\u00A0" : char}
+            </span>
+          ))}
+        </div>
+
+        {/* Thin divider */}
+        <div className="h-px bg-[#F4F7FF]/10 mt-6" />
       </div>
 
-      {/* Decorative gradient orbs */}
-      <div className="absolute top-20 left-10 w-96 h-96 bg-[#17409A]/5 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-[#4A90E2]/5 rounded-full blur-3xl"></div>
+      {/* ── Main Content ── */}
+      <div className="max-w-screen-2xl mx-auto px-8 md:px-16 py-16">
+        <div ref={contentRef} className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
 
-      {/* Hero Text Section - Full Width DESIGN A BEAR */}
-      <div className="absolute top-0 left-0 right-0 z-20 pt-32 pb-20">
-        <div className="w-full text-center overflow-hidden">
-          <h1
-            ref={heroTextRef}
-            className="text-[clamp(3rem,15vw,12rem)] font-black leading-none tracking-tight whitespace-nowrap bg-gradient-to-r from-[#17409A] via-[#4A90E2] to-[#17409A] bg-clip-text text-transparent"
-            style={{
-              textShadow: "0 4px 20px rgba(23, 64, 154, 0.15)",
-            }}
-          >
-            DESIGN A BEAR
-          </h1>
-          <div className="mt-8 w-32 h-1 bg-gradient-to-r from-[#17409A] to-[#4A90E2] mx-auto rounded-full"></div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-screen-2xl mx-auto px-8 md:px-16 relative z-10 flex flex-col justify-center min-h-screen py-32">
-        {/* Spacer for hero text */}
-        <div className="mb-32 h-48"></div>
-
-        {/* Newsletter Section */}
-        <div className="mb-32 max-w-4xl mx-auto w-full">
-          <div className="text-center mb-12">
-            <h2
-              ref={(el) => {
-                textRefs.current[0] = el;
-              }}
-              className="text-4xl md:text-5xl font-bold text-[#17409A] mb-6"
-            >
-              Nhận tin tức mới nhất
-            </h2>
-            <p
-              ref={(el) => {
-                textRefs.current[1] = el;
-              }}
-              className="text-gray-600 text-xl max-w-2xl mx-auto"
-            >
-              Đăng ký để nhận thông tin về sản phẩm mới và ưu đãi đặc biệt
-            </p>
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="flex flex-col sm:flex-row gap-5 max-w-3xl mx-auto"
-          >
-            <div className="relative flex-1">
-              <IoMailOutline className="absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-400 text-2xl" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Nhập email của bạn"
-                required
-                className="w-full pl-16 pr-6 py-5 rounded-2xl border-2 border-gray-300 focus:border-[#17409A] focus:outline-none transition-all text-gray-800 text-lg shadow-lg hover:shadow-xl bg-white"
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-gradient-to-r from-[#17409A] to-[#4A90E2] text-white px-12 py-5 rounded-2xl hover:shadow-2xl transition-all flex items-center justify-center gap-3 font-bold shadow-xl hover:scale-[1.02] group text-lg whitespace-nowrap"
-            >
-              <span>Đăng ký ngay</span>
-              <IoArrowForward className="group-hover:translate-x-1 transition-transform text-2xl" />
-            </button>
-          </form>
-        </div>
-
-        {/* Separator Line */}
-        <div className="mb-20">
-          <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-        </div>
-
-        {/* Footer Links */}
-        <div className="mb-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16">
-            {/* About Section */}
-            <div
-              ref={(el) => {
-                textRefs.current[2] = el;
-              }}
-            >
-              <div className="mb-8">
-                <Image
-                  src="/logo.webp"
-                  alt="Design a Bear Logo"
-                  width={100}
-                  height={100}
-                  className="object-contain"
-                />
+          {/* Left — Newsletter */}
+          <div className="flex flex-col justify-center max-w-md">
+            {/* Logo + name */}
+            <div className="flex items-center gap-3 mb-8">
+              <div className="relative w-10 h-10">
+                <Image src="/logo.webp" alt="Logo" fill className="object-contain" />
               </div>
-              <h3 className="text-2xl font-bold mb-5 text-gray-900">
+              <span className="text-[#F4F7FF] font-bold text-xl tracking-wide">
                 Design a Bear
-              </h3>
-              <p className="text-gray-600 leading-relaxed text-base">
-                Gấu bông thông minh tích hợp IoT và AI, mang đến trải nghiệm học
-                tập độc đáo và sáng tạo cho trẻ em.
-              </p>
+              </span>
             </div>
 
-            {/* Quick Links */}
-            <div
-              ref={(el) => {
-                textRefs.current[3] = el;
-              }}
-            >
-              <h3 className="text-xl font-bold mb-8 text-gray-900">
-                Liên kết nhanh
-              </h3>
-              <ul className="space-y-4">
-                <li>
-                  <Link
-                    href="/products"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base flex items-center gap-3 group font-medium"
-                  >
-                    <GiBearFace className="text-xl group-hover:scale-110 transition-transform" />{" "}
-                    Mua sắm
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/collections"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base flex items-center gap-3 group font-medium"
-                  >
-                    <GiBearFace className="text-xl group-hover:scale-110 transition-transform" />{" "}
-                    Bộ sưu tập
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/story"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base flex items-center gap-3 group font-medium"
-                  >
-                    <GiBearFace className="text-xl group-hover:scale-110 transition-transform" />{" "}
-                    Câu chuyện
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/connect"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base flex items-center gap-3 group font-medium"
-                  >
-                    <GiBearFace className="text-xl group-hover:scale-110 transition-transform" />{" "}
-                    Kết nối
-                  </Link>
-                </li>
-              </ul>
-            </div>
+            <p className="text-[#F4F7FF]/60 text-sm mb-6 leading-relaxed">
+              Gấu bông thông minh tích hợp IoT & AI,<br />
+              dạy học cho trẻ em theo cách riêng của chúng.
+            </p>
 
-            {/* Support */}
-            <div
-              ref={(el) => {
-                textRefs.current[4] = el;
-              }}
-            >
-              <h3 className="text-xl font-bold mb-8 text-gray-900">Hỗ trợ</h3>
-              <ul className="space-y-4">
-                <li>
-                  <Link
-                    href="/faq"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base flex items-center gap-3 group font-medium"
-                  >
-                    <GiBearFace className="text-xl group-hover:scale-110 transition-transform" />{" "}
-                    Câu hỏi thường gặp
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/shipping"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base flex items-center gap-3 group font-medium"
-                  >
-                    <GiBearFace className="text-xl group-hover:scale-110 transition-transform" />{" "}
-                    Vận chuyển
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/returns"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base flex items-center gap-3 group font-medium"
-                  >
-                    <GiBearFace className="text-xl group-hover:scale-110 transition-transform" />{" "}
-                    Đổi trả
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/warranty"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base flex items-center gap-3 group font-medium"
-                  >
-                    <GiBearFace className="text-xl group-hover:scale-110 transition-transform" />{" "}
-                    Bảo hành
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Contact */}
-            <div
-              ref={(el) => {
-                textRefs.current[5] = el;
-              }}
-            >
-              <h3 className="text-xl font-bold mb-8 text-gray-900">Liên hệ</h3>
-              <ul className="space-y-5">
-                <li className="flex items-start gap-4">
-                  <IoLocationOutline className="text-[#17409A] text-2xl flex-shrink-0 mt-1" />
-                  <span className="text-gray-600 text-base font-medium">
-                    Khu Công Nghệ Cao, Quận 9, TP.HCM
-                  </span>
-                </li>
-                <li className="flex items-center gap-4">
-                  <IoCallOutline className="text-[#17409A] text-2xl flex-shrink-0" />
-                  <a
-                    href="tel:+84123456789"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base font-medium"
-                  >
-                    +84 123 456 789
-                  </a>
-                </li>
-                <li className="flex items-center gap-4">
-                  <IoMailOutline className="text-[#17409A] text-2xl flex-shrink-0" />
-                  <a
-                    href="mailto:info@designabear.vn"
-                    className="text-gray-600 hover:text-[#17409A] transition-colors text-base font-medium"
-                  >
-                    info@designabear.vn
-                  </a>
-                </li>
-              </ul>
-
-              {/* Social Media */}
-              <div className="flex gap-4 mt-8">
-                <a
-                  href="https://facebook.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full bg-[#17409A]/10 hover:bg-[#17409A] text-[#17409A] hover:text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
+            {/* Email input */}
+            <form onSubmit={handleSubmit} className="mb-3">
+              <div className="flex items-stretch border border-[#F4F7FF]/25 rounded-lg overflow-hidden hover:border-[#4A90E2]/60 transition-colors">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Đăng ký nhận tin tức & ưu đãi"
+                  required
+                  className="flex-1 bg-transparent px-5 py-4 text-[#F4F7FF] placeholder-[#F4F7FF]/35 text-sm outline-none"
+                />
+                <button
+                  type="submit"
+                  className="bg-[#17409A] hover:bg-[#4A90E2] text-white px-5 flex items-center justify-center transition-colors duration-200"
+                  aria-label="Đăng ký"
                 >
-                  <IoLogoFacebook className="text-2xl" />
-                </a>
-                <a
-                  href="https://instagram.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full bg-[#17409A]/10 hover:bg-[#17409A] text-[#17409A] hover:text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
-                >
-                  <IoLogoInstagram className="text-2xl" />
-                </a>
-                <a
-                  href="https://twitter.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full bg-[#17409A]/10 hover:bg-[#17409A] text-[#17409A] hover:text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
-                >
-                  <IoLogoTwitter className="text-2xl" />
-                </a>
-                <a
-                  href="https://youtube.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-12 h-12 rounded-full bg-[#17409A]/10 hover:bg-[#17409A] text-[#17409A] hover:text-white flex items-center justify-center transition-all shadow-md hover:shadow-lg"
-                >
-                  <IoLogoYoutube className="text-2xl" />
-                </a>
+                  <IoArrowForward className="text-lg" />
+                </button>
               </div>
+            </form>
+            <p className="text-[#F4F7FF]/35 text-xs">
+              Bằng cách đăng ký, bạn đồng ý với{" "}
+              <Link href="/terms" className="underline underline-offset-2 hover:text-[#F4F7FF]/70 transition-colors">
+                Điều khoản sử dụng
+              </Link>{" "}
+              của chúng tôi.
+            </p>
+
+            {/* Social icons */}
+            <div className="flex gap-3 mt-10">
+              {[
+                { href: "https://facebook.com", icon: <IoLogoFacebook className="text-lg" />, label: "Facebook" },
+                { href: "https://instagram.com", icon: <IoLogoInstagram className="text-lg" />, label: "Instagram" },
+                { href: "https://twitter.com", icon: <IoLogoTwitter className="text-lg" />, label: "Twitter" },
+                { href: "https://youtube.com", icon: <IoLogoYoutube className="text-lg" />, label: "YouTube" },
+              ].map(({ href, icon, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="w-9 h-9 rounded-full border border-[#F4F7FF]/20 text-[#F4F7FF]/50 flex items-center justify-center hover:border-[#4A90E2] hover:text-[#4A90E2] transition-all duration-200"
+                >
+                  {icon}
+                </a>
+              ))}
+            </div>
+          </div>
+
+          {/* Right — Nav Links (3 columns) */}
+          <div className="grid grid-cols-3 gap-8 lg:gap-12 pt-2">
+
+            {/* Mua sắm */}
+            <div>
+              <h4 className="text-[#F4F7FF] font-semibold text-sm tracking-widest uppercase mb-6">
+                Mua sắm
+              </h4>
+              <ul className="space-y-4">
+                {[
+                  { label: "Tất cả sản phẩm", href: "/products" },
+                  { label: "Gấu bông", href: "/bears" },
+                  { label: "Phụ kiện", href: "/accessories" },
+                  { label: "Bộ sưu tập", href: "/collections" },
+                ].map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="text-[#F4F7FF]/50 hover:text-[#4A90E2] text-sm transition-colors duration-200"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Hỗ trợ */}
+            <div>
+              <h4 className="text-[#F4F7FF] font-semibold text-sm tracking-widest uppercase mb-6">
+                Hỗ trợ
+              </h4>
+              <ul className="space-y-4">
+                {[
+                  { label: "Câu hỏi thường gặp", href: "/faq" },
+                  { label: "Vận chuyển", href: "/shipping" },
+                  { label: "Đổi trả", href: "/returns" },
+                  { label: "Bảo hành", href: "/warranty" },
+                ].map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="text-[#F4F7FF]/50 hover:text-[#4A90E2] text-sm transition-colors duration-200"
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Về chúng tôi */}
+            <div>
+              <h4 className="text-[#F4F7FF] font-semibold text-sm tracking-widest uppercase mb-6">
+                Về chúng tôi
+              </h4>
+              <ul className="space-y-4">
+                {[
+                  { label: "Câu chuyện", href: "/story" },
+                  { label: "Kết nối IoT", href: "/connect" },
+                  { label: "Instagram", href: "https://instagram.com", external: true },
+                  { label: "YouTube", href: "https://youtube.com", external: true },
+                ].map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noopener noreferrer" : undefined}
+                      className="text-[#F4F7FF]/50 hover:text-[#4A90E2] text-sm transition-colors duration-200 flex items-center gap-1"
+                    >
+                      {item.external && (
+                        <span className="text-[#F4F7FF]/25 text-xs">↗</span>
+                      )}
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-10 border-t border-gray-300/50">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-gray-600 text-base font-medium">
-              © 2026 Design a Bear. All rights reserved.
-            </p>
-            <div className="flex gap-8">
-              <Link
-                href="/privacy"
-                className="text-gray-600 hover:text-[#17409A] transition-colors text-base font-medium hover:underline underline-offset-4"
-              >
-                Chính sách bảo mật
-              </Link>
-              <Link
-                href="/terms"
-                className="text-gray-600 hover:text-[#17409A] transition-colors text-base font-medium hover:underline underline-offset-4"
-              >
-                Điều khoản sử dụng
-              </Link>
-            </div>
+      {/* ── Bottom Bar ── */}
+      <div className="border-t border-[#F4F7FF]/10">
+        <div className="max-w-screen-2xl mx-auto px-8 md:px-16 py-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="text-[#F4F7FF]/35 text-sm">
+            ©2026 Design a Bear. All rights reserved.
+          </p>
+          <div className="flex gap-8">
+            <Link
+              href="/privacy"
+              className="text-[#F4F7FF]/35 hover:text-[#F4F7FF]/70 text-sm transition-colors"
+            >
+              Chính sách bảo mật
+            </Link>
+            <Link
+              href="/terms"
+              className="text-[#F4F7FF]/35 hover:text-[#F4F7FF]/70 text-sm transition-colors"
+            >
+              Điều khoản sử dụng
+            </Link>
           </div>
         </div>
       </div>

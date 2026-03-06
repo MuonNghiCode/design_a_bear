@@ -27,6 +27,33 @@ body {
   padding: 0;
 }
 
+/* ── Hide default scrollbar ── */
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  overflow-y: scroll; /* keep scroll behaviour without showing native bar */
+}
+
+html::-webkit-scrollbar {
+  width: 0;
+  display: none; /* Chrome, Safari, Opera */
+}
+
+body::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 html, body {
   min-height: 100%;
 }

@@ -22,7 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className={`${nunito.variable} antialiased`} style={{ fontFamily: "var(--font-nunito), Nunito, sans-serif" }}>
+      <body
+        className={`${nunito.variable} antialiased`}
+        style={{ fontFamily: "var(--font-nunito), Nunito, sans-serif" }}
+      >
         <Providers>
           <main className="pt-20">{children}</main>
         </Providers>

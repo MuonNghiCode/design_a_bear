@@ -21,16 +21,29 @@ export default function AuthBrandPanel() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 shrink-0">
-            <Image src="/logo.webp" alt="Design a Bear" fill className="object-contain" />
+            <Image
+              src="/logo.webp"
+              alt="Design a Bear"
+              fill
+              className="object-contain"
+            />
           </div>
-          <span className="text-white font-black text-xl tracking-wide">Design a Bear</span>
+          <span className="text-white font-black text-xl tracking-wide">
+            Design a Bear
+          </span>
         </div>
 
         <button
           onClick={() => router.back()}
           className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-semibold transition-colors cursor-pointer"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-4 h-4">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            className="w-4 h-4"
+          >
             <path d="M15 18l-6-6 6-6" />
           </svg>
           Quay lại
@@ -41,7 +54,11 @@ export default function AuthBrandPanel() {
       <div className="flex flex-col items-center text-center">
         <p
           className="text-white/6 font-black select-none leading-none"
-          style={{ fontSize: "clamp(3.5rem, 8vw, 6.5rem)", letterSpacing: "0.06em", marginBottom: "-1.5rem" }}
+          style={{
+            fontSize: "clamp(3.5rem, 8vw, 6.5rem)",
+            letterSpacing: "0.06em",
+            marginBottom: "-1.5rem",
+          }}
         >
           DESIGN
         </p>
@@ -50,12 +67,23 @@ export default function AuthBrandPanel() {
           className="relative w-44 h-44 xl:w-56 xl:h-56 drop-shadow-2xl"
           style={{ animation: "floatBear 3s ease-in-out infinite" }}
         >
-          <Image src="/teddy_bear.png" alt="Mascot" fill className="object-contain" priority />
+          <Image
+            src="/teddy_bear.png"
+            alt="Mascot"
+            fill
+            className="object-contain"
+            priority
+          />
         </div>
 
         <p
           className="text-white/6 font-black select-none leading-none"
-          style={{ fontSize: "clamp(3.5rem, 8vw, 6.5rem)", letterSpacing: "0.06em", marginTop: "-1.5rem", marginBottom: "1rem" }}
+          style={{
+            fontSize: "clamp(3.5rem, 8vw, 6.5rem)",
+            letterSpacing: "0.06em",
+            marginTop: "-1.5rem",
+            marginBottom: "1rem",
+          }}
         >
           A BEAR
         </p>

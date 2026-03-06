@@ -21,7 +21,9 @@ interface PawDecorationProps {
   positions?: PawPos[];
 }
 
-export default function PawDecoration({ positions = PAW_POSITIONS }: PawDecorationProps) {
+export default function PawDecoration({
+  positions = PAW_POSITIONS,
+}: PawDecorationProps) {
   return (
     <>
       {positions.map((p, i) => (
@@ -37,7 +39,12 @@ export default function PawDecoration({ positions = PAW_POSITIONS }: PawDecorati
             opacity: p.opacity,
           }}
         >
-          <svg width={p.size} height={p.size} viewBox="0 0 100 100" fill="white">
+          <svg
+            width={p.size}
+            height={p.size}
+            viewBox="0 0 100 100"
+            fill="white"
+          >
             <ellipse cx="50" cy="65" rx="30" ry="25" />
             <ellipse cx="22" cy="38" rx="12" ry="10" />
             <ellipse cx="78" cy="38" rx="12" ry="10" />

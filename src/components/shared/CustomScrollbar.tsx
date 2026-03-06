@@ -30,7 +30,8 @@ export default function CustomScrollbar() {
       // Thumb position
       const maxScroll = scrollHeight - clientHeight;
       const maxThumbTop = trackH - thumbH;
-      const thumbTop = maxScroll > 0 ? (scrollTop / maxScroll) * maxThumbTop : 0;
+      const thumbTop =
+        maxScroll > 0 ? (scrollTop / maxScroll) * maxThumbTop : 0;
 
       gsap.set(thumb, { height: thumbH, y: thumbTop });
 
@@ -76,7 +77,10 @@ export default function CustomScrollbar() {
       const deltaY = e.clientY - dragStartY.current;
       const deltaScroll = (deltaY / maxThumbTop) * maxScroll;
 
-      window.scrollTo({ top: dragStartScroll.current + deltaScroll, behavior: "instant" });
+      window.scrollTo({
+        top: dragStartScroll.current + deltaScroll,
+        behavior: "instant",
+      });
     };
 
     const onMouseUp = () => {

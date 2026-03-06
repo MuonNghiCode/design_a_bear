@@ -31,9 +31,7 @@ export default function HomeClient() {
   return (
     <>
       {/* Loading intro — slides up on complete */}
-      {introVisible && (
-        <LoadingIntro onComplete={handleIntroComplete} />
-      )}
+      {introVisible && <LoadingIntro onComplete={handleIntroComplete} />}
 
       {/* Main page content */}
       <Header />

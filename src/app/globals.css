@@ -54,7 +54,8 @@ body::-webkit-scrollbar {
   -ms-overflow-style: none;
 }
 
-html, body {
+html,
+body {
   min-height: 100%;
 }
 

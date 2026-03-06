@@ -132,6 +132,70 @@ Icon:       w-12 h-12 rounded-full bg-[#17409A]/10 text-[#17409A] flex items-cen
 
 ---
 
+## 🧱 Component Architecture — BẮT BUỘC chia nhỏ
+
+### Nguyên tắc TUYỆT ĐỐI
+> **MỌI trang đều PHẢI được chia thành các component nhỏ.** KHÔNG ĐƯỢC viết toàn bộ nội dung trong 1 file `page.tsx`. File `page.tsx` chỉ đóng vai trò **orchestrator** — import và sắp xếp các component.
+
+### Cấu trúc file cho mỗi trang
+```
+src/
+├── app/[tên-trang]/
+│   └── page.tsx                ← CHỈ import + layout, KHÔNG chứa logic/UI phức tạp
+└── components/[tên-trang]/
+    ├── HeroSection.tsx         ← Mỗi section là 1 component riêng
+    ├── ProductGrid.tsx
+    ├── FilterSidebar.tsx
+    └── ...
+```
+
+### Quy tắc chia component
+1. **Mỗi section trên trang = 1 component riêng** (Hero, Features, Products, Testimonials...)
+2. **Mỗi UI pattern lặp lại = 1 component riêng** (ProductCard, ReviewCard, Badge...)
+3. **Mỗi form = 1 component riêng** (LoginForm, SearchForm, NewsletterForm...)
+4. **Mỗi interactive element phức tạp = 1 component riêng** (Dropdown, Modal, Tabs...)
+5. **File `page.tsx` tối đa ~30-50 dòng** — chỉ import và render components
+
+### Ví dụ `page.tsx` đúng chuẩn
+```tsx
+// ✅ ĐÚNG — page.tsx chỉ là orchestrator
+import HeroSection from "@/src/components/home/HeroSection";
+import FeaturedProducts from "@/src/components/home/FeaturedProducts";
+import HowItWorks from "@/src/components/home/HowItWorks";
+import Testimonials from "@/src/components/home/Testimonials";
+
+export default function HomePage() {
+  return (
+    <>
+      <HeroSection />
+      <FeaturedProducts />
+      <HowItWorks />
+      <Testimonials />
+    </>
+  );
+}
+```
+
+### ❌ SAI — KHÔNG viết như thế này
+```tsx
+// ❌ SAI — mọi thứ gom vào 1 file
+export default function HomePage() {
+  return (
+    <div>
+      {/* 500+ dòng HTML/JSX ở đây */}
+    </div>
+  );
+}
+```
+
+### Đặt tên component
+- **PascalCase**: `HeroSection`, `ProductCard`, `FilterSidebar`
+- **Tên mô tả rõ ràng**: Đọc tên phải biết component làm gì
+- **Folder theo trang**: `components/home/`, `components/products/`, `components/auth/`
+- **Component dùng chung**: `components/shared/` hoặc `components/ui/`
+
+---
+
 ## ✨ Animation Guidelines (GSAP) — Mượt mà, tinh tế, KHÔNG lố
 
 ### Triết lý animation

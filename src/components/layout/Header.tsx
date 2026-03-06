@@ -203,8 +203,8 @@ export default function Header() {
               <Image
                 src="/logo.webp"
                 alt="Design a Bear Logo"
-                width={56}
-                height={56}
+                width={36}
+                height={36}
                 className="object-contain w-24 h-24"
               />
             </div>

@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { IoHeartOutline, IoBagOutline } from "react-icons/io5";
+import { useAuth } from "@/contexts/AuthContext";
 
 /* ────────────────────────────────────────────
-   ProductCard — Shared component
-   Based on Design a Bear UI mockup:
-   Dark navy card, bear image, badge, price,
-   CTA + icon buttons
+   ProductCard — Overlay Style
+   Image fills entire card, info overlays at bottom
+   với background màu tối để highlight text
    ──────────────────────────────────────────── */
 
 export interface ProductCardProps {
@@ -37,81 +38,116 @@ export default function ProductCard({
   href,
 }: ProductCardProps) {
   const productLink = href || `/products/${id}`;
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      router.push("/auth");
+    } else {
+      // TODO: Add to cart or navigate to checkout
+      router.push(`/products/${id}`);
+    }
+  };
 
   return (
-    <div
-      className="group relative flex flex-col rounded-3xl overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+    <Link
+      href={productLink}
+      className="group relative block rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
       style={{
-        backgroundColor: "#0E2A66",
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      {/* ── Image area ── */}
-      <Link href={productLink} className="relative aspect-[4/5] overflow-hidden">
+      {/* ── Background Image (fills entire card) ── */}
+      <div className="relative aspect-3/4 overflow-hidden">
         <Image
           src={image}
           alt={name}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-500 group-hover:scale-110"
+          priority
         />
 
-        {/* Badge */}
+        {/* Badge góc trên phải */}
         {badge && (
           <div
-            className="absolute top-4 right-4 px-4 py-1.5 rounded-full text-white text-xs font-bold tracking-wide shadow-lg"
+            className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-xs font-bold tracking-wide shadow-xl z-10"
             style={{ backgroundColor: badgeColor }}
           >
             {badge}
           </div>
         )}
-      </Link>
 
-      {/* ── Info area ── */}
-      <div className="flex flex-col flex-1 px-5 pt-5 pb-5">
-        {/* Name */}
-        <Link href={productLink}>
-          <h3 className="font-black text-white text-lg leading-tight mb-1.5 group-hover:text-[#4A90E2] transition-colors duration-200">
+        {/* ── Info Overlay (bottom) - smooth gradient fade ── */}
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[70%] pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(26, 26, 46, 0.98) 0%, rgba(26, 26, 46, 0.92) 15%, rgba(26, 26, 46, 0.75) 30%, rgba(26, 26, 46, 0.45) 50%, rgba(26, 26, 46, 0.15) 70%, rgba(26, 26, 46, 0) 100%)",
+          }}
+        />
+
+        {/* ── Info Content ── */}
+        <div
+          className="absolute bottom-0 left-0 right-0 p-5 z-10"
+          style={{
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+          }}
+        >
+          {/* Name */}
+          <h3 className="font-black text-white text-lg leading-tight mb-2 drop-shadow-lg">
             {name}
           </h3>
-        </Link>
 
-        {/* Description */}
-        <p className="text-[#F4F7FF]/50 text-sm leading-relaxed mb-4 line-clamp-2">
-          {description}
-        </p>
+          {/* Description */}
+          <p className="text-white/90 text-sm leading-relaxed mb-3 line-clamp-2 drop-shadow-md">
+            {description}
+          </p>
 
-        {/* Price */}
-        <p className="text-[#4A90E2] font-black text-xl mb-5">
-          {formatPrice(price)}
-        </p>
+          {/* Price */}
+          <p className="text-[#4A90E2] font-black text-xl mb-4 drop-shadow-lg">
+            {formatPrice(price)}
+          </p>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 mt-auto">
-          {/* CTA Button */}
-          <Link
-            href={productLink}
-            className="flex-1 bg-[#17409A] hover:bg-[#4A90E2] text-white font-bold text-sm text-center py-3 rounded-xl transition-colors duration-200"
-          >
-            Mua ngay
-          </Link>
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            {/* CTA Button */}
+            <div
+              className="flex-1 bg-[#17409A] hover:bg-[#4A90E2] text-white font-bold text-sm text-center py-3 rounded-xl transition-all duration-200 group-hover:shadow-lg cursor-pointer"
+              onClick={handleBuyNow}
+            >
+              Mua ngay
+            </div>
 
-          {/* Cart Button */}
-          <button
-            className="w-11 h-11 rounded-xl bg-[#17409A]/40 hover:bg-[#17409A] text-white/70 hover:text-white flex items-center justify-center transition-all duration-200"
-            aria-label="Thêm vào giỏ"
-          >
-            <IoBagOutline className="text-lg" />
-          </button>
+            {/* Icon Buttons */}
+            <button
+              className="w-11 h-11 rounded-xl bg-white/20 hover:bg-white text-white hover:text-[#17409A] backdrop-blur-sm flex items-center justify-center transition-all duration-200"
+              aria-label="Thêm vào giỏ"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <IoBagOutline className="text-xl" />
+            </button>
 
-          {/* Wishlist Button */}
-          <button
-            className="w-11 h-11 rounded-xl bg-[#17409A]/40 hover:bg-[#FF6B9D] text-white/70 hover:text-white flex items-center justify-center transition-all duration-200"
-            aria-label="Yêu thích"
-          >
-            <IoHeartOutline className="text-lg" />
-          </button>
+            <button
+              className="w-11 h-11 rounded-xl bg-white/20 hover:bg-[#FF6B9D] text-white backdrop-blur-sm flex items-center justify-center transition-all duration-200"
+              aria-label="Yêu thích"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <IoHeartOutline className="text-xl" />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -40,12 +40,14 @@ const PHASES: TextPhase[] = [
   {
     start: 1.4,
     end: 2.8,
-    heading: "Nơi sáng tạo gặp gỡ công nghệ hiện đại, hơn cả một món đồ chơi thông thường",
+    heading:
+      "Nơi sáng tạo gặp gỡ công nghệ hiện đại, hơn cả một món đồ chơi thông thường",
   },
   {
     start: 3,
     end: 4.2,
-    heading: "Tạo ra từ trái tim, tích hợp hàng trăm linh kiện công nghệ bên trong mỗi chú gấu",
+    heading:
+      "Tạo ra từ trái tim, tích hợp hàng trăm linh kiện công nghệ bên trong mỗi chú gấu",
   },
   {
     start: 4.4,
@@ -55,40 +57,61 @@ const PHASES: TextPhase[] = [
     annotations: [
       {
         label: "Vi xử lý AI",
-        detail: "Chip xử lý ngôn ngữ tự nhiên, nhận diện giọng nói và phản hồi thông minh",
-        x: 8, y: 15, anchorX: 42, anchorY: 35,
+        detail:
+          "Chip xử lý ngôn ngữ tự nhiên, nhận diện giọng nói và phản hồi thông minh",
+        x: 8,
+        y: 15,
+        anchorX: 42,
+        anchorY: 35,
       },
       {
         label: "Loa HD",
         detail: "Âm thanh trong trẻo, kể chuyện và phát nhạc ru êm dịu",
-        x: 75, y: 12, anchorX: 58, anchorY: 32,
+        x: 75,
+        y: 12,
+        anchorX: 58,
+        anchorY: 32,
       },
       {
         label: "Cảm biến cảm ứng",
         detail: "Nhận biết cử chỉ ôm, vỗ, nắm tay để phản hồi tương tác",
-        x: 5, y: 55, anchorX: 40, anchorY: 50,
+        x: 5,
+        y: 55,
+        anchorX: 40,
+        anchorY: 50,
       },
       {
         label: "Module WiFi",
-        detail: "Kết nối không dây, cập nhật nội dung và điều khiển từ xa qua app",
-        x: 72, y: 52, anchorX: 60, anchorY: 48,
+        detail:
+          "Kết nối không dây, cập nhật nội dung và điều khiển từ xa qua app",
+        x: 72,
+        y: 52,
+        anchorX: 60,
+        anchorY: 48,
       },
       {
         label: "Pin lithium",
         detail: "Dung lượng cao, 12 giờ hoạt động liên tục, sạc nhanh USB-C",
-        x: 10, y: 82, anchorX: 44, anchorY: 68,
+        x: 10,
+        y: 82,
+        anchorX: 44,
+        anchorY: 68,
       },
       {
         label: "Bộ nhớ 8GB",
         detail: "Lưu trữ hàng nghìn câu chuyện, bài hát và bài học tương tác",
-        x: 70, y: 80, anchorX: 56, anchorY: 70,
+        x: 70,
+        y: 80,
+        anchorX: 56,
+        anchorY: 70,
       },
     ],
   },
   {
     start: 5.8,
     end: 7.0,
-    heading: "Trí tuệ nhân tạo biết học, biết hiểu, biết yêu thương và an toàn tuyệt đối",
+    heading:
+      "Trí tuệ nhân tạo biết học, biết hiểu, biết yêu thương và an toàn tuyệt đối",
     sub: "Nhận diện giọng nói tiếng Việt chính xác · Trả lời hàng nghìn câu hỏi của trẻ · Kể chuyện tương tác theo cảm xúc ",
   },
   {
@@ -114,9 +137,7 @@ function splitIntoWords(text: string): string[] {
    Smooth cubic ease-in-out
    ──────────────────────────────────────────── */
 function easeInOutCubic(t: number): number {
-  return t < 0.5
-    ? 4 * t * t * t
-    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 /* ────────────────────────────────────────────
@@ -131,7 +152,7 @@ function applyWordReveal(
   if (wordCount === 0) return;
 
   // Glow timing within the phase
-  const glowStart = 0.10;
+  const glowStart = 0.1;
   const glowEnd = 0.78;
   const glowRange = glowEnd - glowStart;
 
@@ -144,7 +165,7 @@ function applyWordReveal(
 
     const wordProgress = Math.max(
       0,
-      Math.min(1, (phaseT - wordGlowStart) / wordGlowDuration)
+      Math.min(1, (phaseT - wordGlowStart) / wordGlowDuration),
     );
 
     const eased = easeInOutCubic(wordProgress);
@@ -156,9 +177,10 @@ function applyWordReveal(
     // Glow effect
     const glowIntensity = eased * (isHeroTitle ? 50 : 30);
     const glowSpread = eased * (isHeroTitle ? 70 : 45);
-    wordEl.style.textShadow = eased > 0.03
-      ? `0 0 ${glowIntensity}px rgba(244, 247, 255, ${eased * 0.7}), 0 0 ${glowSpread}px rgba(74, 144, 226, ${eased * 0.35}), 0 2px 20px rgba(0,0,0,0.5)`
-      : `0 2px 20px rgba(0,0,0,0.4)`;
+    wordEl.style.textShadow =
+      eased > 0.03
+        ? `0 0 ${glowIntensity}px rgba(244, 247, 255, ${eased * 0.7}), 0 0 ${glowSpread}px rgba(74, 144, 226, ${eased * 0.35}), 0 2px 20px rgba(0,0,0,0.5)`
+        : `0 2px 20px rgba(0,0,0,0.4)`;
   });
 }
 
@@ -208,17 +230,19 @@ export default function HeroSection() {
           const phaseDuration = phase.end - phase.start;
           const slideDuration = phaseDuration * 1.8;
 
-          const phaseT =
-            (currentTime - phaseCenter) / slideDuration + 0.5;
+          const phaseT = (currentTime - phaseCenter) / slideDuration + 0.5;
 
           /* ── CTA phase: stay visible once reached, never exit ── */
           if (isCTA) {
             // enterT: 0 = just started entering, 1+ = fully entered
-            const enterT = Math.max(0, (currentTime - phase.start) / (phaseDuration * 0.5));
+            const enterT = Math.max(
+              0,
+              (currentTime - phase.start) / (phaseDuration * 0.5),
+            );
             // Clamp opacity at 1 — never fade out
             const ctaOpacity = Math.min(1, enterT);
             // Y slides up and stops at 0 — never moves past
-            const ctaY = Math.max(0, (1 - Math.min(1, enterT))) * 50;
+            const ctaY = Math.max(0, 1 - Math.min(1, enterT)) * 50;
 
             el.style.transform = `translateY(${ctaY}px)`;
             el.style.opacity = String(ctaOpacity);
@@ -272,11 +296,14 @@ export default function HeroSection() {
               if (!annotEl || !lineEl) return;
 
               const staggerDelay = ai * 0.06;
-              const annotProgress = (phaseT - 0.10 - staggerDelay) / 0.55;
+              const annotProgress = (phaseT - 0.1 - staggerDelay) / 0.55;
               const annotOpacity = Math.max(0, Math.min(1, annotProgress * 2));
 
               const lineLength = lineEl.getTotalLength?.() || 200;
-              const drawProgress = Math.max(0, Math.min(1, annotProgress * 1.5));
+              const drawProgress = Math.max(
+                0,
+                Math.min(1, annotProgress * 1.5),
+              );
 
               annotEl.style.opacity = String(annotOpacity);
               lineEl.style.strokeDasharray = `${lineLength}`;
@@ -333,7 +360,9 @@ export default function HeroSection() {
           return (
             <div
               key={pi}
-              ref={(el) => { phaseRefs.current[pi] = el; }}
+              ref={(el) => {
+                phaseRefs.current[pi] = el;
+              }}
               className="absolute inset-0 flex items-center justify-center"
               style={{ opacity: 0, willChange: "transform, opacity" }}
             >
@@ -344,7 +373,9 @@ export default function HeroSection() {
                     {HERO_WORDS.map((word, wi) => (
                       <span
                         key={wi}
-                        ref={(el) => { headingWordRefs.current[pi][wi] = el; }}
+                        ref={(el) => {
+                          headingWordRefs.current[pi][wi] = el;
+                        }}
                         className="font-black tracking-tight leading-none"
                         style={{
                           fontFamily: "'Nunito', sans-serif",
@@ -369,7 +400,9 @@ export default function HeroSection() {
                     {headingWords.map((word, wi) => (
                       <span
                         key={wi}
-                        ref={(el) => { headingWordRefs.current[pi][wi] = el; }}
+                        ref={(el) => {
+                          headingWordRefs.current[pi][wi] = el;
+                        }}
                         className="inline-block"
                         style={{
                           fontFamily: "'Nunito', sans-serif",
@@ -385,11 +418,13 @@ export default function HeroSection() {
 
                   {/* Sub — each word is a span */}
                   {subWords.length > 0 && (
-                    <p className="mt-6 md:mt-8 flex flex-wrap items-center justify-center gap-x-[6px] gap-y-1 sm:gap-x-2 max-w-3xl mx-auto">
+                    <p className="mt-6 md:mt-8 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 sm:gap-x-2 max-w-3xl mx-auto">
                       {subWords.map((word, wi) => (
                         <span
                           key={wi}
-                          ref={(el) => { subWordRefs.current[pi][wi] = el; }}
+                          ref={(el) => {
+                            subWordRefs.current[pi][wi] = el;
+                          }}
                           className="inline-block text-base sm:text-lg md:text-xl lg:text-2xl leading-relaxed font-medium"
                           style={{
                             fontFamily: "'Nunito', sans-serif",
@@ -421,7 +456,10 @@ export default function HeroSection() {
               {/* ── Annotation layout ── */}
               {phase.annotationLayout && phase.annotations && (
                 <div className="absolute inset-0">
-                  <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none" }}>
+                  <svg
+                    className="absolute inset-0 w-full h-full"
+                    style={{ pointerEvents: "none" }}
+                  >
                     {phase.annotations.map((ann, ai) => (
                       <line
                         key={ai}
@@ -455,10 +493,11 @@ export default function HeroSection() {
                     <div
                       key={ai}
                       ref={(el) => {
-                        if (!annotationRefs.current[pi]) annotationRefs.current[pi] = [];
+                        if (!annotationRefs.current[pi])
+                          annotationRefs.current[pi] = [];
                         annotationRefs.current[pi][ai] = el;
                       }}
-                      className={`absolute max-w-[250px] ${ann.x < 50 ? "text-left" : "text-right"}`}
+                      className={`absolute max-w-62.5 ${ann.x < 50 ? "text-left" : "text-right"}`}
                       style={{
                         left: `${ann.x}%`,
                         top: `${ann.y}%`,

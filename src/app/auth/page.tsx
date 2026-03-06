@@ -1,8 +1,7 @@
 "use client";
 
-import AuthCard from "@/src/components/auth/AuthCard";
+import AuthCard from "@/components/auth/AuthCard";
 import Image from "next/image";
-
 
 export default function AuthPage() {
   return (

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { GiPawPrint } from "react-icons/gi";
 import { TOP_PRODUCTS } from "@/data/admin";
 
@@ -28,12 +29,15 @@ export default function TopProductsList() {
             key={p.name}
             className="flex items-center gap-3 group cursor-pointer"
           >
-            {/* Rank + bear icon */}
-            <div
-              className="relative w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
-              style={{ backgroundColor: p.color + "18" }}
-            >
-              <GiPawPrint className="text-xl" style={{ color: p.color }} />
+            {/* Rank + product image */}
+            <div className="relative w-11 h-11 rounded-2xl overflow-hidden shrink-0 transition-transform duration-200 group-hover:scale-105 bg-[#F4F7FF]">
+              <Image
+                src={p.image}
+                alt={p.name}
+                width={44}
+                height={44}
+                className="object-contain w-full h-full"
+              />
               {/* Rank badge */}
               <span
                 className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white"

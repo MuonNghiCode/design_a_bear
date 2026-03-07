@@ -8,10 +8,10 @@ export const MONTHLY_REVENUE = [
 ];
 
 export const TOP_PRODUCTS = [
-  { name: "Gấu Nâu Brownie", badge: "Toán học", color: "#17409A", sales: 84 },
-  { name: "Gấu Trắng Luna",  badge: "Âm nhạc",  color: "#7C5CFC", sales: 71 },
-  { name: "Gấu Hồng Rosie",  badge: "Khoa học", color: "#4ECDC4", sales: 63 },
-  { name: "Gấu Xám Smoky",   badge: "Lập trình",color: "#FF8C42", sales: 47 },
+  { name: "Gấu Nâu Brownie", badge: "Toán học", color: "#17409A", sales: 84, image: "/teddy_bear.png" },
+  { name: "Gấu Trắng Luna",  badge: "Âm nhạc",  color: "#7C5CFC", sales: 71, image: "/teddy_bear.png" },
+  { name: "Gấu Hồng Rosie",  badge: "Khoa học", color: "#4ECDC4", sales: 63, image: "/teddy_bear.png" },
+  { name: "Gấu Xám Smoky",   badge: "Lập trình",color: "#FF8C42", sales: 47, image: "/teddy_bear.png" },
 ];
 
 export const RECENT_ORDERS = [

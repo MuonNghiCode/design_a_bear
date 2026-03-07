@@ -21,7 +21,7 @@ const BEAR_DECOS = [
 
 export default function StatsHeroCard() {
   return (
-    <div className="relative bg-[#17409A] rounded-3xl p-8 overflow-hidden flex flex-col justify-between min-h-75">
+    <div className="relative bg-[#17409A] rounded-3xl p-5 sm:p-8 overflow-hidden flex flex-col justify-between min-h-75">
       {/* Paw watermarks */}
       {BEAR_DECOS.map((d, i) => (
         <GiPawPrint

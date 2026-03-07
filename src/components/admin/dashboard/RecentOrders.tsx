@@ -62,7 +62,7 @@ export default function RecentOrders() {
 
               {/* Status pill */}
               <span
-                className="text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap shrink-0"
+                className="hidden sm:inline text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap shrink-0"
                 style={{ color: st.color, backgroundColor: st.bg }}
               >
                 {st.label}

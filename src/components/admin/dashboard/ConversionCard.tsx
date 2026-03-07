@@ -9,7 +9,7 @@ const FILLED = (VALUE / 100) * ARC_LENGTH;
 
 export default function ConversionCard() {
   return (
-    <div className="bg-white rounded-3xl p-8 flex flex-col justify-between min-h-75 relative overflow-hidden">
+    <div className="bg-white rounded-3xl p-5 sm:p-8 flex flex-col justify-between min-h-75 relative overflow-hidden">
       {/* Decorative orange circle top-right */}
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#FF8C42]/6 rounded-full pointer-events-none" />
       <div className="absolute -top-3 -right-3 w-16 h-16 bg-[#FF8C42]/8 rounded-full pointer-events-none" />

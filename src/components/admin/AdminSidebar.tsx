@@ -9,6 +9,7 @@ import {
   MdPeople,
   MdBarChart,
   MdSettings,
+  MdClose,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 
@@ -20,11 +21,29 @@ const NAV = [
   { icon: MdBarChart, label: "Thống kê", href: "/admin/analytics" },
 ];
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  open?: boolean;
+  onClose?: () => void;
+}
+
+export default function AdminSidebar({ open = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-18 min-h-screen bg-[#17409A] flex flex-col items-center py-6 fixed left-0 top-0 z-40">
+    <aside
+      className={`w-18 min-h-screen bg-[#17409A] flex flex-col items-center py-6 fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out ${
+        open ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0`}
+    >
+      {/* Close button — mobile only */}
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-2 w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white/60 hover:text-white transition-colors md:hidden"
+        aria-label="Đóng menu"
+      >
+        <MdClose className="text-base" />
+      </button>
+
       {/* Logo */}
       <Link
         href="/"

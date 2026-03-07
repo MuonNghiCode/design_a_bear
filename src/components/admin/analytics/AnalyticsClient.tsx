@@ -58,7 +58,7 @@ export default function AnalyticsClient() {
       </div>
 
       {/* Row 3 — Customer segments + Traffic channels + Geo */}
-      <div className="ac grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="ac grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <div className="min-h-64">
           <CustomerSegments />
         </div>

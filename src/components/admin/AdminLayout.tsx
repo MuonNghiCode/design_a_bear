@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 
@@ -8,18 +9,28 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div
       className="h-screen bg-[#17409A] flex overflow-hidden"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      {/* Sidebar — liền màu với bg ngoài (#17409A) */}
-      <AdminSidebar />
+      {/* Sidebar */}
+      <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       {/* Right panel — chiếm toàn bộ chiều cao, không scroll */}
-      <div className="flex-1 ml-18 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 md:ml-18 flex flex-col h-screen overflow-hidden">
         {/* TopBar — cùng nền #17409A, tạo khối thống nhất với sidebar */}
-        <AdminTopBar />
+        <AdminTopBar onMenuToggle={() => setSidebarOpen((v) => !v)} />
 
         {/* Content frame — sát phải, bo tròn trái, không có padding phải */}
         <div className="flex-1 p-4 overflow-hidden">

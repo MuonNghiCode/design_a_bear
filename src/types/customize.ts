@@ -26,6 +26,10 @@ export interface VoiceOption {
   id: string;
   label: string;
   description: string;
+  sampleText: string;
+  pitch: number;
+  rate: number;
+  gender: "female" | "male" | "child";
 }
 
 export interface AIRecommendation {

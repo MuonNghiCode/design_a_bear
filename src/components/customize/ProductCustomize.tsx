@@ -1130,75 +1130,276 @@ function StepVoice({
   setConfig: React.Dispatch<React.SetStateAction<CustomizeConfig>>;
   accentColor: string;
 }) {
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [sysVoices, setSysVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  // Load system voices (async on Chrome)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const load = () => setSysVoices(window.speechSynthesis.getVoices());
+    load();
+    window.speechSynthesis.addEventListener("voiceschanged", load);
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", load);
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  // Pick best matching system voice for gender — prefer different actual voices for male vs female
+  const pickVoice = (gender: string): SpeechSynthesisVoice | null => {
+    if (!sysVoices.length) return null;
+    const vi = sysVoices.filter((v) => v.lang.startsWith("vi"));
+    const pool = vi.length > 0 ? vi : sysVoices;
+
+    const femaleKeys = [
+      "linh",
+      "hoai",
+      "hoa",
+      "my",
+      "nu",
+      "female",
+      "woman",
+      "girl",
+      "zira",
+      "aria",
+      "jenny",
+      "sonia",
+    ];
+    const maleKeys = [
+      "namminh",
+      "nam minh",
+      " an",
+      "duc",
+      "hung",
+      "male",
+      "man",
+      "david",
+      "mark",
+      "daniel",
+      "ryan",
+      "guy",
+    ];
+
+    const femaleVoice = pool.find((v) =>
+      femaleKeys.some((k) =>
+        v.name.toLowerCase().replace(/\s/g, "").includes(k.replace(/\s/g, "")),
+      ),
+    );
+    const maleVoice = pool.find((v) =>
+      maleKeys.some((k) =>
+        v.name.toLowerCase().replace(/\s/g, "").includes(k.replace(/\s/g, "")),
+      ),
+    );
+
+    if (gender === "male") {
+      // Prefer a distinct male voice; if not found, use last in pool to differ from female fallback
+      return maleVoice ?? (pool.length > 1 ? pool[pool.length - 1] : pool[0]);
+    }
+    if (gender === "female" || gender === "child") {
+      return femaleVoice ?? pool[0];
+    }
+    return pool[0];
+  };
+
+  const handlePreview = (
+    e: React.MouseEvent,
+    voice: (typeof VOICE_OPTIONS)[0],
+  ) => {
+    e.stopPropagation();
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    if (playingId === voice.id) {
+      setPlayingId(null);
+      return;
+    }
+
+    const utter = new SpeechSynthesisUtterance(voice.sampleText);
+    utter.lang = "vi-VN";
+    utter.pitch = voice.pitch;
+    utter.rate = voice.rate;
+    utter.volume = 1;
+    const sv = pickVoice(voice.gender);
+    if (sv) utter.voice = sv;
+    utter.onstart = () => setPlayingId(voice.id);
+    utter.onend = () => setPlayingId(null);
+    utter.onerror = () => setPlayingId(null);
+    window.speechSynthesis.speak(utter);
+  };
+
+  const GENDER_META: Record<
+    string,
+    { label: string; bg: string; color: string; icon: React.ReactNode }
+  > = {
+    female: {
+      label: "Nữ",
+      bg: "#FFF0F6",
+      color: "#FF6B9D",
+      icon: (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle cx="8" cy="6" r="4.5" stroke="#FF6B9D" strokeWidth="1.8" />
+          <path
+            d="M8 10.5V15M6 13h4"
+            stroke="#FF6B9D"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      ),
+    },
+    male: {
+      label: "Nam",
+      bg: "#EFF6FF",
+      color: "#3B82F6",
+      icon: (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle cx="7" cy="9" r="4.5" stroke="#3B82F6" strokeWidth="1.8" />
+          <path
+            d="M10.5 5.5L14 2M14 2h-3M14 2v3"
+            stroke="#3B82F6"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
+    child: {
+      label: "Trẻ em",
+      bg: "#FFFBEB",
+      color: "#F59E0B",
+      icon: (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle cx="8" cy="6" r="3.5" stroke="#F59E0B" strokeWidth="1.8" />
+          <path
+            d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"
+            stroke="#F59E0B"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      ),
+    },
+  };
+
   return (
     <div>
       <StepHeading
         number="04"
         title="Giọng nói của gấu"
-        subtitle="Giọng nói được cá nhân hoá sẽ theo bé suốt hành trình học"
+        subtitle="Chọn giọng phù hợp nhất — nhấn Nghe thử để cảm nhận trước khi quyết định"
         accentColor={accentColor}
       />
-      <div className="flex flex-col gap-4 mt-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
         {VOICE_OPTIONS.map((voice) => {
           const active = config.voice === voice.id;
+          const playing = playingId === voice.id;
+          const meta = GENDER_META[voice.gender];
           return (
             <button
               key={voice.id}
               type="button"
               onClick={() => setConfig((p) => ({ ...p, voice: voice.id }))}
-              className="flex items-center gap-5 p-5 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer"
+              className="flex flex-col gap-3 p-5 rounded-2xl border-2 text-left transition-all duration-200 cursor-pointer"
               style={{
                 borderColor: active ? accentColor : "#E5E7EB",
                 backgroundColor: active ? `${accentColor}08` : "white",
               }}
             >
-              {/* Sound wave icon */}
-              <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-                style={{
-                  backgroundColor: active ? `${accentColor}18` : "#F4F7FF",
-                }}
-              >
-                <svg
-                  width="22"
-                  height="22"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke={active ? accentColor : "#9CA3AF"}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  aria-hidden="true"
+              {/* Top row: gender badge + radio */}
+              <div className="flex items-center justify-between">
+                <span
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-black"
+                  style={{ backgroundColor: meta.bg, color: meta.color }}
                 >
-                  <path d="M9 18V5l12-2v13" />
-                  <circle cx="6" cy="18" r="3" />
-                  <circle cx="18" cy="16" r="3" />
-                </svg>
+                  {meta.icon}
+                  {meta.label}
+                </span>
+                <div
+                  className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200"
+                  style={{
+                    borderColor: active ? accentColor : "#E5E7EB",
+                    backgroundColor: active ? accentColor : "white",
+                  }}
+                >
+                  {active && (
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 12 12"
+                      fill="white"
+                      aria-hidden="true"
+                    >
+                      <circle cx="6" cy="6" r="3" />
+                    </svg>
+                  )}
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="font-black text-[#1A1A2E]">{voice.label}</p>
-                <p className="text-sm text-[#6B7280] mt-0.5">
-                  {voice.description}
-                </p>
-              </div>
-              <div
-                className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200"
+
+              {/* Voice name */}
+              <p className="font-black text-[#1A1A2E]">{voice.label}</p>
+              <p className="text-xs text-[#6B7280] leading-relaxed">
+                {voice.description}
+              </p>
+
+              {/* Preview button */}
+              <button
+                type="button"
+                onClick={(e) => handlePreview(e, voice)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black transition-all duration-150 cursor-pointer border w-fit"
                 style={{
-                  borderColor: active ? accentColor : "#E5E7EB",
-                  backgroundColor: active ? accentColor : "white",
+                  backgroundColor: playing ? accentColor : `${accentColor}12`,
+                  borderColor: playing ? accentColor : `${accentColor}30`,
+                  color: playing ? "white" : accentColor,
                 }}
+                aria-label={playing ? "Dừng" : "Nghe thử"}
               >
-                {active && (
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 12 12"
-                    fill="white"
-                    aria-hidden="true"
-                  >
-                    <circle cx="6" cy="6" r="3" />
-                  </svg>
+                {playing ? (
+                  <>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <rect x="1" y="1" width="4" height="10" rx="1" />
+                      <rect x="7" y="1" width="4" height="10" rx="1" />
+                    </svg>
+                    Dừng
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M2 1.5l9 4.5-9 4.5V1.5Z" />
+                    </svg>
+                    Nghe thử
+                  </>
                 )}
-              </div>
+              </button>
             </button>
           );
         })}

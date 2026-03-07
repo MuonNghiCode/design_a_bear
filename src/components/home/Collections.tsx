@@ -141,7 +141,7 @@ export default function Collections() {
           }}
         />
         <div
-          className="absolute bottom-32 right-16 w-[32rem] h-[32rem] rounded-full"
+          className="absolute bottom-32 right-16 w-lg h-128 rounded-full"
           style={{
             background: "radial-gradient(circle, #7C5CFC 0%, transparent 70%)",
             opacity: 0.02,
@@ -158,17 +158,17 @@ export default function Collections() {
       <PawPrint
         size={38}
         color="#7C5CFC"
-        className="absolute top-1/3 left-24 opacity-[0.05] -rotate-[20deg]"
+        className="absolute top-1/3 left-24 opacity-[0.05] -rotate-20"
       />
       <PawPrint
         size={45}
         color="#FF6B9D"
-        className="absolute bottom-40 left-1/4 opacity-[0.04] rotate-[25deg]"
+        className="absolute bottom-40 left-1/4 opacity-[0.04] rotate-25"
       />
       <PawPrint
         size={40}
         color="#FF8C42"
-        className="absolute bottom-32 right-1/4 opacity-[0.05] -rotate-[15deg]"
+        className="absolute bottom-32 right-1/4 opacity-[0.05] -rotate-15"
       />
 
       <div className="max-w-screen-2xl mx-auto px-8 md:px-16 relative z-10">
@@ -198,7 +198,7 @@ export default function Collections() {
             <Link
               key={col.id}
               href={col.href}
-              className="group relative row-span-2 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-[400px] lg:min-h-[600px]"
+              className="group relative row-span-2 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-100 lg:min-h-150"
             >
               {/* Image */}
               <div className="absolute inset-0">
@@ -275,7 +275,7 @@ export default function Collections() {
             <Link
               key={col.id}
               href={col.href}
-              className="group relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-[280px]"
+              className="group relative rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 min-h-70"
             >
               {/* Image */}
               <div className="absolute inset-0">

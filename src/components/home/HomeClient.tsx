@@ -34,7 +34,7 @@ export default function HomeClient() {
       {introVisible && <LoadingIntro onComplete={handleIntroComplete} />}
 
       {/* Main page content */}
-      <Header />
+      <Header hideOnHero />
       <HeroSection />
       <FeaturedProducts />
       <HowItWorks />

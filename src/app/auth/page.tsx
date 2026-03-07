@@ -4,7 +4,7 @@ import AuthFormPanel from "@/components/auth/AuthFormPanel";
 
 export default function AuthPage() {
   return (
-    <div className="h-screen -mt-20 overflow-hidden relative flex">
+    <div className="h-screen overflow-hidden relative flex">
       <AuthBackground />
       <AuthBrandPanel />
       <AuthFormPanel />

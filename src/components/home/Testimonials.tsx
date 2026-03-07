@@ -193,7 +193,7 @@ export default function Testimonials() {
           }}
         />
         <div
-          className="absolute bottom-32 right-16 w-[32rem] h-[32rem] rounded-full"
+          className="absolute bottom-32 right-16 w-lg h-128 rounded-full"
           style={{
             background: "radial-gradient(circle, #4ECDC4 0%, transparent 70%)",
             opacity: 0.02,
@@ -205,21 +205,21 @@ export default function Testimonials() {
       <PawPrint
         size={45}
         color="#FF6B9D"
-        className="absolute top-20 right-24 opacity-[0.04] rotate-[20deg]"
+        className="absolute top-20 right-24 opacity-[0.04] rotate-20"
       />
       <PawPrint
         size={40}
         color="#4ECDC4"
-        className="absolute top-1/2 left-16 opacity-[0.05] -rotate-[15deg]"
+        className="absolute top-1/2 left-16 opacity-[0.05] -rotate-15"
       />
       <PawPrint
         size={42}
         color="#7C5CFC"
-        className="absolute bottom-32 right-1/4 opacity-[0.04] rotate-[25deg]"
+        className="absolute bottom-32 right-1/4 opacity-[0.04] rotate-25"
       />
 
       {/* ── Large decorative quote mark ── */}
-      <div className="absolute top-16 left-8 text-[#17409A]/[0.03] text-[14rem] font-black leading-none select-none pointer-events-none">
+      <div className="absolute top-16 left-8 text-[#17409A]/3 text-[14rem] font-black leading-none select-none pointer-events-none">
         &ldquo;
       </div>
 
@@ -253,7 +253,7 @@ export default function Testimonials() {
             >
               {/* Duplicate reviews twice for seamless infinite loop */}
               {[...REVIEWS, ...REVIEWS].map((review, i) => (
-                <div key={i} className="w-[550px] flex-shrink-0">
+                <div key={i} className="w-137.5 shrink-0">
                   <div className="bg-white rounded-3xl p-8 md:p-10 flex flex-col shadow-xl h-full">
                     {/* Stars and quote icon */}
                     <div className="flex items-start justify-between mb-6">
@@ -272,7 +272,7 @@ export default function Testimonials() {
                     <div className="flex items-center gap-4 pt-6">
                       {/* Avatar */}
                       <div
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-base flex-shrink-0 shadow-lg"
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-base shrink-0 shadow-lg"
                         style={{ backgroundColor: review.avatarColor }}
                       >
                         {review.avatar}

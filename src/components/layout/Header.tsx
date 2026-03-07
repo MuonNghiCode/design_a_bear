@@ -13,10 +13,19 @@ import {
   IoMenuOutline,
 } from "react-icons/io5";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
-export default function Header() {
+gsap.registerPlugin(ScrollTrigger);
+
+interface HeaderProps {
+  hideOnHero?: boolean;
+}
+
+export default function Header({ hideOnHero = false }: HeaderProps) {
   const { isAuthenticated } = useAuth();
+  const { totalItems, openCart } = useCart();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -26,17 +35,56 @@ export default function Header() {
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openDropdown = (name: string) => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setActiveDropdown(name);
+  };
+
+  const scheduleClose = () => {
+    closeTimerRef.current = setTimeout(() => setActiveDropdown(null), 150);
+  };
 
   useEffect(() => {
-    // Header entrance animation
-    if (headerRef.current) {
+    if (!headerRef.current) return;
+
+    if (hideOnHero) {
+      // Start hidden — will appear after hero section
+      gsap.set(headerRef.current, { y: -100, opacity: 0 });
+
+      const heroEl = document.getElementById("hero-section");
+      if (heroEl) {
+        ScrollTrigger.create({
+          trigger: heroEl,
+          start: "bottom top",
+          onEnter: () => {
+            gsap.to(headerRef.current, {
+              y: 0,
+              opacity: 1,
+              duration: 0.5,
+              ease: "power3.out",
+            });
+          },
+          onLeaveBack: () => {
+            gsap.to(headerRef.current, {
+              y: -100,
+              opacity: 0,
+              duration: 0.3,
+              ease: "power2.in",
+            });
+          },
+        });
+      }
+    } else {
+      // Normal entrance animation
       gsap.fromTo(
         headerRef.current,
         { y: -100, opacity: 0 },
         { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
       );
     }
-  }, []);
+  }, [hideOnHero]);
 
   useEffect(() => {
     // Dropdown animation
@@ -136,8 +184,8 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-8">
               <div
                 className="relative"
-                onMouseEnter={() => setActiveDropdown("shop")}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseEnter={() => openDropdown("shop")}
+                onMouseLeave={scheduleClose}
               >
                 <button className="flex items-center gap-1 text-gray-800 hover:text-blue-600 transition-colors font-medium">
                   Mua sắm
@@ -150,23 +198,25 @@ export default function Header() {
                     ref={(el) => {
                       dropdownRefs.current["shop"] = el;
                     }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2"
+                    onMouseEnter={() => openDropdown("shop")}
+                    onMouseLeave={scheduleClose}
+                    className="absolute top-full left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl py-2 border border-gray-100"
                   >
                     <Link
                       href="/products"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Tất cả sản phẩm
                     </Link>
                     <Link
-                      href="/bears"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      href="/products?category=bear"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Gấu bông
                     </Link>
                     <Link
-                      href="/accessories"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      href="/products?category=accessory"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Phụ kiện
                     </Link>
@@ -176,8 +226,8 @@ export default function Header() {
 
               <div
                 className="relative"
-                onMouseEnter={() => setActiveDropdown("collection")}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseEnter={() => openDropdown("collection")}
+                onMouseLeave={scheduleClose}
               >
                 <button className="flex items-center gap-1 text-gray-800 hover:text-blue-600 transition-colors font-medium">
                   Bộ sưu tập
@@ -190,23 +240,25 @@ export default function Header() {
                     ref={(el) => {
                       dropdownRefs.current["collection"] = el;
                     }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2"
+                    onMouseEnter={() => openDropdown("collection")}
+                    onMouseLeave={scheduleClose}
+                    className="absolute top-full left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl py-2 border border-gray-100"
                   >
                     <Link
                       href="/collections/spring"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Bộ sưu tập xuân
                     </Link>
                     <Link
                       href="/collections/summer"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Bộ sưu tập hè
                     </Link>
                     <Link
                       href="/collections/special"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Phiên bản đặc biệt
                     </Link>
@@ -297,10 +349,19 @@ export default function Header() {
 
               {/* Cart - Always visible */}
               <button
+                onClick={openCart}
                 className="text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110 relative"
                 aria-label="Giỏ hàng"
               >
                 <IoBagOutline className="text-2xl" />
+                {totalItems > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 min-w-4.5 h-4.5 rounded-full flex items-center justify-center text-[10px] font-black text-white"
+                    style={{ backgroundColor: "#FF6B9D", padding: "0 3px" }}
+                  >
+                    {totalItems > 99 ? "99+" : totalItems}
+                  </span>
+                )}
               </button>
 
               {/* Account / CTA - Far Right */}
@@ -334,7 +395,7 @@ export default function Header() {
       {/* Mobile Menu Drawer */}
       <div
         ref={mobileMenuRef}
-        className="fixed top-0 left-0 bottom-0 w-80 bg-white z-[60] md:hidden shadow-2xl -translate-x-full"
+        className="fixed top-0 left-0 bottom-0 w-80 bg-white z-60 md:hidden shadow-2xl -translate-x-full"
         style={{ fontFamily: "'Nunito', sans-serif" }}
       >
         {/* Mobile Menu Header */}
@@ -386,14 +447,14 @@ export default function Header() {
                   Tất cả sản phẩm
                 </Link>
                 <Link
-                  href="/bears"
+                  href="/products?category=bear"
                   onClick={() => setShowMobileMenu(false)}
                   className="block text-gray-600 hover:text-blue-600 transition-colors"
                 >
                   Gấu bông
                 </Link>
                 <Link
-                  href="/accessories"
+                  href="/products?category=accessory"
                   onClick={() => setShowMobileMenu(false)}
                   className="block text-gray-600 hover:text-blue-600 transition-colors"
                 >

@@ -85,3 +85,48 @@ export const HOURLY_HEATMAP: number[][] = [
   [0,0,0,0,0,1,1,2,2,3,3,3,3,2,2,3,3,2,2,3,3,2,1,0],
   [0,0,0,0,0,0,1,1,2,2,3,3,2,2,2,2,2,1,2,2,2,1,1,0],
 ];
+
+// ─── Orders ──────────────────────────────────────────────────────────────────
+
+export type OrderStatus = "pending" | "packing" | "shipping" | "done" | "cancelled";
+
+export interface OrderRow {
+  id: string;
+  customer: string;
+  avatar: string;
+  product: string;
+  badge?: string;
+  badgeColor: string;
+  amount: number;
+  status: OrderStatus;
+  date: string;
+  time: string;
+  city: string;
+}
+
+export const ORDERS: OrderRow[] = [
+  { id: "ORD-047", customer: "Nguyễn Thanh Hoa", avatar: "H", product: "Gấu Nâu Brownie",      badge: "Toán",      badgeColor: "#17409A", amount: 450000, status: "shipping",  date: "07/03", time: "09:14", city: "TP.HCM"   },
+  { id: "ORD-046", customer: "Trần Minh Khoa",   avatar: "K", product: "Gấu Trắng Luna",        badge: "Âm nhạc",   badgeColor: "#FF6B9D", amount: 520000, status: "done",      date: "07/03", time: "08:32", city: "Hà Nội"   },
+  { id: "ORD-045", customer: "Lê Thị Mai Anh",   avatar: "A", product: "Bộ váy Công chúa",      badge: "Phụ kiện",  badgeColor: "#FF8C42", amount: 185000, status: "pending",   date: "07/03", time: "07:55", city: "Đà Nẵng"  },
+  { id: "ORD-044", customer: "Phạm Văn Đức",     avatar: "Đ", product: "Gấu Hồng Rosie",        badge: "Khoa học",  badgeColor: "#4ECDC4", amount: 480000, status: "done",      date: "06/03", time: "22:18", city: "TP.HCM"   },
+  { id: "ORD-043", customer: "Vũ Thu Hằng",      avatar: "H", product: "Gấu Xám Smoky",         badge: "Lập trình", badgeColor: "#7C5CFC", amount: 390000, status: "shipping",  date: "06/03", time: "20:41", city: "Cần Thơ"  },
+  { id: "ORD-042", customer: "Đỗ Quang Huy",     avatar: "H", product: "Gấu Tím Genius",        badge: "Lập trình", badgeColor: "#7C5CFC", amount: 620000, status: "packing",   date: "06/03", time: "18:05", city: "Hải Phòng"},
+  { id: "ORD-041", customer: "Bùi Lan Phương",   avatar: "P", product: "Gấu Kem Storyteller",   badge: "Ngôn ngữ",  badgeColor: "#7C5CFC", amount: 490000, status: "done",      date: "06/03", time: "15:30", city: "Hà Nội"   },
+  { id: "ORD-040", customer: "Hoàng Minh Tuấn",  avatar: "T", product: "Gấu Vàng Sunny",        badge: undefined,   badgeColor: "#FFD93D", amount: 380000, status: "cancelled", date: "06/03", time: "11:22", city: "TP.HCM"   },
+  { id: "ORD-039", customer: "Ngô Thị Kim Anh",  avatar: "A", product: "Gấu Xanh Einstein",     badge: "Khoa học",  badgeColor: "#4ECDC4", amount: 580000, status: "shipping",  date: "05/03", time: "19:48", city: "Hà Nội"   },
+  { id: "ORD-038", customer: "Trương Quốc Bảo",  avatar: "B", product: "Gấu Nâu Brownie",       badge: "Toán",      badgeColor: "#17409A", amount: 450000, status: "done",      date: "05/03", time: "14:12", city: "TP.HCM"   },
+  { id: "ORD-037", customer: "Đinh Thùy Dung",   avatar: "D", product: "Bộ váy Công chúa",      badge: "Phụ kiện",  badgeColor: "#FF8C42", amount: 185000, status: "packing",   date: "05/03", time: "10:55", city: "Đà Nẵng"  },
+  { id: "ORD-036", customer: "Lý Hoàng Long",    avatar: "L", product: "Gấu Trắng Luna",        badge: "Âm nhạc",   badgeColor: "#FF6B9D", amount: 520000, status: "pending",   date: "05/03", time: "09:30", city: "Cần Thơ"  },
+];
+
+export const ORDER_PIPELINE = [
+  { label: "Chờ xử lý",  count: 9,   color: "#FF8C42" },
+  { label: "Đóng gói",   count: 14,  color: "#7C5CFC" },
+  { label: "Vận chuyển", count: 21,  color: "#17409A" },
+  { label: "Hoàn thành", count: 312, color: "#4ECDC4" },
+  { label: "Đã hủy",     count: 8,   color: "#FF6B9D" },
+];
+
+/** Orders last 7 days: Mon → Sun */
+export const ORDERS_LAST_7 = [32, 38, 41, 29, 45, 36, 47];
+

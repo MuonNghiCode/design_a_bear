@@ -26,7 +26,10 @@ interface AdminSidebarProps {
   onClose?: () => void;
 }
 
-export default function AdminSidebar({ open = false, onClose }: AdminSidebarProps) {
+export default function AdminSidebar({
+  open = false,
+  onClose,
+}: AdminSidebarProps) {
   const pathname = usePathname();
 
   return (

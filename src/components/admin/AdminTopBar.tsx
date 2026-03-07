@@ -17,7 +17,11 @@ const TABS = [
   { label: "CÀI ĐẶT", href: "/admin/settings", icon: MdSettings },
 ];
 
-export default function AdminTopBar({ onMenuToggle }: { onMenuToggle?: () => void }) {
+export default function AdminTopBar({
+  onMenuToggle,
+}: {
+  onMenuToggle?: () => void;
+}) {
   const pathname = usePathname();
   const [hasNotif] = useState(true);
 

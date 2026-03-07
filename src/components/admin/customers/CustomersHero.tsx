@@ -48,7 +48,7 @@ const META = [
 
 export default function CustomersHero() {
   return (
-    <div className="relative bg-[#17409A] rounded-3xl overflow-hidden p-6 sm:p-8 h-full flex flex-col justify-between min-h-64">
+    <div className="relative bg-[#17409A] rounded-3xl overflow-hidden p-6 sm:p-8 flex flex-col min-h-64">
       {/* Paw watermarks */}
       <GiPawPrint
         className="absolute -top-12 -right-8 text-white/4 pointer-events-none"

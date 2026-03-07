@@ -14,9 +14,11 @@ import {
 } from "react-icons/io5";
 import gsap from "gsap";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 
 export default function Header() {
   const { isAuthenticated } = useAuth();
+  const { totalItems, openCart } = useCart();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -311,10 +313,19 @@ export default function Header() {
 
               {/* Cart - Always visible */}
               <button
+                onClick={openCart}
                 className="text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110 relative"
                 aria-label="Giỏ hàng"
               >
                 <IoBagOutline className="text-2xl" />
+                {totalItems > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 min-w-4.5 h-4.5 rounded-full flex items-center justify-center text-[10px] font-black text-white"
+                    style={{ backgroundColor: "#FF6B9D", padding: "0 3px" }}
+                  >
+                    {totalItems > 99 ? "99+" : totalItems}
+                  </span>
+                )}
               </button>
 
               {/* Account / CTA - Far Right */}

@@ -130,3 +130,42 @@ export const ORDER_PIPELINE = [
 /** Orders last 7 days: Mon → Sun */
 export const ORDERS_LAST_7 = [32, 38, 41, 29, 45, 36, 47];
 
+// ─── Products Admin ───────────────────────────────────────────────────────────
+
+export type ProductAdminStatus = "active" | "draft" | "archived";
+
+export interface ProductAdmin {
+  id: string;
+  name: string;
+  image: string;
+  badge?: string;
+  badgeColor: string;
+  category: "complete" | "bear" | "accessory";
+  price: number;
+  stock: number;
+  sold: number;
+  rating: number;
+  status: ProductAdminStatus;
+  popular: boolean;
+}
+
+export const PRODUCTS_ADMIN: ProductAdmin[] = [
+  { id: "bear-brown-happy",   name: "Gấu Nâu Dudu Hạnh Phúc",       image: "/teddy_bear.png", badge: "Toán",       badgeColor: "#17409A", category: "complete",  price: 450000, stock: 38, sold: 84, rating: 4.9, status: "active",   popular: true  },
+  { id: "bear-pink-melody",   name: "Gấu Trắng Bubu Âm Nhạc",       image: "/teddy_bear.png", badge: "Âm nhạc",    badgeColor: "#FF6B9D", category: "complete",  price: 520000, stock: 24, sold: 71, rating: 4.8, status: "active",   popular: true  },
+  { id: "bear-blue-einstein", name: "Gấu Xanh Einstein Khám Phá",    image: "/teddy_bear.png", badge: "Khoa học",   badgeColor: "#4ECDC4", category: "complete",  price: 580000, stock: 51, sold: 63, rating: 4.7, status: "active",   popular: false },
+  { id: "bear-cream-story",   name: "Gấu Kem Storyteller Kể Chuyện", image: "/teddy_bear.png", badge: "Ngôn ngữ",   badgeColor: "#7C5CFC", category: "complete",  price: 490000, stock: 19, sold: 58, rating: 4.8, status: "active",   popular: true  },
+  { id: "bear-white-picasso", name: "Gấu Trắng Picasso Nghệ Sĩ",     image: "/teddy_bear.png", badge: "Nghệ thuật", badgeColor: "#FF8C42", category: "bear",      price: 460000, stock: 12, sold: 42, rating: 4.6, status: "active",   popular: false },
+  { id: "bear-yellow-sunny",  name: "Gấu Vàng Sunny Bạn Đồng Hành",  image: "/teddy_bear.png", badge: "Gấu bông",    badgeColor: "#FFD93D", category: "bear",      price: 380000, stock: 6,  sold: 35, rating: 4.5, status: "active",   popular: false },
+  { id: "bear-purple-genius", name: "Gấu Tím Genius Lập Trình",       image: "/teddy_bear.png", badge: "Lập trình",  badgeColor: "#7C5CFC", category: "bear",      price: 620000, stock: 29, sold: 47, rating: 4.9, status: "active",   popular: true  },
+  { id: "outfit-princess",    name: "Bộ Váy Công Chúa Hoàng Gia",    image: "/teddy_bear.png", badge: "Phụ kiện",   badgeColor: "#FF8C42", category: "accessory", price: 185000, stock: 73, sold: 31, rating: 4.4, status: "active",   popular: false },
+  { id: "outfit-space",       name: "Đồ Phi Hành Gia Vũ Trụ",        image: "/teddy_bear.png", badge: "Phụ kiện",   badgeColor: "#FF6B9D", category: "accessory", price: 210000, stock: 0,  sold: 29, rating: 4.6, status: "archived", popular: true  },
+  { id: "bear-red-dragon",    name: "Gấu Đỏ Dragon Dũng Cảm",        image: "/teddy_bear.png", badge: "Thể thao",   badgeColor: "#FF6B9D", category: "bear",      price: 540000, stock: 0,  sold: 0,  rating: 0,   status: "draft",    popular: false },
+  { id: "outfit-dino",        name: "Trang Phục Khủng Long Xanh",     image: "/teddy_bear.png", badge: "Phụ kiện",   badgeColor: "#4ECDC4", category: "accessory", price: 195000, stock: 0,  sold: 0,  rating: 0,   status: "draft",    popular: false },
+];
+
+export const PRODUCT_CATEGORY_STATS = [
+  { key: "complete",  label: "Gấu hoàn chỉnh", count: 4,  sold: 276, color: "#17409A" },
+  { key: "bear",      label: "Thân gấu",        count: 4,  sold: 124, color: "#7C5CFC" },
+  { key: "accessory", label: "Phụ kiện",         count: 3,  sold: 60,  color: "#FF8C42" },
+];
+

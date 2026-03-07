@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   IoArrowBack,
@@ -10,27 +11,19 @@ import {
 import { MdDashboard, MdBarChart, MdSettings } from "react-icons/md";
 
 const TABS = [
-  { label: "TỔNG QUAN", key: "dashboard", icon: MdDashboard },
-  { label: "PHÂN TÍCH", key: "insights", icon: MdBarChart },
-  { label: "CÀI ĐẶT", key: "settings", icon: MdSettings },
+  { label: "TỔNG QUAN", href: "/admin", icon: MdDashboard },
+  { label: "PHÂN TÍCH", href: "/admin/analytics", icon: MdBarChart },
+  { label: "CÀI ĐẶT", href: "/admin/settings", icon: MdSettings },
 ];
 
-const ADMINS = [
-  { initial: "H", color: "#4ECDC4" },
-  { initial: "M", color: "#7C5CFC" },
-  { initial: "A", color: "#FF8C42" },
-];
-
-interface AdminTopBarProps {
-  activeTab?: string;
-  onTabChange?: (tab: string) => void;
-}
-
-export default function AdminTopBar({
-  activeTab = "dashboard",
-  onTabChange,
-}: AdminTopBarProps) {
+export default function AdminTopBar() {
+  const pathname = usePathname();
   const [hasNotif] = useState(true);
+
+  function isActive(href: string) {
+    if (href === "/admin") return pathname === "/admin";
+    return pathname.startsWith(href);
+  }
 
   return (
     /* Cùng nền #17409A với sidebar — liên kết trực quan thành một khối */
@@ -48,19 +41,20 @@ export default function AdminTopBar({
       <div className="flex items-center gap-0.5 bg-white/10 rounded-2xl p-1">
         {TABS.map((tab) => {
           const Icon = tab.icon;
+          const active = isActive(tab.href);
           return (
-            <button
-              key={tab.key}
-              onClick={() => onTabChange?.(tab.key)}
+            <Link
+              key={tab.href}
+              href={tab.href}
               className={`flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black tracking-[0.12em] transition-all duration-200 ${
-                activeTab === tab.key
+                active
                   ? "bg-white text-[#17409A] shadow-sm"
                   : "text-white/55 hover:text-white hover:bg-white/10"
               }`}
             >
               <Icon className="text-sm" />
               {tab.label}
-            </button>
+            </Link>
           );
         })}
       </div>
@@ -79,10 +73,10 @@ export default function AdminTopBar({
         </button>
 
         {/* Divider */}
-        <div className="w-px h-6 bg-white/15" />
+        {/* <div className="w-px h-6 bg-white/15" /> */}
 
         {/* Avatar stack */}
-        <div className="flex items-center">
+        {/* <div className="flex items-center">
           {ADMINS.map((a, i) => (
             <div
               key={i}
@@ -99,7 +93,7 @@ export default function AdminTopBar({
           <span className="ml-2.5 text-xs text-white/50 font-bold">
             3 admins
           </span>
-        </div>
+        </div> */}
       </div>
     </header>
   );

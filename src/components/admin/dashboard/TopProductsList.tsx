@@ -1,4 +1,4 @@
-import { GiBearFace } from "react-icons/gi";
+import { GiPawPrint } from "react-icons/gi";
 import { TOP_PRODUCTS } from "@/data/admin";
 
 const MAX_SALES = TOP_PRODUCTS[0].sales;
@@ -33,7 +33,7 @@ export default function TopProductsList() {
               className="relative w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
               style={{ backgroundColor: p.color + "18" }}
             >
-              <GiBearFace className="text-xl" style={{ color: p.color }} />
+              <GiPawPrint className="text-xl" style={{ color: p.color }} />
               {/* Rank badge */}
               <span
                 className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white"
@@ -84,7 +84,7 @@ export default function TopProductsList() {
 
       {/* Bottom paw decoration */}
       <div className="flex justify-end mt-4 opacity-5">
-        <GiBearFace className="text-5xl text-[#17409A]" />
+        <GiPawPrint className="text-5xl text-[#17409A]" />
       </div>
     </div>
   );

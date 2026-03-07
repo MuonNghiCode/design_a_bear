@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 
@@ -9,8 +8,6 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const [activeTab, setActiveTab] = useState("dashboard");
-
   return (
     <div
       className="h-screen bg-[#17409A] flex overflow-hidden"
@@ -22,7 +19,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Right panel — chiếm toàn bộ chiều cao, không scroll */}
       <div className="flex-1 ml-18 flex flex-col h-screen overflow-hidden">
         {/* TopBar — cùng nền #17409A, tạo khối thống nhất với sidebar */}
-        <AdminTopBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <AdminTopBar />
 
         {/* Content frame — sát phải, bo tròn trái, không có padding phải */}
         <div className="flex-1 p-4 overflow-hidden">

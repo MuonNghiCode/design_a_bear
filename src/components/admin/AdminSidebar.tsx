@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   MdDashboard,
@@ -9,12 +10,12 @@ import {
   MdBarChart,
   MdSettings,
 } from "react-icons/md";
-import { GiBearFace } from "react-icons/gi";
+import { GiPawPrint } from "react-icons/gi";
 
 const NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/admin" },
   { icon: MdShoppingBag, label: "Đơn hàng", href: "/admin/orders" },
-  { icon: GiBearFace, label: "Sản phẩm", href: "/admin/products" },
+  { icon: GiPawPrint, label: "Sản phẩm", href: "/admin/products" },
   { icon: MdPeople, label: "Khách hàng", href: "/admin/customers" },
   { icon: MdBarChart, label: "Thống kê", href: "/admin/analytics" },
 ];
@@ -27,10 +28,16 @@ export default function AdminSidebar() {
       {/* Logo */}
       <Link
         href="/"
-        className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center mb-8 hover:bg-white/25 transition-colors"
+        className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center mb-8 hover:bg-white/25 transition-colors overflow-hidden"
         title="Về trang chủ"
       >
-        <GiBearFace className="text-white text-2xl" />
+        <Image
+          src="/logo.webp"
+          alt="Design a Bear"
+          width={36}
+          height={36}
+          className="object-contain"
+        />
       </Link>
 
       {/* Nav */}

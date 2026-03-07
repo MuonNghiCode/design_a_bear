@@ -1,5 +1,5 @@
 import { MdTrendingUp } from "react-icons/md";
-import { GiBearFace } from "react-icons/gi";
+import { GiPawPrint } from "react-icons/gi";
 
 const VALUE = 73;
 // Semi-circle gauge: M 15 100 A 85 85 0 0 1 185 100
@@ -84,9 +84,9 @@ export default function ConversionCard() {
           })()}
         </svg>
 
-        {/* Bear icon center-bottom of gauge */}
+        {/* Paw icon center-bottom of gauge */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center -mb-1">
-          <GiBearFace className="text-[#FF8C42]/25 text-4xl" />
+          <GiPawPrint className="text-[#FF8C42]/25 text-4xl" />
         </div>
       </div>
 

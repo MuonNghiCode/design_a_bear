@@ -4,7 +4,7 @@ import {
   MdTrendingUp,
   MdShoppingBag,
 } from "react-icons/md";
-import { GiBearFace } from "react-icons/gi";
+import { GiPawPrint } from "react-icons/gi";
 import { QUICK_STATS } from "@/data/admin";
 
 const MINI = [
@@ -22,9 +22,9 @@ const BEAR_DECOS = [
 export default function StatsHeroCard() {
   return (
     <div className="relative bg-[#17409A] rounded-3xl p-8 overflow-hidden flex flex-col justify-between min-h-75">
-      {/* Bear watermarks */}
+      {/* Paw watermarks */}
       {BEAR_DECOS.map((d, i) => (
-        <GiBearFace
+        <GiPawPrint
           key={i}
           className="absolute pointer-events-none"
           style={{

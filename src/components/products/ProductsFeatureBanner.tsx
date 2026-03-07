@@ -24,7 +24,13 @@ function PawSVG({ size, color }: { size: number; color: string }) {
 /* ── Feature icon SVGs ───────────────────────── */
 function IconAI() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      className="w-6 h-6"
+    >
       <path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3h-1v1a4 4 0 0 1-8 0v-1H7a3 3 0 0 1-3-3v-2a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4z" />
       <circle cx="9" cy="10" r="1" fill="currentColor" stroke="none" />
       <circle cx="15" cy="10" r="1" fill="currentColor" stroke="none" />
@@ -35,7 +41,13 @@ function IconAI() {
 
 function IconLeaf() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      className="w-6 h-6"
+    >
       <path d="M2 22 12 12" strokeLinecap="round" />
       <path d="M12 12C12 7 16 3 21 3c0 5-4 9-9 9z" />
     </svg>
@@ -44,7 +56,13 @@ function IconLeaf() {
 
 function IconBrush() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      className="w-6 h-6"
+    >
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L3 14.67V21h6.33L20.84 9.5a5.5 5.5 0 0 0 0-7.78v-.11z" />
       <path d="M16 8l-2-2" strokeLinecap="round" />
     </svg>
@@ -53,7 +71,13 @@ function IconBrush() {
 
 function IconTruck() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      className="w-6 h-6"
+    >
       <rect x="1" y="3" width="15" height="13" rx="1" />
       <path d="M16 8h4l3 5v4h-7V8z" />
       <circle cx="5.5" cy="18.5" r="2.5" />
@@ -73,12 +97,12 @@ type PawPos = {
 };
 
 const PAWS: PawPos[] = [
-  { top: "5%",  left: "2%",   size: 56, rotate: -25, opacity: 0.07 },
-  { top: "18%", right: "3%",  size: 38, rotate:  20, opacity: 0.06 },
-  { top: "50%", left: "38%",  size: 24, rotate:  12, opacity: 0.05 },
-  { bottom: "8%",  left: "9%",   size: 44, rotate:  38, opacity: 0.06 },
-  { bottom: "5%",  right: "14%", size: 32, rotate: -18, opacity: 0.07 },
-  { top: "70%", right: "28%", size: 18, rotate:  55, opacity: 0.05 },
+  { top: "5%", left: "2%", size: 56, rotate: -25, opacity: 0.07 },
+  { top: "18%", right: "3%", size: 38, rotate: 20, opacity: 0.06 },
+  { top: "50%", left: "38%", size: 24, rotate: 12, opacity: 0.05 },
+  { bottom: "8%", left: "9%", size: 44, rotate: 38, opacity: 0.06 },
+  { bottom: "5%", right: "14%", size: 32, rotate: -18, opacity: 0.07 },
+  { top: "70%", right: "28%", size: 18, rotate: 55, opacity: 0.05 },
 ];
 
 const FEATURES = [
@@ -115,8 +139,8 @@ const FEATURES = [
 const STATS = [
   { value: "10,000+", label: "Gia đình tin dùng" },
   { value: "4.9 / 5", label: "Đánh giá trung bình" },
-  { value: "98%",     label: "Khách hàng hài lòng" },
-  { value: "50+",     label: "Mẫu gấu độc quyền" },
+  { value: "98%", label: "Khách hàng hài lòng" },
+  { value: "50+", label: "Mẫu gấu độc quyền" },
 ];
 
 export default function ProductsFeatureBanner() {
@@ -158,8 +182,10 @@ export default function ProductsFeatureBanner() {
           key={i}
           className="absolute pointer-events-none select-none"
           style={{
-            top: p.top, bottom: p.bottom,
-            left: p.left, right: p.right,
+            top: p.top,
+            bottom: p.bottom,
+            left: p.left,
+            right: p.right,
             transform: `rotate(${p.rotate}deg)`,
             opacity: p.opacity,
           }}
@@ -169,7 +195,6 @@ export default function ProductsFeatureBanner() {
       ))}
 
       <div className="max-w-screen-2xl mx-auto px-6 md:px-16">
-
         {/* ── Section header ── */}
         <div className="text-center mb-14 md:mb-18">
           <p className="feat-anim text-[#93BBFF] font-bold text-xs uppercase tracking-[0.22em] mb-4">
@@ -183,7 +208,6 @@ export default function ProductsFeatureBanner() {
 
         {/* ── Main content: feature cards (left) + bear (right) ── */}
         <div className="flex flex-col lg:flex-row gap-10 lg:gap-14 items-stretch mb-14 md:mb-18">
-
           {/* Feature cards — 2×2 grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
             {FEATURES.map(({ Icon, accent, title, desc, num }) => (
@@ -192,9 +216,7 @@ export default function ProductsFeatureBanner() {
                 className="feat-anim group relative bg-white/5 border border-white/10 rounded-3xl p-6 hover:bg-white/9 hover:border-white/20 transition-all duration-300 overflow-hidden"
               >
                 {/* Ghost number watermark */}
-                <span
-                  className="absolute -top-2 -right-1 font-black text-7xl leading-none text-white/4 select-none pointer-events-none"
-                >
+                <span className="absolute -top-2 -right-1 font-black text-7xl leading-none text-white/4 select-none pointer-events-none">
                   {num}
                 </span>
 
@@ -262,8 +284,12 @@ export default function ProductsFeatureBanner() {
                 i < STATS.length - 1 ? "border-r border-white/10" : ""
               }`}
             >
-              <p className="text-white font-black text-xl md:text-2xl">{s.value}</p>
-              <p className="text-white/45 text-xs mt-1 leading-tight">{s.label}</p>
+              <p className="text-white font-black text-xl md:text-2xl">
+                {s.value}
+              </p>
+              <p className="text-white/45 text-xs mt-1 leading-tight">
+                {s.label}
+              </p>
             </div>
           ))}
         </div>

@@ -21,9 +21,7 @@ import { StepConfirm } from "./StepConfirm";
 import { SuccessScreen } from "./SuccessScreen";
 import { OrderSummary } from "./OrderSummary";
 
-/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-   Main Component
-   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/*  Main Component */
 export default function CheckoutClient() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<DeliveryForm>({
@@ -57,7 +55,7 @@ export default function CheckoutClient() {
   const DISCOUNT = couponApplied ? 50_000 : 0;
   const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
 
-  /* â”€â”€ Step transitions â”€â”€ */
+  /*  Step transitions  */
   const transition = useCallback((nextStep: number, direction: 1 | -1) => {
     gsap.to(contentRef.current, {
       x: direction * -40,
@@ -117,7 +115,7 @@ export default function CheckoutClient() {
     else router.back();
   }, [step, transition, router]);
 
-  /* â”€â”€ Entrance animation â”€â”€ */
+  /*  Entrance animation  */
   useEffect(() => {
     gsap.fromTo(
       contentRef.current,
@@ -126,7 +124,7 @@ export default function CheckoutClient() {
     );
   }, []);
 
-  /* â”€â”€ Empty cart redirect â”€â”€ */
+  /* Empty cart redirect */
   if (totalItems === 0 && !orderPlaced) {
     return (
       <div
@@ -170,9 +168,9 @@ export default function CheckoutClient() {
         backgroundColor: "#F4F7FF",
       }}
     >
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• LEFT PANEL â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/*  LEFT PANEL */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* â”€â”€ Mini nav header â”€â”€ */}
+        {/* Mini nav header  */}
         <header
           className="px-8 py-5 flex items-center justify-between shrink-0"
           style={{ borderBottom: "1px solid #E5E7EB" }}
@@ -201,7 +199,7 @@ export default function CheckoutClient() {
           </div>
         </header>
 
-        {/* â”€â”€ Scrollable content â”€â”€ */}
+        {/*  Scrollable content  */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-2xl mx-auto px-8 py-10">
             {/* Page title */}
@@ -267,7 +265,7 @@ export default function CheckoutClient() {
               )}
             </div>
 
-            {/* â”€â”€ Navigation buttons â”€â”€ */}
+            {/* Navigation buttons  */}
             {!orderPlaced && (
               <div
                 className="flex items-center justify-between mt-10 pt-6"
@@ -321,7 +319,7 @@ export default function CheckoutClient() {
         </div>
       </div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• RIGHT PANEL â€” Order Summary â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* RIGHT PANEL â€” Order Summary*/}
       <div
         className="hidden lg:flex flex-col shrink-0 sticky top-0 h-screen overflow-hidden"
         style={{ width: 400 }}
@@ -338,7 +336,7 @@ export default function CheckoutClient() {
         />
       </div>
 
-      {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â• MOBILE: Bottom bar â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+      {/* MOBILE: Bottom bar */}
       {!orderPlaced && (
         <div
           className="lg:hidden fixed bottom-0 left-0 right-0 p-4 flex items-center justify-between z-50"

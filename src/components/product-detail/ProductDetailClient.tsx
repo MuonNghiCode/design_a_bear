@@ -9,6 +9,8 @@ import ProductInfoPanel from "./ProductInfoPanel";
 import ProductSpecs from "./ProductSpecs";
 import ProductReviews from "./ProductReviews";
 import ProductRelated from "./ProductRelated";
+import ProductCustomize from "@/components/customize/ProductCustomize";
+import AccessorySpecs from "./AccessorySpecs";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -62,8 +64,17 @@ export default function ProductDetailClient({
         </div>
       </section>
 
-      {/* ── Feature Specs ── */}
-      <ProductSpecs accentColor={product.badgeColor || "#17409A"} />
+      {/* ── Customize (bear category only) ── */}
+      {product.category === "bear" && (
+        <ProductCustomize accentColor={product.badgeColor || "#17409A"} />
+      )}
+
+      {/* ── Specs (accessory = material/size info, others = AI tech specs) ── */}
+      {product.category === "accessory" ? (
+        <AccessorySpecs accentColor={product.badgeColor || "#17409A"} />
+      ) : (
+        <ProductSpecs accentColor={product.badgeColor || "#17409A"} />
+      )}
 
       {/* ── Reviews ── */}
       <ProductReviews accentColor={product.badgeColor || "#17409A"} />

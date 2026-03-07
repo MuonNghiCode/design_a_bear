@@ -132,6 +132,70 @@ Icon:       w-12 h-12 rounded-full bg-[#17409A]/10 text-[#17409A] flex items-cen
 
 ---
 
+## 🧱 Component Architecture — BẮT BUỘC chia nhỏ
+
+### Nguyên tắc TUYỆT ĐỐI
+> **MỌI trang đều PHẢI được chia thành các component nhỏ.** KHÔNG ĐƯỢC viết toàn bộ nội dung trong 1 file `page.tsx`. File `page.tsx` chỉ đóng vai trò **orchestrator** — import và sắp xếp các component.
+
+### Cấu trúc file cho mỗi trang
+```
+src/
+├── app/[tên-trang]/
+│   └── page.tsx                ← CHỈ import + layout, KHÔNG chứa logic/UI phức tạp
+└── components/[tên-trang]/
+    ├── HeroSection.tsx         ← Mỗi section là 1 component riêng
+    ├── ProductGrid.tsx
+    ├── FilterSidebar.tsx
+    └── ...
+```
+
+### Quy tắc chia component
+1. **Mỗi section trên trang = 1 component riêng** (Hero, Features, Products, Testimonials...)
+2. **Mỗi UI pattern lặp lại = 1 component riêng** (ProductCard, ReviewCard, Badge...)
+3. **Mỗi form = 1 component riêng** (LoginForm, SearchForm, NewsletterForm...)
+4. **Mỗi interactive element phức tạp = 1 component riêng** (Dropdown, Modal, Tabs...)
+5. **File `page.tsx` tối đa ~30-50 dòng** — chỉ import và render components
+
+### Ví dụ `page.tsx` đúng chuẩn
+```tsx
+// ✅ ĐÚNG — page.tsx chỉ là orchestrator
+import HeroSection from "@/src/components/home/HeroSection";
+import FeaturedProducts from "@/src/components/home/FeaturedProducts";
+import HowItWorks from "@/src/components/home/HowItWorks";
+import Testimonials from "@/src/components/home/Testimonials";
+
+export default function HomePage() {
+  return (
+    <>
+      <HeroSection />
+      <FeaturedProducts />
+      <HowItWorks />
+      <Testimonials />
+    </>
+  );
+}
+```
+
+### ❌ SAI — KHÔNG viết như thế này
+```tsx
+// ❌ SAI — mọi thứ gom vào 1 file
+export default function HomePage() {
+  return (
+    <div>
+      {/* 500+ dòng HTML/JSX ở đây */}
+    </div>
+  );
+}
+```
+
+### Đặt tên component
+- **PascalCase**: `HeroSection`, `ProductCard`, `FilterSidebar`
+- **Tên mô tả rõ ràng**: Đọc tên phải biết component làm gì
+- **Folder theo trang**: `components/home/`, `components/products/`, `components/auth/`
+- **Component dùng chung**: `components/shared/` hoặc `components/ui/`
+
+---
+
 ## ✨ Animation Guidelines (GSAP) — Mượt mà, tinh tế, KHÔNG lố
 
 ### Triết lý animation
@@ -280,3 +344,51 @@ gsap.fromTo(header,
 8. ❌ Font hệ thống mặc định — Luôn import Google Fonts phù hợp
 9. ❌ Nút bấm, card không có hover effect — MỌI interactive element phải có transition
 10. ❌ Animation chạy nhiều lần — Dùng `once: true` trong ScrollTrigger
+
+---
+
+## 🔐 Auth Pages (Login / Register / Forgot Password)
+
+### Cấu trúc file
+```
+src/
+├── app/auth/page.tsx            # Orchestrator — chỉ chứa layout, import AuthCard
+└── components/auth/
+    ├── AuthCard.tsx             # Card wrapper + GSAP animation controller
+    ├── LoginForm.tsx            # Form đăng nhập
+    ├── RegisterForm.tsx         # Form đăng ký
+    ├── ForgotForm.tsx           # Form quên mật khẩu
+    ├── InputField.tsx           # Input có icon + toggle show/hide password
+    └── SocialButtons.tsx        # Google + Facebook + divider
+```
+
+### Card Style
+```
+bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl shadow-[#17409A]/10
+max-w-md px-10 py-10
+```
+> Nền trắng **70% opacity** + **backdrop-blur-xl** — background blobs hiện qua
+
+### Background Layout
+- `/login-background.png` (pastel blob theme) fill toàn trang — `object-cover`
+- Left `w-full lg:w-[48%]` → AuthCard
+- Right `hidden lg:flex flex-1` → teddy bear float + brand text
+
+### Animation Pattern (GSAP)
+```js
+// Exit: fly UP
+gsap.to(fields, { y: -36, opacity: 0, duration: 0.25, stagger: 0.04, ease: "power2.in" })
+// Sau đó setMode(next)
+
+// Enter: fly IN từ dưới (trong useEffect[mode])
+gsap.set(fields, { y: 36, opacity: 0 });
+gsap.to(fields, { y: 0, opacity: 1, duration: 0.38, stagger: 0.07, ease: "power2.out" })
+```
+- Mỗi section trong form phải có class **`field-item`** để GSAP target đúng
+- Dùng `isAnimating` ref để tránh click spam gây animation glitch
+
+### Font & Rules
+- Font: **Nunito** (700/800/900) với Vietnamese subset — KHÔNG dùng Fredoka cho tiếng Việt
+- ❌ Không để toàn bộ logic trong 1 file page.tsx — tách từng form ra component
+- ❌ Card KHÔNG dùng nền tối — glassmorphism trắng + blur
+- ✅ Social login (Google + Facebook) có mặt ở cả 3 mode

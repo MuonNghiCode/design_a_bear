@@ -334,7 +334,7 @@ export default function Header() {
       {/* Mobile Menu Drawer */}
       <div
         ref={mobileMenuRef}
-        className="fixed top-0 left-0 bottom-0 w-80 bg-white z-[60] md:hidden shadow-2xl -translate-x-full"
+        className="fixed top-0 left-0 bottom-0 w-80 bg-white z-60 md:hidden shadow-2xl -translate-x-full"
         style={{ fontFamily: "'Nunito', sans-serif" }}
       >
         {/* Mobile Menu Header */}

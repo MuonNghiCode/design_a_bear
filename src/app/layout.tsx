@@ -27,7 +27,7 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-nunito), Nunito, sans-serif" }}
       >
         <Providers>
-          <main className="pt-20">{children}</main>
+          <main>{children}</main>
         </Providers>
       </body>
     </html>

@@ -6,8 +6,6 @@ import {
   MdSearch,
   MdAdd,
   MdEdit,
-  MdVisibility,
-  MdVisibilityOff,
   MdMoreVert,
   MdStar,
   MdGridView,
@@ -72,10 +70,19 @@ function StockBadge({ stock }: { stock: number }) {
 }
 
 // ── Luxe product grid card ───────────────────────────────────────────────────
-function ProductCard({ p }: { p: ProductAdmin }) {
+function ProductCard({
+  p,
+  onView,
+}: {
+  p: ProductAdmin;
+  onView: (p: ProductAdmin) => void;
+}) {
   const st = STATUS_CFG[p.status];
   return (
-    <div className="group bg-[#F8F9FF] rounded-2xl overflow-hidden border border-transparent hover:border-[#17409A]/10 hover:shadow-lg hover:shadow-[#17409A]/5 transition-all duration-300 cursor-pointer relative">
+    <div
+      onClick={() => onView(p)}
+      className="group bg-[#F8F9FF] rounded-2xl overflow-hidden border border-transparent hover:border-[#17409A]/10 hover:shadow-lg hover:shadow-[#17409A]/5 transition-all duration-300 cursor-pointer relative"
+    >
       {/* Category color top stripe */}
       <div className="h-0.5 w-full" style={{ backgroundColor: p.badgeColor }} />
 
@@ -165,20 +172,26 @@ function ProductCard({ p }: { p: ProductAdmin }) {
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 pt-1 border-t border-[#E9ECEF]">
-          <button className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-[#17409A] bg-[#17409A]/8 hover:bg-[#17409A]/15 rounded-xl py-2 transition-colors">
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-[#17409A] bg-[#17409A]/8 hover:bg-[#17409A]/15 rounded-xl py-2 transition-colors"
+          >
             <MdEdit className="text-sm" /> Sửa
           </button>
           <button
-            className="w-8 h-8 flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F7FF] rounded-xl transition-all"
-            title={p.status === "active" ? "Ẩn sản phẩm" : "Hiện sản phẩm"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(p);
+            }}
+            className="w-8 h-8 flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 rounded-xl transition-all"
+            title="Xem chi tiết"
           >
-            {p.status === "active" ? (
-              <MdVisibility className="text-base" />
-            ) : (
-              <MdVisibilityOff className="text-base" />
-            )}
+            <MdRemoveRedEye className="text-base" />
           </button>
-          <button className="w-8 h-8 flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F7FF] rounded-xl transition-all">
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="w-8 h-8 flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F7FF] rounded-xl transition-all"
+          >
             <MdMoreVert className="text-base" />
           </button>
         </div>
@@ -215,7 +228,10 @@ function ProductRow({
   };
 
   return (
-    <tr className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer">
+    <tr
+      onClick={() => onView(p)}
+      className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer"
+    >
       {/* Product */}
       <td className="py-3 pr-4">
         <div className="flex items-center gap-3">
@@ -306,25 +322,26 @@ function ProductRow({
       <td className="py-3">
         <div className="flex items-center gap-1">
           <button
-            onClick={() => onView(p)}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all"
-            title="Xem chi tiết"
-          >
-            <MdRemoveRedEye className="text-sm" />
-          </button>
-          <button
+            onClick={(e) => e.stopPropagation()}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all"
             title="Chỉnh sửa"
           >
             <MdEdit className="text-sm" />
           </button>
           <button
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F7FF] transition-all"
-            title="Ẩn/Hiện"
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(p);
+            }}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all"
+            title="Xem chi tiết"
           >
-            <MdVisibility className="text-sm" />
+            <MdRemoveRedEye className="text-sm" />
           </button>
-          <button className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F7FF] transition-all">
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F7FF] transition-all"
+          >
             <MdMoreVert className="text-sm" />
           </button>
         </div>
@@ -504,7 +521,7 @@ export default function ProductsGrid() {
             {filtered.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filtered.map((p: ProductAdmin) => (
-                  <ProductCard key={p.id} p={p} />
+                  <ProductCard key={p.id} p={p} onView={setSelected} />
                 ))}
               </div>
             ) : (

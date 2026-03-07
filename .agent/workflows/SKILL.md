@@ -347,7 +347,82 @@ gsap.fromTo(header,
 
 ---
 
-## 🔐 Auth Pages (Login / Register / Forgot Password)
+## � Data & Type Separation — BẮT BUỘC tách ra ngoài component
+
+### Nguyên tắc TUYỆT ĐỐI
+> **KHÔNG BAO GIỜ** đặt mock data, constant arrays hay TypeScript types/interfaces trực tiếp bên trong file component. Mọi data và type phải nằm ở file riêng để dễ tái sử dụng, dễ thay thế bằng API thật sau này.
+
+### Cấu trúc thư mục
+```
+src/
+├── data/
+│   ├── products.ts       ← Mock products array
+│   ├── collections.ts    ← Mock collections
+│   └── ...               ← Mỗi domain có 1 file riêng
+├── types/
+│   ├── products.ts       ← ProductItem, Category, SortOption, ProductsClientProps
+│   ├── collections.ts    ← CollectionItem, ...
+│   ├── responses.ts      ← API response types
+│   ├── requests.ts       ← API request types
+│   └── index.ts          ← Re-export tất cả: export * from "./products"; ...
+└── components/
+    └── products/
+        └── ProductsClient.tsx   ← CHỈ import, KHÔNG chứa data/type
+```
+
+### Quy tắc đặt file
+| Loại | Đặt ở | Ví dụ |
+|---|---|---|
+| Mock / static data arrays | `src/data/*.ts` | `src/data/products.ts` |
+| Interface / Type / Enum cho 1 domain | `src/types/*.ts` | `src/types/products.ts` |
+| Props interface của component | `src/types/*.ts` (cùng file domain) | `ProductsClientProps` trong `types/products.ts` |
+| Constant options (categories, sort...) | `src/data/*.ts` hoặc `src/constants/*.ts` | `CATEGORIES`, `SORT_OPTIONS` |
+| Re-export tổng hợp | `src/types/index.ts` | `export * from "./products"` |
+
+### ❌ SAI — KHÔNG viết như thế này
+```tsx
+// ❌ ProductsClient.tsx
+const ALL_PRODUCTS = [
+  { id: "bear-1", name: "Gấu Nâu", price: 450000, ... },
+  ...
+];
+
+type Category = "all" | "bear" | "accessory";
+
+interface ProductsClientProps {
+  initialCategory?: string;
+}
+
+export default function ProductsClient({ initialCategory }: ProductsClientProps) { ... }
+```
+
+### ✅ ĐÚNG — tách ra file riêng
+```tsx
+// ✅ src/data/products.ts
+import { type ProductItem } from "@/types/products";
+export const ALL_PRODUCTS: ProductItem[] = [ ... ];
+
+// ✅ src/types/products.ts
+export type Category = "all" | "bear" | "accessory";
+export interface ProductsClientProps { initialCategory?: string; }
+
+// ✅ src/types/index.ts
+export * from "./products";
+
+// ✅ ProductsClient.tsx — chỉ import
+import { type SortOption, type ProductsClientProps } from "@/types/products";
+import { ALL_PRODUCTS } from "@/data/products";
+export default function ProductsClient({ initialCategory }: ProductsClientProps) { ... }
+```
+
+### Khi nào được phép để inline?
+- **Chỉ** khi data/type đó **chỉ dùng duy nhất trong 1 component** VÀ **quá nhỏ** (≤ 3 items, ≤ 5 dòng)
+- Ví dụ: `const tabs = ["Tất cả", "Mới nhất"]` trong 1 component tab nhỏ — có thể chấp nhận
+- Nếu sau này cần dùng ở nơi khác → phải chuyển ra ngay lập tức
+
+---
+
+## �🔐 Auth Pages (Login / Register / Forgot Password)
 
 ### Cấu trúc file
 ```

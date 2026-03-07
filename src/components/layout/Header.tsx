@@ -26,6 +26,16 @@ export default function Header() {
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openDropdown = (name: string) => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setActiveDropdown(name);
+  };
+
+  const scheduleClose = () => {
+    closeTimerRef.current = setTimeout(() => setActiveDropdown(null), 150);
+  };
 
   useEffect(() => {
     // Header entrance animation
@@ -136,8 +146,8 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-8">
               <div
                 className="relative"
-                onMouseEnter={() => setActiveDropdown("shop")}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseEnter={() => openDropdown("shop")}
+                onMouseLeave={scheduleClose}
               >
                 <button className="flex items-center gap-1 text-gray-800 hover:text-blue-600 transition-colors font-medium">
                   Mua sắm
@@ -150,23 +160,25 @@ export default function Header() {
                     ref={(el) => {
                       dropdownRefs.current["shop"] = el;
                     }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2"
+                    onMouseEnter={() => openDropdown("shop")}
+                    onMouseLeave={scheduleClose}
+                    className="absolute top-full left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl py-2 border border-gray-100"
                   >
                     <Link
                       href="/products"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Tất cả sản phẩm
                     </Link>
                     <Link
-                      href="/bears"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      href="/products?category=bear"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Gấu bông
                     </Link>
                     <Link
-                      href="/accessories"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      href="/products?category=accessory"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Phụ kiện
                     </Link>
@@ -176,8 +188,8 @@ export default function Header() {
 
               <div
                 className="relative"
-                onMouseEnter={() => setActiveDropdown("collection")}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseEnter={() => openDropdown("collection")}
+                onMouseLeave={scheduleClose}
               >
                 <button className="flex items-center gap-1 text-gray-800 hover:text-blue-600 transition-colors font-medium">
                   Bộ sưu tập
@@ -190,23 +202,25 @@ export default function Header() {
                     ref={(el) => {
                       dropdownRefs.current["collection"] = el;
                     }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2"
+                    onMouseEnter={() => openDropdown("collection")}
+                    onMouseLeave={scheduleClose}
+                    className="absolute top-full left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl py-2 border border-gray-100"
                   >
                     <Link
                       href="/collections/spring"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Bộ sưu tập xuân
                     </Link>
                     <Link
                       href="/collections/summer"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Bộ sưu tập hè
                     </Link>
                     <Link
                       href="/collections/special"
-                      className="block px-4 py-2 hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
                       Phiên bản đặc biệt
                     </Link>
@@ -386,14 +400,14 @@ export default function Header() {
                   Tất cả sản phẩm
                 </Link>
                 <Link
-                  href="/bears"
+                  href="/products?category=bear"
                   onClick={() => setShowMobileMenu(false)}
                   className="block text-gray-600 hover:text-blue-600 transition-colors"
                 >
                   Gấu bông
                 </Link>
                 <Link
-                  href="/accessories"
+                  href="/products?category=accessory"
                   onClick={() => setShowMobileMenu(false)}
                   className="block text-gray-600 hover:text-blue-600 transition-colors"
                 >

@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import ProductsHero from "./ProductsHero";
 import ProductsFilter from "./ProductsFilter";
 import ProductsGrid from "./ProductsGrid";
+import ProductsFeatureBanner from "./ProductsFeatureBanner";
 import { type ProductCardProps } from "@/components/shared/ProductCard";
 
 type Category = "all" | "complete" | "bear" | "accessory";
@@ -195,6 +196,7 @@ export default function ProductsClient() {
         productCount={filteredProducts.length}
       />
       <ProductsGrid products={filteredProducts} />
+      <ProductsFeatureBanner />
       <Footer />
     </div>
   );

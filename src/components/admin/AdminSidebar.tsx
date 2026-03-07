@@ -94,9 +94,15 @@ export default function AdminSidebar({
       <Link
         href="/admin/settings"
         title="Cài đặt"
-        className="group relative w-11 h-11 rounded-2xl text-white/40 hover:bg-white/15 hover:text-white flex items-center justify-center transition-all duration-200"
+        className={`group relative w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+          pathname === "/admin/settings"
+            ? "bg-white shadow-lg shadow-white/20"
+            : "text-white/40 hover:bg-white/15 hover:text-white"
+        }`}
       >
-        <MdSettings className="text-xl" />
+        <MdSettings
+          className={`text-xl ${pathname === "/admin/settings" ? "text-[#17409A]" : ""}`}
+        />
         <span className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 bg-[#0E2A66] text-white text-xs px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl z-50">
           Cài đặt
         </span>

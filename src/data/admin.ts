@@ -169,3 +169,58 @@ export const PRODUCT_CATEGORY_STATS = [
   { key: "accessory", label: "Phụ kiện",         count: 3,  sold: 60,  color: "#FF8C42" },
 ];
 
+// ─────────────────────────────────────────────────────
+// CUSTOMERS
+// ─────────────────────────────────────────────────────
+export type CustomerStatus = "vip" | "active" | "new" | "inactive";
+export type CustomerTier   = "diamond" | "gold" | "silver" | "bronze";
+
+export interface CustomerRow {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  avatar: string;        // initials
+  avatarColor: string;
+  totalOrders: number;
+  totalSpent: number;    // VND
+  lastOrder: string;
+  joinDate: string;
+  status: CustomerStatus;
+  tier: CustomerTier;
+  favoriteProduct: string;
+}
+
+export const CUSTOMERS: CustomerRow[] = [
+  { id: "CUS-001", name: "Nguyễn Thanh Hoa",  email: "hoa.nguyen@gmail.com",    phone: "0901 234 567", avatar: "H", avatarColor: "#FF6B9D", totalOrders: 12, totalSpent: 5_400_000, lastOrder: "02/03/2026", joinDate: "10/08/2024", status: "vip",      tier: "diamond", favoriteProduct: "Gấu Nâu Dudu" },
+  { id: "CUS-002", name: "Trần Minh Khoa",    email: "khoa.tran@gmail.com",      phone: "0912 345 678", avatar: "K", avatarColor: "#17409A", totalOrders: 8,  totalSpent: 3_680_000, lastOrder: "27/02/2026", joinDate: "15/11/2024", status: "vip",      tier: "diamond", favoriteProduct: "Gấu Trắng Luna" },
+  { id: "CUS-003", name: "Lê Thị Mai Anh",    email: "maianh.le@gmail.com",      phone: "0987 654 321", avatar: "A", avatarColor: "#4ECDC4", totalOrders: 7,  totalSpent: 2_940_000, lastOrder: "01/03/2026", joinDate: "22/01/2025", status: "vip",      tier: "gold",    favoriteProduct: "Bộ Váy Công Chúa" },
+  { id: "CUS-004", name: "Phạm Văn Đức",      email: "duc.pham@outlook.com",     phone: "0978 123 456", avatar: "Đ", avatarColor: "#7C5CFC", totalOrders: 6,  totalSpent: 2_310_000, lastOrder: "28/02/2026", joinDate: "05/03/2025", status: "vip",      tier: "gold",    favoriteProduct: "Gấu Hồng Rosie" },
+  { id: "CUS-005", name: "Vũ Thu Hằng",       email: "hang.vu@gmail.com",        phone: "0965 432 198", avatar: "H", avatarColor: "#FF8C42", totalOrders: 5,  totalSpent: 1_750_000, lastOrder: "03/03/2026", joinDate: "18/04/2025", status: "active",   tier: "silver",  favoriteProduct: "Gấu Xám Smoky" },
+  { id: "CUS-006", name: "Ngô Bảo Châu",      email: "chau.ngo@gmail.com",       phone: "0933 876 543", avatar: "C", avatarColor: "#FFD93D", totalOrders: 4,  totalSpent: 1_480_000, lastOrder: "24/02/2026", joinDate: "09/06/2025", status: "active",   tier: "silver",  favoriteProduct: "Gấu Tím Genius" },
+  { id: "CUS-007", name: "Đinh Xuân Trường",  email: "truong.dinh@gmail.com",    phone: "0944 765 432", avatar: "T", avatarColor: "#4ECDC4", totalOrders: 3,  totalSpent: 1_020_000, lastOrder: "20/02/2026", joinDate: "30/07/2025", status: "active",   tier: "silver",  favoriteProduct: "Gấu Xanh Einstein" },
+  { id: "CUS-008", name: "Hoàng Mỹ Linh",     email: "linh.hoang@gmail.com",     phone: "0956 321 987", avatar: "L", avatarColor: "#FF6B9D", totalOrders: 3,  totalSpent: 930_000,  lastOrder: "15/02/2026", joinDate: "11/08/2025", status: "active",   tier: "bronze",  favoriteProduct: "Đồ Phi Hành Gia" },
+  { id: "CUS-009", name: "Bùi Quang Minh",    email: "minh.bui@yahoo.com",       phone: "0923 654 789", avatar: "M", avatarColor: "#17409A", totalOrders: 2,  totalSpent: 720_000,  lastOrder: "10/02/2026", joinDate: "22/09/2025", status: "active",   tier: "bronze",  favoriteProduct: "Trang Phục Khủng Long" },
+  { id: "CUS-010", name: "Trịnh Khánh Ly",    email: "ly.trinh@gmail.com",       phone: "0981 234 567", avatar: "L", avatarColor: "#7C5CFC", totalOrders: 1,  totalSpent: 450_000,  lastOrder: "04/03/2026", joinDate: "01/02/2026", status: "new",      tier: "bronze",  favoriteProduct: "Gấu Nâu Dudu" },
+  { id: "CUS-011", name: "Cao Thị Thanh Tâm", email: "tam.cao@gmail.com",        phone: "0908 765 234", avatar: "T", avatarColor: "#FF8C42", totalOrders: 1,  totalSpent: 520_000,  lastOrder: "02/03/2026", joinDate: "15/02/2026", status: "new",      tier: "bronze",  favoriteProduct: "Gấu Trắng Luna" },
+  { id: "CUS-012", name: "Phan Đức Anh",      email: "ducanh.phan@gmail.com",    phone: "0971 098 765", avatar: "A", avatarColor: "#4ECDC4", totalOrders: 1,  totalSpent: 185_000,  lastOrder: "05/03/2026", joinDate: "28/02/2026", status: "new",      tier: "bronze",  favoriteProduct: "Bộ Váy Công Chúa" },
+  { id: "CUS-013", name: "Lương Thị Nga",     email: "nga.luong@outlook.com",    phone: "0934 567 890", avatar: "N", avatarColor: "#FFD93D", totalOrders: 2,  totalSpent: 680_000,  lastOrder: "10/01/2026", joinDate: "14/05/2025", status: "inactive", tier: "bronze",  favoriteProduct: "Gấu Tím Genius" },
+  { id: "CUS-014", name: "Đặng Văn Hùng",     email: "hung.dang@gmail.com",      phone: "0947 890 123", avatar: "H", avatarColor: "#FF6B9D", totalOrders: 3,  totalSpent: 1_140_000, lastOrder: "05/12/2025", joinDate: "20/03/2025", status: "inactive", tier: "silver",  favoriteProduct: "Gấu Hồng Rosie" },
+];
+
+export const CUSTOMER_MONTHLY = [
+  { month: "T10", value: 23 },
+  { month: "T11", value: 31 },
+  { month: "T12", value: 47 },
+  { month: "T1",  value: 28 },
+  { month: "T2",  value: 35 },
+  { month: "T3",  value: 42 },
+];
+
+export const CUSTOMER_TIER_STATS = [
+  { tier: "Diamond VIP", count: 47,  color: "#7C5CFC" },
+  { tier: "Gold",         count: 89,  color: "#FFD93D" },
+  { tier: "Silver",       count: 124, color: "#4ECDC4" },
+  { tier: "Bronze",       count: 56,  color: "#FF8C42" },
+];
+

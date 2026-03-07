@@ -322,6 +322,7 @@ export default function HeroSection() {
 
   return (
     <section
+      id="hero-section"
       ref={sectionRef}
       className="relative -mt-20"
       style={{ height: "1000vh" }}

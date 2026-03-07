@@ -20,6 +20,7 @@ import { StepPayment } from "./StepPayment";
 import { StepConfirm } from "./StepConfirm";
 import { SuccessScreen } from "./SuccessScreen";
 import { OrderSummary } from "./OrderSummary";
+import Image from "next/image";
 
 /*  Main Component */
 export default function CheckoutClient() {
@@ -180,7 +181,13 @@ export default function CheckoutClient() {
               className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-110"
               style={{ backgroundColor: "#17409A" }}
             >
-              <PawPrint color="white" size={18} />
+              <Image
+                src="/logo.webp"
+                alt="Design a Bear Logo"
+                width={60}
+                height={60}
+                className="object-contain w-14 h-14 md:w-16 md:h-16"
+              />
             </div>
             <span
               className="font-black text-base"

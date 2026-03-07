@@ -13,10 +13,17 @@ import {
   IoMenuOutline,
 } from "react-icons/io5";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
-export default function Header() {
+gsap.registerPlugin(ScrollTrigger);
+
+interface HeaderProps {
+  hideOnHero?: boolean;
+}
+
+export default function Header({ hideOnHero = false }: HeaderProps) {
   const { isAuthenticated } = useAuth();
   const { totalItems, openCart } = useCart();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -40,15 +47,44 @@ export default function Header() {
   };
 
   useEffect(() => {
-    // Header entrance animation
-    if (headerRef.current) {
+    if (!headerRef.current) return;
+
+    if (hideOnHero) {
+      // Start hidden — will appear after hero section
+      gsap.set(headerRef.current, { y: -100, opacity: 0 });
+
+      const heroEl = document.getElementById("hero-section");
+      if (heroEl) {
+        ScrollTrigger.create({
+          trigger: heroEl,
+          start: "bottom top",
+          onEnter: () => {
+            gsap.to(headerRef.current, {
+              y: 0,
+              opacity: 1,
+              duration: 0.5,
+              ease: "power3.out",
+            });
+          },
+          onLeaveBack: () => {
+            gsap.to(headerRef.current, {
+              y: -100,
+              opacity: 0,
+              duration: 0.3,
+              ease: "power2.in",
+            });
+          },
+        });
+      }
+    } else {
+      // Normal entrance animation
       gsap.fromTo(
         headerRef.current,
         { y: -100, opacity: 0 },
         { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
       );
     }
-  }, []);
+  }, [hideOnHero]);
 
   useEffect(() => {
     // Dropdown animation

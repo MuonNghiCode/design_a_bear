@@ -10,6 +10,7 @@ import {
   IoMenuOutline,
 } from "react-icons/io5";
 import { MdDashboard, MdBarChart, MdSettings } from "react-icons/md";
+import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 
 const TABS = [
   { label: "TỔNG QUAN", href: "/admin", icon: MdDashboard },
@@ -24,6 +25,7 @@ export default function AdminTopBar({
 }) {
   const pathname = usePathname();
   const [hasNotif] = useState(true);
+  const { accent } = useAdminPrefs();
 
   function isActive(href: string) {
     if (href === "/admin") return pathname === "/admin";
@@ -31,8 +33,10 @@ export default function AdminTopBar({
   }
 
   return (
-    /* Cùng nền #17409A với sidebar — liên kết trực quan thành một khối */
-    <header className="flex items-center justify-between px-4 md:px-6 py-3.5 bg-[#17409A] sticky top-0 z-30">
+    <header
+      className="flex items-center justify-between px-4 md:px-6 py-3.5 sticky top-0 z-30"
+      style={{ backgroundColor: accent }}
+    >
       {/* Left: hamburger (mobile) + back (desktop) */}
       <div className="flex items-center gap-3">
         <button

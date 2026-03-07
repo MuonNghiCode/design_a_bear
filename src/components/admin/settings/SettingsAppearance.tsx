@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { MdPalette, MdCheck } from "react-icons/md";
 import { IoLanguage } from "react-icons/io5";
+import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
+import type { AdminDensity } from "@/contexts/AdminPreferencesContext";
 
 const LANGUAGES = [
-  { code: "vi", label: "🇻🇳  Tiếng Việt" },
+  { code: "vi", label: "🆻🇳  Tiếng Việt" },
   { code: "en", label: "🇺🇸  English" },
   { code: "zh", label: "🇨🇳  中文" },
 ];
@@ -20,15 +21,21 @@ const ACCENTS = [
 ];
 
 const DENSITY = [
-  { key: "comfortable", label: "Thoải mái", desc: "Khoảng cách rộng" },
-  { key: "normal", label: "Vừa phải", desc: "Mặc định" },
-  { key: "compact", label: "Gọn", desc: "Hiển thị nhiều hơn" },
-] as const;
+  {
+    key: "comfortable" as AdminDensity,
+    label: "Thoải mái",
+    desc: "Khoảng cách rộng",
+  },
+  { key: "normal" as AdminDensity, label: "Vừa phải", desc: "Mặc định" },
+  { key: "compact" as AdminDensity, label: "Gọn", desc: "Hiển thị nhiều hơn" },
+];
 
 export default function SettingsAppearance() {
-  const [lang, setLang] = useState("vi");
-  const [accent, setAccent] = useState("#17409A");
-  const [density, setDensity] = useState<string>("normal");
+  const { pending, setPending, apply, applied } = useAdminPrefs();
+
+  const lang = pending.language;
+  const accent = pending.accent;
+  const density = pending.density;
 
   const currentAccent = ACCENTS.find((a) => a.color === accent);
   const currentLang = LANGUAGES.find((l) => l.code === lang);
@@ -45,7 +52,7 @@ export default function SettingsAppearance() {
             Tuỳ chỉnh
           </p>
           <p className="text-[#1A1A2E] font-black text-lg">
-            Giao diện & Ngôn ngữ
+            Giao diện &amp; Ngôn ngữ
           </p>
         </div>
       </div>
@@ -60,7 +67,7 @@ export default function SettingsAppearance() {
             {LANGUAGES.map((l) => (
               <button
                 key={l.code}
-                onClick={() => setLang(l.code)}
+                onClick={() => setPending({ language: l.code })}
                 className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
                   lang === l.code
                     ? "bg-[#17409A] text-white shadow-sm"
@@ -83,7 +90,7 @@ export default function SettingsAppearance() {
             {ACCENTS.map((a) => (
               <button
                 key={a.color}
-                onClick={() => setAccent(a.color)}
+                onClick={() => setPending({ accent: a.color })}
                 title={a.label}
                 className="relative h-10 rounded-xl transition-transform hover:scale-105 flex items-center justify-center focus:outline-none group"
                 style={{ backgroundColor: a.color }}
@@ -91,7 +98,6 @@ export default function SettingsAppearance() {
                 {accent === a.color && (
                   <MdCheck className="text-white text-base drop-shadow" />
                 )}
-                {/* Label on hover */}
                 <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-black text-[#9CA3AF] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                   {a.label}
                 </span>
@@ -99,7 +105,7 @@ export default function SettingsAppearance() {
             ))}
           </div>
           <p className="text-[11px] text-[#9CA3AF] font-semibold mt-4">
-            Áp dụng cho toàn bộ giao diện admin
+            Áp dụng cho sidebar, topbar và các nút chính
           </p>
         </div>
 
@@ -112,7 +118,7 @@ export default function SettingsAppearance() {
             {DENSITY.map((d) => (
               <button
                 key={d.key}
-                onClick={() => setDensity(d.key)}
+                onClick={() => setPending({ density: d.key })}
                 className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-left ${
                   density === d.key
                     ? "bg-[#4ECDC4]/15 text-[#4ECDC4] border border-[#4ECDC4]/30"
@@ -138,7 +144,7 @@ export default function SettingsAppearance() {
         </div>
       </div>
 
-      {/* Live preview bar */}
+      {/* Apply bar */}
       <div className="mt-7 p-4 bg-[#F4F7FF] rounded-2xl flex items-center gap-3 flex-wrap">
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300"
@@ -155,10 +161,17 @@ export default function SettingsAppearance() {
           </p>
         </div>
         <button
-          className="shrink-0 text-white text-xs font-black px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: accent }}
+          onClick={apply}
+          className="shrink-0 text-white text-xs font-black px-5 py-2.5 rounded-xl transition-all duration-300 flex items-center gap-2"
+          style={{ backgroundColor: applied ? "#4ECDC4" : accent }}
         >
-          ÁP DỤNG →
+          {applied ? (
+            <>
+              <MdCheck className="text-sm" /> ĐÃ ÁP DỤNG
+            </>
+          ) : (
+            "ÁP DỤNG →"
+          )}
         </button>
       </div>
     </div>

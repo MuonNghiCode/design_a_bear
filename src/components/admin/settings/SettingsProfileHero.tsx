@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MdEdit, MdCheck, MdClose, MdCameraAlt } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 
@@ -17,6 +17,42 @@ export default function SettingsProfileHero() {
   const [name, setName] = useState("Admin Hùng");
   const [role, setRole] = useState("Super Admin");
   const [draft, setDraft] = useState({ name: "", role: "" });
+  const [clientIP, setClientIP] = useState("...");
+  const [clientDevice, setClientDevice] = useState("...");
+
+  useEffect(() => {
+    // Detect browser + OS from UA
+    const ua = navigator.userAgent;
+    const browser = /Edg/i.test(ua)
+      ? "Edge"
+      : /Firefox/i.test(ua)
+        ? "Firefox"
+        : /OPR|Opera/i.test(ua)
+          ? "Opera"
+          : /Chrome/i.test(ua)
+            ? "Chrome"
+            : /Safari/i.test(ua)
+              ? "Safari"
+              : "Browser";
+    const os = /Windows/i.test(ua)
+      ? "Windows"
+      : /iPhone|iPad/i.test(ua)
+        ? "iOS"
+        : /Android/i.test(ua)
+          ? "Android"
+          : /Mac/i.test(ua)
+            ? "macOS"
+            : /Linux/i.test(ua)
+              ? "Linux"
+              : "Unknown";
+    setClientDevice(`${browser} · ${os}`);
+
+    // Fetch real IP
+    fetch("https://api.ipify.org?format=json")
+      .then((r) => r.json())
+      .then((d: { ip: string }) => setClientIP(d.ip))
+      .catch(() => setClientIP("N/A"));
+  }, []);
 
   function startEdit() {
     setDraft({ name, role });
@@ -131,13 +167,13 @@ export default function SettingsProfileHero() {
               <p className="text-white/40 text-[10px] font-black tracking-wider uppercase">
                 IP cuối
               </p>
-              <p className="text-white font-black text-sm">192.168.1.45</p>
+              <p className="text-white font-black text-sm">{clientIP}</p>
             </div>
             <div>
               <p className="text-white/40 text-[10px] font-black tracking-wider uppercase">
                 Thiết bị
               </p>
-              <p className="text-white font-black text-sm">Chrome · Windows</p>
+              <p className="text-white font-black text-sm">{clientDevice}</p>
             </div>
           </div>
         )}

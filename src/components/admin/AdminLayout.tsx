@@ -3,6 +3,7 @@
 import { useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopBar from "@/components/admin/AdminTopBar";
+import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -10,11 +11,19 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { accent, density } = useAdminPrefs();
+
+  const contentPadding =
+    density === "compact"
+      ? "p-3 md:p-4"
+      : density === "comfortable"
+        ? "p-6 md:p-9"
+        : "p-5 md:p-7";
 
   return (
     <div
-      className="h-screen bg-[#17409A] flex overflow-hidden"
-      style={{ fontFamily: "'Nunito', sans-serif" }}
+      className="h-screen flex overflow-hidden"
+      style={{ fontFamily: "'Nunito', sans-serif", backgroundColor: accent }}
     >
       {/* Sidebar */}
       <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -34,7 +43,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Content frame — sát phải, bo tròn trái, không có padding phải */}
         <div className="flex-1 p-4 overflow-hidden">
-          <div className="bg-[#F4F7FF] rounded-3xl h-full overflow-y-auto p-5 md:p-7">
+          <div
+            className={`bg-[#F4F7FF] rounded-3xl h-full overflow-y-auto ${contentPadding}`}
+          >
             {children}
           </div>
         </div>

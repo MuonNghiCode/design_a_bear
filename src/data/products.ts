@@ -3,7 +3,7 @@ import { type ProductItem } from "@/types/products";
 export const ALL_PRODUCTS: ProductItem[] = [
   {
     id: "bear-brown-happy",
-    name: "Gấu Nâu Brownie Hạnh Phúc",
+    name: "Gấu Nâu Dudu Hạnh Phúc",
     description:
       "Chú gấu với chip AI dạy Toán, chất liệu bông tơ tằm siêu nhẹ, an toàn cho bé.",
     price: 450000,
@@ -16,7 +16,7 @@ export const ALL_PRODUCTS: ProductItem[] = [
   },
   {
     id: "bear-pink-melody",
-    name: "Gấu Hồng Melody Âm Nhạc",
+    name: "Gấu Trắng Bubu Âm Nhạc",
     description:
       "Dạy bé yêu âm nhạc qua hàng trăm bài hát và giai điệu vui nhộn.",
     price: 520000,

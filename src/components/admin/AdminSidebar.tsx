@@ -12,6 +12,7 @@ import {
   MdClose,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
+import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 
 const NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/admin" },
@@ -31,12 +32,14 @@ export default function AdminSidebar({
   onClose,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { accent } = useAdminPrefs();
 
   return (
     <aside
-      className={`w-18 min-h-screen bg-[#17409A] flex flex-col items-center py-6 fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out ${
+      className={`w-18 min-h-screen flex flex-col items-center py-6 fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out ${
         open ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0`}
+      style={{ backgroundColor: accent }}
     >
       {/* Close button — mobile only */}
       <button

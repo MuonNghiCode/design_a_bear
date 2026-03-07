@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   MdLock,
   MdShield,
@@ -12,14 +12,40 @@ import {
 import { IoEye, IoEyeOff } from "react-icons/io5";
 import { GiPawPrint } from "react-icons/gi";
 
-const SESSIONS = [
-  {
-    device: "Chrome · Windows",
-    location: "TP.HCM, VN",
-    time: "5 phút trước",
-    Icon: MdComputer,
-    current: true,
-  },
+type IconType = typeof MdComputer;
+
+interface SessionEntry {
+  device: string;
+  location: string;
+  time: string;
+  Icon: IconType;
+  current: boolean;
+  ip?: string;
+}
+
+function detectBrowser(ua: string): string {
+  if (/Edg/i.test(ua)) return "Edge";
+  if (/Firefox/i.test(ua)) return "Firefox";
+  if (/OPR|Opera/i.test(ua)) return "Opera";
+  if (/Chrome/i.test(ua)) return "Chrome";
+  if (/Safari/i.test(ua)) return "Safari";
+  return "Browser";
+}
+
+function detectOS(ua: string): string {
+  if (/Windows/i.test(ua)) return "Windows";
+  if (/iPhone|iPad/i.test(ua)) return "iOS";
+  if (/Android/i.test(ua)) return "Android";
+  if (/Mac/i.test(ua)) return "macOS";
+  if (/Linux/i.test(ua)) return "Linux";
+  return "Unknown OS";
+}
+
+function isMobileUA(ua: string) {
+  return /Mobi|Android|iPhone|iPad/i.test(ua);
+}
+
+const MOCK_OTHER_SESSIONS: SessionEntry[] = [
   {
     device: "Safari · iPhone 15",
     location: "TP.HCM, VN",
@@ -28,7 +54,7 @@ const SESSIONS = [
     current: false,
   },
   {
-    device: "Chrome · MacBook",
+    device: "Chrome · macOS",
     location: "Hà Nội, VN",
     time: "1 ngày trước",
     Icon: MdComputer,
@@ -74,7 +100,62 @@ export default function SettingsSecurity() {
   const [show, setShow] = useState({ old: false, new: false, confirm: false });
   const [pw, setPw] = useState({ old: "", new: "", confirm: "" });
   const [saved, setSaved] = useState(false);
-  const [sessions, setSessions] = useState(SESSIONS);
+  const [sessions, setSessions] = useState<SessionEntry[]>(MOCK_OTHER_SESSIONS);
+  const [currentSession, setCurrentSession] = useState<SessionEntry | null>(
+    null,
+  );
+  const [loadingIP, setLoadingIP] = useState(true);
+
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const browser = detectBrowser(ua);
+    const os = detectOS(ua);
+    const mobile = isMobileUA(ua);
+    const deviceLabel = `${browser} · ${os}`;
+
+    // Fetch real IP
+    fetch("https://api.ipify.org?format=json")
+      .then((r) => r.json())
+      .then((data: { ip: string }) => {
+        // Attempt to get location from IP
+        return fetch(`https://ipapi.co/${data.ip}/json/`)
+          .then((r) => r.json())
+          .then((geo: { city?: string; country_name?: string }) => {
+            const location = geo.city
+              ? `${geo.city}, ${geo.country_name ?? "VN"}`
+              : "Đang xác định...";
+            setCurrentSession({
+              device: deviceLabel,
+              location,
+              time: "Ngay bây giờ",
+              Icon: mobile ? MdPhoneAndroid : MdComputer,
+              current: true,
+              ip: data.ip,
+            });
+          })
+          .catch(() => {
+            setCurrentSession({
+              device: deviceLabel,
+              location: "Không xác định được",
+              time: "Ngay bây giờ",
+              Icon: mobile ? MdPhoneAndroid : MdComputer,
+              current: true,
+              ip: data.ip,
+            });
+          });
+      })
+      .catch(() => {
+        setCurrentSession({
+          device: deviceLabel,
+          location: "Không kết nối được",
+          time: "Ngay bây giờ",
+          Icon: mobile ? MdPhoneAndroid : MdComputer,
+          current: true,
+          ip: "N/A",
+        });
+      })
+      .finally(() => setLoadingIP(false));
+  }, []);
 
   function handleSave() {
     setSaved(true);
@@ -84,6 +165,11 @@ export default function SettingsSecurity() {
   function revokeSession(index: number) {
     setSessions((prev) => prev.filter((_, i) => i !== index));
   }
+
+  const allSessions: SessionEntry[] = [
+    ...(currentSession ? [currentSession] : []),
+    ...sessions,
+  ];
 
   const PW_FIELDS = [
     { key: "old", label: "Mật khẩu hiện tại" },
@@ -221,50 +307,72 @@ export default function SettingsSecurity() {
             Thiết bị đang hoạt động
           </p>
           <div className="flex flex-col gap-2">
-            {sessions.map((s, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-3 px-3 py-3 rounded-2xl transition-colors ${
-                  s.current
-                    ? "bg-[#17409A]/6 border border-[#17409A]/10"
-                    : "hover:bg-[#F4F7FF]"
-                }`}
-              >
-                <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    s.current
-                      ? "bg-[#17409A] text-white"
-                      : "bg-[#F4F7FF] text-[#9CA3AF]"
-                  }`}
-                >
-                  <s.Icon className="text-lg" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-[#1A1A2E] font-bold text-sm truncate">
-                      {s.device}
-                    </p>
-                    {s.current && (
-                      <span className="text-[9px] font-black text-[#17409A] bg-[#17409A]/10 px-2 py-0.5 rounded-full whitespace-nowrap">
-                        HIỆN TẠI
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[#9CA3AF] text-[11px] font-semibold">
-                    {s.location} · {s.time}
-                  </p>
-                </div>
-                {!s.current && (
-                  <button
-                    onClick={() => revokeSession(i)}
-                    className="w-7 h-7 rounded-lg hover:bg-[#FF6B9D]/10 flex items-center justify-center text-[#9CA3AF] hover:text-[#FF6B9D] transition-all"
-                    title="Thu hồi phiên"
+            {loadingIP
+              ? /* Loading skeleton while fetching real IP */
+                [0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 px-3 py-3 rounded-2xl animate-pulse"
                   >
-                    <MdClose className="text-base" />
-                  </button>
-                )}
-              </div>
-            ))}
+                    <div className="w-9 h-9 rounded-xl bg-[#E5E7EB] shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 bg-[#E5E7EB] rounded-full w-2/3" />
+                      <div className="h-2.5 bg-[#F4F7FF] rounded-full w-1/2" />
+                    </div>
+                  </div>
+                ))
+              : allSessions.map((s, i) => {
+                  const sessionIndex = i - (currentSession ? 1 : 0);
+                  return (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-3 px-3 py-3 rounded-2xl transition-colors ${
+                        s.current
+                          ? "bg-[#17409A]/6 border border-[#17409A]/10"
+                          : "hover:bg-[#F4F7FF]"
+                      }`}
+                    >
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          s.current
+                            ? "bg-[#17409A] text-white"
+                            : "bg-[#F4F7FF] text-[#9CA3AF]"
+                        }`}
+                      >
+                        <s.Icon className="text-lg" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-[#1A1A2E] font-bold text-sm truncate">
+                            {s.device}
+                          </p>
+                          {s.current && (
+                            <span className="text-[9px] font-black text-[#17409A] bg-[#17409A]/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              HIỆN TẠI
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[#9CA3AF] text-[11px] font-semibold">
+                          {s.location} · {s.time}
+                          {s.ip && (
+                            <span className="ml-2 font-bold text-[#17409A]/60">
+                              {s.ip}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      {!s.current && (
+                        <button
+                          onClick={() => revokeSession(sessionIndex)}
+                          className="w-7 h-7 rounded-lg hover:bg-[#FF6B9D]/10 flex items-center justify-center text-[#9CA3AF] hover:text-[#FF6B9D] transition-all"
+                          title="Thu hồi phiên"
+                        >
+                          <MdClose className="text-base" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
           </div>
         </div>
       </div>

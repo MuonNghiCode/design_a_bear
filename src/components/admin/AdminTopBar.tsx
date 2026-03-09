@@ -9,11 +9,12 @@ import {
   IoSearchOutline,
   IoMenuOutline,
 } from "react-icons/io5";
-import { MdDashboard, MdBarChart, MdSettings } from "react-icons/md";
+import { MdDashboard, MdBarChart, MdSettings, MdGroups } from "react-icons/md";
 import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 
 const TABS = [
   { label: "TỔNG QUAN", href: "/admin", icon: MdDashboard },
+  { label: "NHÂN VIÊN", href: "/admin/staff", icon: MdGroups },
   { label: "PHÂN TÍCH", href: "/admin/analytics", icon: MdBarChart },
   { label: "CÀI ĐẶT", href: "/admin/settings", icon: MdSettings },
 ];

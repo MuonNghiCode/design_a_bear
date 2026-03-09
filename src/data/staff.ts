@@ -17,6 +17,8 @@ export interface StaffTask {
   dueBy: string;
   status: TaskStatus;
   note?: string;
+  assignedToId?: string;
+  assignedToName?: string;
 }
 
 export const STAFF_TASKS: StaffTask[] = [
@@ -241,3 +243,113 @@ export const REPORT_STATUS_CFG: Record<
   reviewed:     { label: "Đã xem",      color: "#FF8C42", bg: "#FF8C4215", dot: "#FF8C42" },
   acknowledged: { label: "Đã ghi nhận", color: "#4ECDC4", bg: "#4ECDC415", dot: "#4ECDC4" },
 };
+
+// ─── Staff Members ────────────────────────────────────────────────────────────
+
+export type StaffRole = "full_time" | "part_time";
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  initial: string;
+  color: string;
+  role: StaffRole;
+  email: string;
+  phone: string;
+  preferredShifts: ShiftType[];
+  joinedDate: string;
+  active: boolean;
+}
+
+export const STAFF_MEMBERS: StaffMember[] = [
+  {
+    id: "S-001",
+    name: "Nguyễn Thị Lan",
+    initial: "L",
+    color: "#7C5CFC",
+    role: "full_time",
+    email: "lan.nguyen@designabear.vn",
+    phone: "0901 234 567",
+    preferredShifts: ["morning", "afternoon"],
+    joinedDate: "15/01/2025",
+    active: true,
+  },
+  {
+    id: "S-002",
+    name: "Trần Quốc Bảo",
+    initial: "B",
+    color: "#4ECDC4",
+    role: "full_time",
+    email: "bao.tran@designabear.vn",
+    phone: "0912 345 678",
+    preferredShifts: ["afternoon", "evening"],
+    joinedDate: "03/03/2025",
+    active: true,
+  },
+  {
+    id: "S-003",
+    name: "Phạm Minh Châu",
+    initial: "C",
+    color: "#FF6B9D",
+    role: "part_time",
+    email: "chau.pham@designabear.vn",
+    phone: "0923 456 789",
+    preferredShifts: ["morning"],
+    joinedDate: "10/06/2025",
+    active: true,
+  },
+  {
+    id: "S-004",
+    name: "Lê Văn Hùng",
+    initial: "H",
+    color: "#FF8C42",
+    role: "part_time",
+    email: "hung.le@designabear.vn",
+    phone: "0934 567 890",
+    preferredShifts: ["evening"],
+    joinedDate: "22/09/2025",
+    active: false,
+  },
+];
+
+// ─── Shift Assignments (week 09–15/03/2026) ───────────────────────────────────
+
+export interface ShiftAssignment {
+  id: string;
+  staffId: string;
+  staffName: string;
+  staffInitial: string;
+  staffColor: string;
+  date: string;
+  shift: ShiftType;
+  note?: string;
+}
+
+export const SHIFT_ASSIGNMENTS: ShiftAssignment[] = [
+  // Mon 09/03
+  { id: "SA-001", staffId: "S-001", staffName: "Nguyễn Thị Lan", staffInitial: "L", staffColor: "#7C5CFC", date: "09/03/2026", shift: "morning"   },
+  { id: "SA-002", staffId: "S-002", staffName: "Trần Quốc Bảo",  staffInitial: "B", staffColor: "#4ECDC4", date: "09/03/2026", shift: "afternoon" },
+  { id: "SA-003", staffId: "S-004", staffName: "Lê Văn Hùng",    staffInitial: "H", staffColor: "#FF8C42", date: "09/03/2026", shift: "evening"   },
+  // Tue 10/03
+  { id: "SA-004", staffId: "S-003", staffName: "Phạm Minh Châu", staffInitial: "C", staffColor: "#FF6B9D", date: "10/03/2026", shift: "morning"   },
+  { id: "SA-005", staffId: "S-001", staffName: "Nguyễn Thị Lan", staffInitial: "L", staffColor: "#7C5CFC", date: "10/03/2026", shift: "afternoon" },
+  { id: "SA-006", staffId: "S-002", staffName: "Trần Quốc Bảo",  staffInitial: "B", staffColor: "#4ECDC4", date: "10/03/2026", shift: "evening"   },
+  // Wed 11/03
+  { id: "SA-007", staffId: "S-001", staffName: "Nguyễn Thị Lan", staffInitial: "L", staffColor: "#7C5CFC", date: "11/03/2026", shift: "morning"   },
+  { id: "SA-008", staffId: "S-003", staffName: "Phạm Minh Châu", staffInitial: "C", staffColor: "#FF6B9D", date: "11/03/2026", shift: "afternoon" },
+  { id: "SA-009", staffId: "S-004", staffName: "Lê Văn Hùng",    staffInitial: "H", staffColor: "#FF8C42", date: "11/03/2026", shift: "evening"   },
+  // Thu 12/03
+  { id: "SA-010", staffId: "S-002", staffName: "Trần Quốc Bảo",  staffInitial: "B", staffColor: "#4ECDC4", date: "12/03/2026", shift: "morning"   },
+  { id: "SA-011", staffId: "S-001", staffName: "Nguyễn Thị Lan", staffInitial: "L", staffColor: "#7C5CFC", date: "12/03/2026", shift: "afternoon" },
+  { id: "SA-012", staffId: "S-004", staffName: "Lê Văn Hùng",    staffInitial: "H", staffColor: "#FF8C42", date: "12/03/2026", shift: "evening"   },
+  // Fri 13/03
+  { id: "SA-013", staffId: "S-002", staffName: "Trần Quốc Bảo",  staffInitial: "B", staffColor: "#4ECDC4", date: "13/03/2026", shift: "morning"   },
+  { id: "SA-014", staffId: "S-003", staffName: "Phạm Minh Châu", staffInitial: "C", staffColor: "#FF6B9D", date: "13/03/2026", shift: "afternoon" },
+  { id: "SA-015", staffId: "S-004", staffName: "Lê Văn Hùng",    staffInitial: "H", staffColor: "#FF8C42", date: "13/03/2026", shift: "evening"   },
+  // Sat 14/03
+  { id: "SA-016", staffId: "S-001", staffName: "Nguyễn Thị Lan", staffInitial: "L", staffColor: "#7C5CFC", date: "14/03/2026", shift: "morning"   },
+  { id: "SA-017", staffId: "S-004", staffName: "Lê Văn Hùng",    staffInitial: "H", staffColor: "#FF8C42", date: "14/03/2026", shift: "afternoon" },
+  // Sun 15/03
+  { id: "SA-018", staffId: "S-003", staffName: "Phạm Minh Châu", staffInitial: "C", staffColor: "#FF6B9D", date: "15/03/2026", shift: "morning"   },
+  { id: "SA-019", staffId: "S-002", staffName: "Trần Quốc Bảo",  staffInitial: "B", staffColor: "#4ECDC4", date: "15/03/2026", shift: "evening"   },
+];

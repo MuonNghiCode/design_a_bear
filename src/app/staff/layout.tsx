@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
-import StaffLayout from "@/components/staff/StaffLayout";
 import { Metadata } from "next";
+import StaffLayout from "@/components/staff/StaffLayout";
 
 export const metadata: Metadata = {
   title: "Staff Portal — Design a Bear",

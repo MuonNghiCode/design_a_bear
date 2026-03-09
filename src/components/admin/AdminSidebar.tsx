@@ -13,6 +13,7 @@ import {
   MdLogout,
   MdStar,
   MdInventory2,
+  MdGroups,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
@@ -24,6 +25,7 @@ const NAV = [
   { icon: MdShoppingBag, label: "Đơn hàng", href: "/admin/orders" },
   { icon: MdInventory2, label: "Sản phẩm", href: "/admin/products" },
   { icon: MdPeople, label: "Khách hàng", href: "/admin/customers" },
+  { icon: MdGroups, label: "Nhân viên", href: "/admin/staff" },
   { icon: MdBarChart, label: "Thống kê", href: "/admin/analytics" },
   { icon: MdStar, label: "Đánh giá", href: "/admin/reviews" },
 ];

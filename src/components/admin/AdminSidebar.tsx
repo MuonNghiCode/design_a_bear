@@ -10,9 +10,12 @@ import {
   MdBarChart,
   MdSettings,
   MdClose,
+  MdLogout,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 const NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/admin" },
@@ -33,6 +36,13 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const { accent } = useAdminPrefs();
+  const { logout, user } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/auth");
+  };
 
   return (
     <aside
@@ -111,9 +121,21 @@ export default function AdminSidebar({
         </span>
       </Link>
 
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        title="Đăng xuất"
+        className="group relative w-11 h-11 rounded-2xl flex items-center justify-center text-white/40 hover:bg-[#FF6B9D]/20 hover:text-[#FF6B9D] transition-all duration-200 mt-2"
+      >
+        <MdLogout className="text-xl" />
+        <span className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 bg-[#0E2A66] text-white text-xs px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl z-50">
+          Đăng xuất
+        </span>
+      </button>
+
       {/* User avatar (bottom) */}
       <div className="w-10 h-10 rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-white font-black text-sm mt-4 cursor-pointer hover:bg-white/30 transition-colors">
-        A
+        {user?.name?.[0]?.toUpperCase() ?? "A"}
       </div>
     </aside>
   );

@@ -224,3 +224,120 @@ export const CUSTOMER_TIER_STATS = [
   { tier: "Bronze",       count: 56,  color: "#FF8C42" },
 ];
 
+// ─── Reviews ─────────────────────────────────────────────────────────────────
+
+export type ReviewStatus = "published" | "pending" | "flagged" | "hidden";
+
+export interface AdminReview {
+  id: string;
+  customer: string;
+  avatar: string;        // initials
+  avatarColor: string;
+  product: string;
+  productId: string;
+  rating: number;        // 1–5
+  title: string;
+  content: string;
+  date: string;
+  status: ReviewStatus;
+  helpful: number;
+  reply?: string;
+}
+
+export const ADMIN_REVIEWS: AdminReview[] = [
+  {
+    id: "RV-001", customer: "Nguyễn Thanh Hoa", avatar: "H", avatarColor: "#FF6B9D",
+    product: "Gấu Nâu Dudu Hạnh Phúc", productId: "bear-brown-happy",
+    rating: 5, title: "Bé yêu thích lắm, chất lượng rất tốt!",
+    content: "Mình mua tặng sinh nhật con gái 5 tuổi, bé thích mê. Chất liệu bông mềm mại, không bị dị ứng. Gấu có thể nói chuyện được theo chủ đề Toán học, rất thú vị. Shop giao hàng nhanh, đóng gói cẩn thận. Sẽ mua thêm cho con.",
+    date: "03/03/2026", status: "published", helpful: 24,
+    reply: "Cảm ơn chị Hoa đã tin tưởng Design a Bear! Bé nhà chị học cùng Dudu nhé 🐻",
+  },
+  {
+    id: "RV-002", customer: "Trần Minh Khoa", avatar: "K", avatarColor: "#17409A",
+    product: "Gấu Trắng Bubu Âm Nhạc", productId: "bear-pink-melody",
+    rating: 5, title: "Sản phẩm tuyệt vời, thiết kế cực đáng yêu",
+    content: "Gấu trắng xinh xắn, phần âm nhạc của gấu rất hay và đa dạng. Con trai mình 4 tuổi học được nhiều bài hát thiếu nhi. Pin bền, dùng được mấy tuần mới cần thay. Rất recommend cho các phụ huynh.",
+    date: "27/02/2026", status: "published", helpful: 18,
+  },
+  {
+    id: "RV-003", customer: "Lê Thị Mai Anh", avatar: "A", avatarColor: "#4ECDC4",
+    product: "Bộ Váy Công Chúa Hoàng Gia", productId: "outfit-princess",
+    rating: 4, title: "Váy đẹp nhưng size hơi nhỏ",
+    content: "Chất liệu vải đẹp, màu sắc rực rỡ đúng như ảnh. Tuy nhiên size váy hơi nhỏ hơn mình tưởng, may là gấu nhà mình vừa vặn. Nếu bạn có gấu to hơn một chút thì nên liên hệ shop trước khi mua.",
+    date: "01/03/2026", status: "published", helpful: 11,
+    reply: "Cảm ơn chị đã góp ý! Shop sẽ cập nhật thông tin size chi tiết hơn. Nếu cần chị inbox nhé ạ!",
+  },
+  {
+    id: "RV-004", customer: "Phạm Văn Đức", avatar: "Đ", avatarColor: "#7C5CFC",
+    product: "Gấu Tím Genius Lập Trình", productId: "bear-purple-genius",
+    rating: 5, title: "Con trai mình mê lập trình từ năm 4 tuổi nhờ gấu này",
+    content: "Thực sự ấn tượng với nội dung giáo dục. Gấu dạy tư duy logic theo kiểu game rất thú vị. Con tôi hỏi về lập trình mỗi ngày kể từ khi có gấu. Đây là khoản đầu tư xứng đáng cho tương lai của bé.",
+    date: "28/02/2026", status: "published", helpful: 31,
+  },
+  {
+    id: "RV-005", customer: "Vũ Thu Hằng", avatar: "H", avatarColor: "#FF8C42",
+    product: "Gấu Xám Smoky", productId: "bear-grey-smoky",
+    rating: 3, title: "Bình thường, không có gì đặc biệt lắm",
+    content: "Gấu trông ổn, chất lượng may vá tốt nhưng tính năng giáo dục không nổi bật bằng các dòng khác. Có thể do mình kỳ vọng quá cao. Bé nhà mình thích nhưng không mê như mình mong đợi.",
+    date: "03/03/2026", status: "published", helpful: 5,
+  },
+  {
+    id: "RV-006", customer: "Ngô Bảo Châu", avatar: "C", avatarColor: "#FFD93D",
+    product: "Gấu Xanh Einstein Khám Phá", productId: "bear-blue-einstein",
+    rating: 5, title: "Giáo dục khoa học mà vẫn vui!",
+    content: "Shop tư vấn rất nhiệt tình. Gấu Einstein dạy về vũ trụ, động vật, thực vật một cách sinh động. Mình thấy con học được nhiều kiến thức bổ ích mà vẫn thích chơi. Sẽ tiếp tục ủng hộ thương hiệu.",
+    date: "24/02/2026", status: "published", helpful: 22,
+  },
+  {
+    id: "RV-007", customer: "Đinh Xuân Trường", avatar: "T", avatarColor: "#4ECDC4",
+    product: "Gấu Kem Storyteller Kể Chuyện", productId: "bear-cream-story",
+    rating: 4, title: "Kể chuyện hay, con ngủ ngon hơn",
+    content: "Tính năng kể chuyện buổi tối rất tuyệt. Gấu có nhiều câu chuyện, giọng đọc dễ nghe, không bị chói. Con bé 3 tuổi nhà mình ngủ ngon hơn hẳn từ khi có gấu này. Trừ 1 sao vì app kết nối đôi khi lag.",
+    date: "20/02/2026", status: "published", helpful: 15,
+  },
+  {
+    id: "RV-008", customer: "Hoàng Mỹ Linh", avatar: "L", avatarColor: "#FF6B9D",
+    product: "Đồ Phi Hành Gia Vũ Trụ", productId: "outfit-space",
+    rating: 2, title: "Đường may không đẹp lắm",
+    content: "Nhìn ảnh thì đẹp nhưng khi nhận hàng thấy một số đường may không thẳng. Màu sắc cũng nhạt hơn ảnh. Mình không hài lòng lắm với chất lượng lần này. Mong shop cải thiện khâu kiểm tra hàng.",
+    date: "15/02/2026", status: "flagged", helpful: 3,
+  },
+  {
+    id: "RV-009", customer: "Bùi Quang Minh", avatar: "M", avatarColor: "#17409A",
+    product: "Trang Phục Khủng Long Xanh", productId: "outfit-dino",
+    rating: 5, title: "Siêu cute! Con bé phát cuồng luôn",
+    content: "Trang phục khủng long xanh may rất tỉ mỉ, màu sắc tươi sáng đẹp mắt. Có âm thanh tiếng khủng long nữa, con bé cười ngặt nghẽo. Ship nhanh, hộp quà đẹp. Mua làm quà sinh nhật bạn thân rất ổn!",
+    date: "10/02/2026", status: "pending", helpful: 0,
+  },
+  {
+    id: "RV-010", customer: "Trịnh Khánh Ly", avatar: "L", avatarColor: "#7C5CFC",
+    product: "Gấu Nâu Dudu Hạnh Phúc", productId: "bear-brown-happy",
+    rating: 5, title: "Mua lần 2 vì bé yêu quá cần thêm 1 con",
+    content: "Mua lần đầu bé thích quá nên đặt thêm 1 con nữa phòng khi con cũ bị bẩn thì có cái thay. Chất lượng đồng đều, không bị khác màu. Shop vẫn giữ price point tốt. Rất hài lòng!",
+    date: "04/03/2026", status: "pending", helpful: 0,
+  },
+  {
+    id: "RV-011", customer: "Đặng Văn Hùng", avatar: "H", avatarColor: "#FF6B9D",
+    product: "Gấu Hồng Rosie", productId: "bear-pink-rosie",
+    rating: 1, title: "Gấu bị lỗi âm thanh từ ngày đầu",
+    content: "Nhận hàng xong bật lên thì âm thanh bị rè và ngắt quãng. Liên hệ shop mấy ngày chưa được phản hồi. Bé thất vọng lắm vì chờ mãi mới có. Mong shop giải quyết sớm và cải thiện QC tốt hơn.",
+    date: "05/12/2025", status: "flagged", helpful: 7,
+  },
+  {
+    id: "RV-012", customer: "Lương Thị Nga", avatar: "N", avatarColor: "#FFD93D",
+    product: "Gấu Vàng Sunny Bạn Đồng Hành", productId: "bear-yellow-sunny",
+    rating: 4, title: "Đáng tiền, bé chơi rất vui",
+    content: "Gấu vàng mềm mại, bé ôm ngủ rất thích. Tính năng kể chuyện và hát bài đơn giản phù hợp bé 2 tuổi. Giao hàng đúng hẹn. Nếu có thêm nội dung cập nhật được thì sẽ 5 sao.",
+    date: "10/01/2026", status: "hidden", helpful: 8,
+  },
+];
+
+export const REVIEW_RATING_DIST = [
+  { stars: 5, count: 7,  pct: 58 },
+  { stars: 4, count: 3,  pct: 25 },
+  { stars: 3, count: 1,  pct: 8  },
+  { stars: 2, count: 1,  pct: 8  },
+  { stars: 1, count: 1,  pct: 8  },
+];
+

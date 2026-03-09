@@ -6,43 +6,44 @@ import { useState } from "react";
 import {
   IoArrowBack,
   IoNotificationsOutline,
-  IoSearchOutline,
   IoMenuOutline,
 } from "react-icons/io5";
-import { MdDashboard, MdBarChart, MdSettings, MdGroups } from "react-icons/md";
-import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
+import { MdDashboard, MdAssignment, MdInventory2 } from "react-icons/md";
+import { GiPawPrint } from "react-icons/gi";
+import { useAuth } from "@/contexts/AuthContext";
+
+const ACCENT = "#17409A";
 
 const TABS = [
-  { label: "TỔNG QUAN", href: "/admin", icon: MdDashboard },
-  { label: "NHÂN VIÊN", href: "/admin/staff", icon: MdGroups },
-  { label: "PHÂN TÍCH", href: "/admin/analytics", icon: MdBarChart },
-  { label: "CÀI ĐẶT", href: "/admin/settings", icon: MdSettings },
+  { label: "TỔNG QUAN", href: "/staff", icon: MdDashboard },
+  { label: "SẢN PHẨM", href: "/staff/products", icon: MdInventory2 },
+  { label: "BÁO CÁO", href: "/staff/reports", icon: MdAssignment },
 ];
 
-export default function AdminTopBar({
+export default function StaffTopBar({
   onMenuToggle,
 }: {
   onMenuToggle?: () => void;
 }) {
   const pathname = usePathname();
   const [hasNotif] = useState(true);
-  const { accent } = useAdminPrefs();
+  const { user } = useAuth();
 
   function isActive(href: string) {
-    if (href === "/admin") return pathname === "/admin";
+    if (href === "/staff") return pathname === "/staff";
     return pathname.startsWith(href);
   }
 
   return (
     <header
       className="flex items-center justify-between px-4 md:px-6 py-3.5 sticky top-0 z-30"
-      style={{ backgroundColor: accent }}
+      style={{ backgroundColor: ACCENT }}
     >
-      {/* Left: hamburger (mobile) + back (desktop) */}
+      {/* Left */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all md:hidden"
+          className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all md:hidden cursor-pointer"
           aria-label="Mở menu"
         >
           <IoMenuOutline className="text-xl" />
@@ -56,7 +57,7 @@ export default function AdminTopBar({
         </Link>
       </div>
 
-      {/* Center: tabs — nền hơi sáng hơn để nổi trên navy */}
+      {/* Center tabs */}
       <div className="flex items-center gap-0.5 bg-white/10 rounded-2xl p-1">
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -78,41 +79,22 @@ export default function AdminTopBar({
         })}
       </div>
 
-      {/* Right: search + notif + avatars */}
+      {/* Right */}
       <div className="flex items-center gap-2.5">
-        <button className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all">
-          <IoSearchOutline className="text-lg" />
-        </button>
+        {/* Staff badge */}
+        <div className="hidden sm:flex items-center gap-2 bg-white/10 rounded-xl px-3 py-1.5">
+          <GiPawPrint className="text-white/60 text-sm" />
+          <span className="text-white/70 text-xs font-bold">
+            {user?.name ?? "Staff"}
+          </span>
+        </div>
 
-        <button className="relative w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all">
+        <button className="relative w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all cursor-pointer">
           <IoNotificationsOutline className="text-lg" />
           {hasNotif && (
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF6B9D] rounded-full ring-2 ring-[#17409A]" />
           )}
         </button>
-
-        {/* Divider */}
-        {/* <div className="w-px h-6 bg-white/15" /> */}
-
-        {/* Avatar stack */}
-        {/* <div className="flex items-center">
-          {ADMINS.map((a, i) => (
-            <div
-              key={i}
-              className="w-8 h-8 rounded-full border-2 border-[#17409A] flex items-center justify-center text-white text-xs font-black"
-              style={{
-                backgroundColor: a.color,
-                marginLeft: i === 0 ? 0 : -8,
-                zIndex: ADMINS.length - i,
-              }}
-            >
-              {a.initial}
-            </div>
-          ))}
-          <span className="ml-2.5 text-xs text-white/50 font-bold">
-            3 admins
-          </span>
-        </div> */}
       </div>
     </header>
   );

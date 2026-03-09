@@ -6,41 +6,33 @@ import { usePathname } from "next/navigation";
 import {
   MdDashboard,
   MdShoppingBag,
-  MdPeople,
-  MdBarChart,
-  MdSettings,
+  MdStar,
+  MdAssignment,
+  MdInventory2,
   MdClose,
   MdLogout,
-  MdStar,
-  MdInventory2,
-  MdGroups,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
-import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 
+const ACCENT = "#17409A";
+
 const NAV = [
-  { icon: MdDashboard, label: "Tổng quan", href: "/admin" },
-  { icon: MdShoppingBag, label: "Đơn hàng", href: "/admin/orders" },
-  { icon: MdInventory2, label: "Sản phẩm", href: "/admin/products" },
-  { icon: MdPeople, label: "Khách hàng", href: "/admin/customers" },
-  { icon: MdGroups, label: "Nhân viên", href: "/admin/staff" },
-  { icon: MdBarChart, label: "Thống kê", href: "/admin/analytics" },
-  { icon: MdStar, label: "Đánh giá", href: "/admin/reviews" },
+  { icon: MdDashboard, label: "Tổng quan", href: "/staff" },
+  { icon: MdShoppingBag, label: "Đơn hàng", href: "/staff/orders" },
+  { icon: MdInventory2, label: "Sản phẩm", href: "/staff/products" },
+  { icon: MdStar, label: "Đánh giá", href: "/staff/reviews" },
+  { icon: MdAssignment, label: "Báo cáo", href: "/staff/reports" },
 ];
 
-interface AdminSidebarProps {
+interface Props {
   open?: boolean;
   onClose?: () => void;
 }
 
-export default function AdminSidebar({
-  open = false,
-  onClose,
-}: AdminSidebarProps) {
+export default function StaffSidebar({ open = false, onClose }: Props) {
   const pathname = usePathname();
-  const { accent } = useAdminPrefs();
   const { logout, user } = useAuth();
   const router = useRouter();
 
@@ -54,12 +46,12 @@ export default function AdminSidebar({
       className={`w-18 min-h-screen flex flex-col items-center py-6 fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out ${
         open ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0`}
-      style={{ backgroundColor: accent }}
+      style={{ backgroundColor: ACCENT }}
     >
-      {/* Close button — mobile only */}
+      {/* Close — mobile */}
       <button
         onClick={onClose}
-        className="absolute top-3 right-2 w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white/60 hover:text-white transition-colors md:hidden"
+        className="absolute top-3 right-2 w-7 h-7 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white/60 hover:text-white transition-colors md:hidden cursor-pointer"
         aria-label="Đóng menu"
       >
         <MdClose className="text-base" />
@@ -83,7 +75,9 @@ export default function AdminSidebar({
       {/* Nav */}
       <nav className="flex flex-col gap-2 flex-1 items-center">
         {NAV.map(({ icon: Icon, label, href }) => {
-          const active = pathname === href;
+          const active =
+            pathname === href ||
+            (href !== "/staff" && pathname.startsWith(href));
           return (
             <Link
               key={href}
@@ -96,7 +90,6 @@ export default function AdminSidebar({
               }`}
             >
               <Icon className={`text-xl ${active ? "text-[#17409A]" : ""}`} />
-              {/* Tooltip */}
               <span className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 bg-[#0E2A66] text-white text-xs px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl z-50">
                 {label}
               </span>
@@ -108,29 +101,11 @@ export default function AdminSidebar({
       {/* Divider */}
       <div className="w-8 h-px bg-white/20 mb-4" />
 
-      {/* Settings */}
-      <Link
-        href="/admin/settings"
-        title="Cài đặt"
-        className={`group relative w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-          pathname === "/admin/settings"
-            ? "bg-white shadow-lg shadow-white/20"
-            : "text-white/40 hover:bg-white/15 hover:text-white"
-        }`}
-      >
-        <MdSettings
-          className={`text-xl ${pathname === "/admin/settings" ? "text-[#17409A]" : ""}`}
-        />
-        <span className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 bg-[#0E2A66] text-white text-xs px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl z-50">
-          Cài đặt
-        </span>
-      </Link>
-
       {/* Logout */}
       <button
         onClick={handleLogout}
         title="Đăng xuất"
-        className="group relative w-11 h-11 rounded-2xl flex items-center justify-center text-white/40 hover:bg-[#FF6B9D]/20 hover:text-[#FF6B9D] transition-all duration-200 mt-2"
+        className="group relative w-11 h-11 rounded-2xl flex items-center justify-center text-white/40 hover:bg-[#FF6B9D]/20 hover:text-[#FF6B9D] transition-all duration-200 cursor-pointer"
       >
         <MdLogout className="text-xl" />
         <span className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 bg-[#0E2A66] text-white text-xs px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl z-50">
@@ -138,9 +113,12 @@ export default function AdminSidebar({
         </span>
       </button>
 
-      {/* User avatar (bottom) */}
-      <div className="w-10 h-10 rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-white font-black text-sm mt-4 cursor-pointer hover:bg-white/30 transition-colors">
-        {user?.name?.[0]?.toUpperCase() ?? "A"}
+      {/* Avatar */}
+      <div
+        className="w-10 h-10 rounded-2xl bg-white/20 border-2 border-white/30 flex items-center justify-center text-white font-black text-sm mt-4 cursor-default"
+        title={user?.name ?? "Staff"}
+      >
+        {user?.name?.[0]?.toUpperCase() ?? "S"}
       </div>
     </aside>
   );

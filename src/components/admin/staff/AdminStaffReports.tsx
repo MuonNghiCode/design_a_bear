@@ -364,7 +364,8 @@ export default function AdminStaffReports() {
                     {r.handoverNotes && (
                       <div className="sm:col-span-2">
                         <p className="text-xs font-black text-[#1A1A2E] mb-2 flex items-center gap-1.5">
-                          <MdAssignment style={{ color: "#FFD93D" }} /> Bàn giao ca
+                          <MdAssignment style={{ color: "#FFD93D" }} /> Bàn giao
+                          ca
                         </p>
                         <div className="bg-[#FFD93D]/10 border border-[#FFD93D]/30 rounded-2xl p-3">
                           <p className="text-xs text-[#374151] leading-relaxed">
@@ -378,7 +379,8 @@ export default function AdminStaffReports() {
                     {r.generalNotes && (
                       <div className="sm:col-span-2">
                         <p className="text-xs font-black text-[#1A1A2E] mb-2 flex items-center gap-1.5">
-                          <MdStickyNote2 style={{ color: "#4ECDC4" }} /> Ghi chú chung
+                          <MdStickyNote2 style={{ color: "#4ECDC4" }} /> Ghi chú
+                          chung
                         </p>
                         <div className="bg-white rounded-2xl p-3 shadow-sm">
                           <p className="text-xs text-[#4B5563] leading-relaxed">
@@ -392,7 +394,8 @@ export default function AdminStaffReports() {
                     {r.reviewNote && (
                       <div className="sm:col-span-2">
                         <p className="text-xs font-black text-[#1A1A2E] mb-2 flex items-center gap-1.5">
-                          <MdCheckCircle style={{ color: "#4ECDC4" }} /> Phản hồi của Admin
+                          <MdCheckCircle style={{ color: "#4ECDC4" }} /> Phản
+                          hồi của Admin
                         </p>
                         <div className="bg-[#17409A]/5 border border-[#17409A]/15 rounded-2xl p-3">
                           <p className="text-xs text-[#17409A] leading-relaxed font-semibold">

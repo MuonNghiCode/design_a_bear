@@ -411,9 +411,7 @@ export default function ShiftScheduler() {
                         className="flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[#D1D5DB] hover:border-[#17409A] text-[#C4CAD4] hover:text-[#17409A] hover:bg-[#F4F7FF] py-2.5 transition-all cursor-pointer mt-auto"
                       >
                         <MdAdd style={{ fontSize: 14 }} />
-                        <span className="text-[10px] font-bold">
-                          Thêm
-                        </span>
+                        <span className="text-[10px] font-bold">Thêm</span>
                       </button>
                     </div>
                   );

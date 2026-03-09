@@ -21,18 +21,38 @@ const STATUS_CFG: Record<
   ReviewStatus,
   { label: string; bg: string; text: string; dot: string }
 > = {
-  published: { label: "Đã duyệt",   bg: "bg-[#4ECDC4]/10", text: "text-[#4ECDC4]", dot: "#4ECDC4" },
-  pending:   { label: "Chờ duyệt",  bg: "bg-[#FFD93D]/10", text: "text-[#e6a800]", dot: "#FFD93D" },
-  flagged:   { label: "Bị báo cáo", bg: "bg-[#FF6B9D]/10", text: "text-[#FF6B9D]", dot: "#FF6B9D" },
-  hidden:    { label: "Đã ẩn",      bg: "bg-[#9CA3AF]/10", text: "text-[#9CA3AF]", dot: "#9CA3AF" },
+  published: {
+    label: "Đã duyệt",
+    bg: "bg-[#4ECDC4]/10",
+    text: "text-[#4ECDC4]",
+    dot: "#4ECDC4",
+  },
+  pending: {
+    label: "Chờ duyệt",
+    bg: "bg-[#FFD93D]/10",
+    text: "text-[#e6a800]",
+    dot: "#FFD93D",
+  },
+  flagged: {
+    label: "Bị báo cáo",
+    bg: "bg-[#FF6B9D]/10",
+    text: "text-[#FF6B9D]",
+    dot: "#FF6B9D",
+  },
+  hidden: {
+    label: "Đã ẩn",
+    bg: "bg-[#9CA3AF]/10",
+    text: "text-[#9CA3AF]",
+    dot: "#9CA3AF",
+  },
 };
 
 const TABS: { key: ReviewStatus | "all"; label: string }[] = [
-  { key: "all",       label: "Tất cả"     },
-  { key: "published", label: "Đã duyệt"   },
-  { key: "pending",   label: "Chờ duyệt"  },
-  { key: "flagged",   label: "Bị báo cáo" },
-  { key: "hidden",    label: "Đã ẩn"      },
+  { key: "all", label: "Tất cả" },
+  { key: "published", label: "Đã duyệt" },
+  { key: "pending", label: "Chờ duyệt" },
+  { key: "flagged", label: "Bị báo cáo" },
+  { key: "hidden", label: "Đã ẩn" },
 ];
 
 // ─── Star renderer ───────────────────────────────────────────────────────────
@@ -44,8 +64,12 @@ function Stars({ rating }: { rating: number }) {
         s <= rating ? (
           <MdStar key={s} className="text-[#FFD93D]" style={{ fontSize: 14 }} />
         ) : (
-          <MdStarBorder key={s} className="text-[#D1D5DB]" style={{ fontSize: 14 }} />
-        )
+          <MdStarBorder
+            key={s}
+            className="text-[#D1D5DB]"
+            style={{ fontSize: 14 }}
+          />
+        ),
       )}
     </div>
   );
@@ -87,7 +111,9 @@ function ReviewModal({
             <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">
               Chi tiết đánh giá
             </p>
-            <p className="text-white font-black text-base leading-snug">{review.title}</p>
+            <p className="text-white font-black text-base leading-snug">
+              {review.title}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -108,8 +134,12 @@ function ReviewModal({
               {review.avatar}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-[#1A1A2E] text-sm">{review.customer}</p>
-              <p className="text-[#9CA3AF] text-xs truncate">{review.product}</p>
+              <p className="font-bold text-[#1A1A2E] text-sm">
+                {review.customer}
+              </p>
+              <p className="text-[#9CA3AF] text-xs truncate">
+                {review.product}
+              </p>
               <div className="flex items-center gap-2 mt-1">
                 <Stars rating={review.rating} />
                 <span className="text-[#9CA3AF] text-xs">{review.date}</span>
@@ -124,7 +154,9 @@ function ReviewModal({
 
           {/* Review content */}
           <div className="bg-[#F4F7FF] rounded-2xl p-4">
-            <p className="text-[#374151] text-sm leading-relaxed">{review.content}</p>
+            <p className="text-[#374151] text-sm leading-relaxed">
+              {review.content}
+            </p>
           </div>
 
           {/* Helpful stat */}
@@ -173,22 +205,34 @@ function ReviewModal({
 // ─── Main Table ──────────────────────────────────────────────────────────────
 
 export default function ReviewsTable() {
-  const [search, setSearch]     = useState("");
-  const [tab, setTab]           = useState<ReviewStatus | "all">("all");
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<ReviewStatus | "all">("all");
   const [selected, setSelected] = useState<AdminReview | null>(null);
-  const [rows, setRows]         = useState<AdminReview[]>(ADMIN_REVIEWS);
+  const [rows, setRows] = useState<AdminReview[]>(ADMIN_REVIEWS);
 
   const filtered = rows.filter((r) => {
-    const matchTab  = tab === "all" || r.status === tab;
-    const q         = search.toLowerCase();
-    const matchText = !q || r.customer.toLowerCase().includes(q) || r.product.toLowerCase().includes(q) || r.title.toLowerCase().includes(q);
+    const matchTab = tab === "all" || r.status === tab;
+    const q = search.toLowerCase();
+    const matchText =
+      !q ||
+      r.customer.toLowerCase().includes(q) ||
+      r.product.toLowerCase().includes(q) ||
+      r.title.toLowerCase().includes(q);
     return matchTab && matchText;
   });
 
   const approve = (id: string) =>
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: "published" as ReviewStatus } : r)));
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, status: "published" as ReviewStatus } : r,
+      ),
+    );
   const hide = (id: string) =>
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status: "hidden" as ReviewStatus } : r)));
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === id ? { ...r, status: "hidden" as ReviewStatus } : r,
+      ),
+    );
 
   return (
     <>
@@ -226,7 +270,9 @@ export default function ReviewsTable() {
                   {label}
                   <span
                     className={`rounded-lg px-1.5 py-0.5 text-[10px] font-black ${
-                      tab === key ? "bg-white/20 text-white" : "bg-white text-[#17409A]"
+                      tab === key
+                        ? "bg-white/20 text-white"
+                        : "bg-white text-[#17409A]"
                     }`}
                   >
                     {count}
@@ -242,22 +288,31 @@ export default function ReviewsTable() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#F4F7FF]">
-                {["Khách hàng", "Sản phẩm", "Đánh giá", "Nội dung", "Ngày", "Trạng thái", ""].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="text-left text-[#9CA3AF] font-semibold text-xs uppercase tracking-wide px-5 py-3"
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
+                {[
+                  "Khách hàng",
+                  "Sản phẩm",
+                  "Đánh giá",
+                  "Nội dung",
+                  "Ngày",
+                  "Trạng thái",
+                  "",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left text-[#9CA3AF] font-semibold text-xs uppercase tracking-wide px-5 py-3"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center text-[#9CA3AF] text-sm py-10">
+                  <td
+                    colSpan={7}
+                    className="text-center text-[#9CA3AF] text-sm py-10"
+                  >
                     Không tìm thấy đánh giá nào
                   </td>
                 </tr>
@@ -295,7 +350,9 @@ export default function ReviewsTable() {
                       <td className="px-5 py-4">
                         <div className="flex flex-col gap-0.5">
                           <Stars rating={r.rating} />
-                          <span className="text-[#9CA3AF] text-xs">{r.rating}/5</span>
+                          <span className="text-[#9CA3AF] text-xs">
+                            {r.rating}/5
+                          </span>
                         </div>
                       </td>
 
@@ -342,15 +399,16 @@ export default function ReviewsTable() {
                           </button>
 
                           {/* Approve — only if not already published */}
-                          {r.status !== "published" && r.status !== "hidden" && (
-                            <button
-                              onClick={() => approve(r.id)}
-                              title="Duyệt"
-                              className="w-8 h-8 rounded-xl bg-[#4ECDC4]/10 hover:bg-[#4ECDC4]/20 text-[#4ECDC4] flex items-center justify-center transition-colors cursor-pointer"
-                            >
-                              <MdCheckCircle className="text-base" />
-                            </button>
-                          )}
+                          {r.status !== "published" &&
+                            r.status !== "hidden" && (
+                              <button
+                                onClick={() => approve(r.id)}
+                                title="Duyệt"
+                                className="w-8 h-8 rounded-xl bg-[#4ECDC4]/10 hover:bg-[#4ECDC4]/20 text-[#4ECDC4] flex items-center justify-center transition-colors cursor-pointer"
+                              >
+                                <MdCheckCircle className="text-base" />
+                              </button>
+                            )}
 
                           {/* Hide — only if not already hidden */}
                           {r.status !== "hidden" && (
@@ -380,8 +438,13 @@ export default function ReviewsTable() {
                               onClick={() =>
                                 setRows((prev) =>
                                   prev.map((x) =>
-                                    x.id === r.id ? { ...x, status: "flagged" as ReviewStatus } : x
-                                  )
+                                    x.id === r.id
+                                      ? {
+                                          ...x,
+                                          status: "flagged" as ReviewStatus,
+                                        }
+                                      : x,
+                                  ),
                                 )
                               }
                               title="Gắn cờ"
@@ -415,16 +478,24 @@ export default function ReviewsTable() {
                       {r.avatar}
                     </div>
                     <div>
-                      <p className="font-bold text-[#1A1A2E] text-sm">{r.customer}</p>
-                      <p className="text-[#9CA3AF] text-xs truncate max-w-40">{r.product}</p>
+                      <p className="font-bold text-[#1A1A2E] text-sm">
+                        {r.customer}
+                      </p>
+                      <p className="text-[#9CA3AF] text-xs truncate max-w-40">
+                        {r.product}
+                      </p>
                     </div>
                   </div>
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-xl ${cfg.bg} ${cfg.text}`}>
+                  <span
+                    className={`text-xs font-bold px-2.5 py-1 rounded-xl ${cfg.bg} ${cfg.text}`}
+                  >
                     {cfg.label}
                   </span>
                 </div>
                 <Stars rating={r.rating} />
-                <p className="text-[#374151] text-xs line-clamp-3">{r.content}</p>
+                <p className="text-[#374151] text-xs line-clamp-3">
+                  {r.content}
+                </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSelected(r)}
@@ -433,12 +504,18 @@ export default function ReviewsTable() {
                     <MdReply className="text-sm" /> Phản hồi
                   </button>
                   {r.status !== "published" && r.status !== "hidden" && (
-                    <button onClick={() => approve(r.id)} className="text-[#4ECDC4] text-xs font-bold px-2.5 py-1.5 rounded-xl bg-[#4ECDC4]/10 cursor-pointer">
+                    <button
+                      onClick={() => approve(r.id)}
+                      className="text-[#4ECDC4] text-xs font-bold px-2.5 py-1.5 rounded-xl bg-[#4ECDC4]/10 cursor-pointer"
+                    >
                       Duyệt
                     </button>
                   )}
                   {r.status !== "hidden" && (
-                    <button onClick={() => hide(r.id)} className="text-[#FF6B9D] text-xs font-bold px-2.5 py-1.5 rounded-xl bg-[#FF6B9D]/10 cursor-pointer">
+                    <button
+                      onClick={() => hide(r.id)}
+                      className="text-[#FF6B9D] text-xs font-bold px-2.5 py-1.5 rounded-xl bg-[#FF6B9D]/10 cursor-pointer"
+                    >
                       Ẩn
                     </button>
                   )}
@@ -447,7 +524,9 @@ export default function ReviewsTable() {
             );
           })}
           {filtered.length === 0 && (
-            <p className="text-center text-[#9CA3AF] text-sm py-10">Không tìm thấy đánh giá</p>
+            <p className="text-center text-[#9CA3AF] text-sm py-10">
+              Không tìm thấy đánh giá
+            </p>
           )}
         </div>
       </div>

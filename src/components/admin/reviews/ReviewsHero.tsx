@@ -15,17 +15,37 @@ const avgRating = (
   ADMIN_REVIEWS.reduce((s, r) => s + r.rating, 0) / ADMIN_REVIEWS.length
 ).toFixed(1);
 
-const total      = ADMIN_REVIEWS.length;
-const published  = ADMIN_REVIEWS.filter((r) => r.status === "published").length;
-const pending    = ADMIN_REVIEWS.filter((r) => r.status === "pending").length;
-const flagged    = ADMIN_REVIEWS.filter((r) => r.status === "flagged").length;
-const fiveStar   = ADMIN_REVIEWS.filter((r) => r.rating === 5).length;
+const total = ADMIN_REVIEWS.length;
+const published = ADMIN_REVIEWS.filter((r) => r.status === "published").length;
+const pending = ADMIN_REVIEWS.filter((r) => r.status === "pending").length;
+const flagged = ADMIN_REVIEWS.filter((r) => r.status === "flagged").length;
+const fiveStar = ADMIN_REVIEWS.filter((r) => r.rating === 5).length;
 
 const PILLS = [
-  { icon: MdRateReview,       label: "Tổng đánh giá",  value: total,     color: "bg-white/15" },
-  { icon: MdCheckCircle,      label: "Đã duyệt",        value: published, color: "bg-[#4ECDC4]/20" },
-  { icon: MdAccessTimeFilled, label: "Chờ duyệt",       value: pending,   color: "bg-[#FFD93D]/20" },
-  { icon: MdFlag,             label: "Bị báo cáo",      value: flagged,   color: "bg-[#FF6B9D]/20" },
+  {
+    icon: MdRateReview,
+    label: "Tổng đánh giá",
+    value: total,
+    color: "bg-white/15",
+  },
+  {
+    icon: MdCheckCircle,
+    label: "Đã duyệt",
+    value: published,
+    color: "bg-[#4ECDC4]/20",
+  },
+  {
+    icon: MdAccessTimeFilled,
+    label: "Chờ duyệt",
+    value: pending,
+    color: "bg-[#FFD93D]/20",
+  },
+  {
+    icon: MdFlag,
+    label: "Bị báo cáo",
+    value: flagged,
+    color: "bg-[#FF6B9D]/20",
+  },
 ];
 
 export default function ReviewsHero() {
@@ -60,7 +80,11 @@ export default function ReviewsHero() {
                 {[1, 2, 3, 4, 5].map((s) => (
                   <MdStar
                     key={s}
-                    className={s <= Math.round(Number(avgRating)) ? "text-[#FFD93D]" : "text-white/20"}
+                    className={
+                      s <= Math.round(Number(avgRating))
+                        ? "text-[#FFD93D]"
+                        : "text-white/20"
+                    }
                     style={{ fontSize: 18 }}
                   />
                 ))}
@@ -68,7 +92,9 @@ export default function ReviewsHero() {
               {/* Trend pill */}
               <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-2xl px-3 py-1.5 self-start">
                 <MdTrendingUp className="text-[#4ECDC4] text-sm" />
-                <span className="text-white text-xs font-bold">+0.2 tháng này</span>
+                <span className="text-white text-xs font-bold">
+                  +0.2 tháng này
+                </span>
               </div>
             </div>
           </div>
@@ -77,7 +103,9 @@ export default function ReviewsHero() {
         {/* 5-star badge */}
         <div className="shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-2xl bg-[#FFD93D]/20 border border-[#FFD93D]/30 backdrop-blur-sm">
           <MdStar className="text-[#FFD93D]" style={{ fontSize: 28 }} />
-          <span className="text-white font-black text-xl leading-tight">{fiveStar}</span>
+          <span className="text-white font-black text-xl leading-tight">
+            {fiveStar}
+          </span>
           <span className="text-white/60 text-[10px] font-semibold">5 sao</span>
         </div>
       </div>
@@ -90,8 +118,12 @@ export default function ReviewsHero() {
             className={`${color} backdrop-blur-sm rounded-2xl px-3 py-2.5 flex flex-col gap-1`}
           >
             <Icon className="text-white/70 text-base" />
-            <span className="text-white font-black text-lg leading-none">{value}</span>
-            <span className="text-white/60 text-[11px] font-semibold leading-tight">{label}</span>
+            <span className="text-white font-black text-lg leading-none">
+              {value}
+            </span>
+            <span className="text-white/60 text-[11px] font-semibold leading-tight">
+              {label}
+            </span>
           </div>
         ))}
       </div>
@@ -100,15 +132,22 @@ export default function ReviewsHero() {
       <div className="relative flex flex-col gap-1.5">
         {[...REVIEW_RATING_DIST].reverse().map(({ stars, count, pct }) => (
           <div key={stars} className="flex items-center gap-2">
-            <span className="text-white/60 text-[11px] font-bold w-4 text-right">{stars}</span>
-            <MdStar className="text-[#FFD93D]/80 shrink-0" style={{ fontSize: 12 }} />
+            <span className="text-white/60 text-[11px] font-bold w-4 text-right">
+              {stars}
+            </span>
+            <MdStar
+              className="text-[#FFD93D]/80 shrink-0"
+              style={{ fontSize: 12 }}
+            />
             <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full bg-linear-to-r from-[#FFD93D] to-[#FF8C42] transition-all duration-700"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <span className="text-white/50 text-[11px] font-semibold w-5 text-right">{count}</span>
+            <span className="text-white/50 text-[11px] font-semibold w-5 text-right">
+              {count}
+            </span>
           </div>
         ))}
       </div>

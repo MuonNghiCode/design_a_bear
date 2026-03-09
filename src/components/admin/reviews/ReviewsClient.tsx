@@ -22,7 +22,7 @@ export default function ReviewsClient() {
           ease: "power2.out",
           stagger: 0.07,
           clearProps: "all",
-        }
+        },
       );
     }, ref);
     return () => ctx.revert();

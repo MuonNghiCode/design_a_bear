@@ -19,7 +19,9 @@ export default function ReviewsRatingChart() {
       {/* Title */}
       <div>
         <h3 className="font-black text-[#1A1A2E] text-base">Phân bổ sao</h3>
-        <p className="text-[#9CA3AF] text-xs mt-0.5">{total} đánh giá tổng cộng</p>
+        <p className="text-[#9CA3AF] text-xs mt-0.5">
+          {total} đánh giá tổng cộng
+        </p>
       </div>
 
       {/* Bars 5 → 1 */}
@@ -60,7 +62,10 @@ export default function ReviewsRatingChart() {
             className="flex items-center gap-1 rounded-xl px-2.5 py-1"
             style={{ backgroundColor: `${STAR_COLORS[stars]}18` }}
           >
-            <span className="font-black text-xs" style={{ color: STAR_COLORS[stars] }}>
+            <span
+              className="font-black text-xs"
+              style={{ color: STAR_COLORS[stars] }}
+            >
               {stars}★
             </span>
             <span className="text-[#9CA3AF] text-xs">{pct}%</span>

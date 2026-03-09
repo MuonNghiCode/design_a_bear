@@ -8,18 +8,29 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const ACCENT = "#17409A";
 
-export default function StaffLayout({ children }: { children: React.ReactNode }) {
+export default function StaffLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && (!isAuthenticated || (user?.role !== "staff" && user?.role !== "admin"))) {
+    if (
+      !loading &&
+      (!isAuthenticated || (user?.role !== "staff" && user?.role !== "admin"))
+    ) {
       router.replace("/auth");
     }
   }, [isAuthenticated, user, loading, router]);
 
-  if (loading || !isAuthenticated || (user?.role !== "staff" && user?.role !== "admin")) {
+  if (
+    loading ||
+    !isAuthenticated ||
+    (user?.role !== "staff" && user?.role !== "admin")
+  ) {
     return null;
   }
 

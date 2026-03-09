@@ -18,10 +18,10 @@ import { useRouter } from "next/navigation";
 const ACCENT = "#17409A";
 
 const NAV = [
-  { icon: MdDashboard,  label: "Tổng quan",  href: "/staff" },
-  { icon: MdShoppingBag, label: "Đơn hàng",  href: "/staff/orders" },
-  { icon: MdStar,       label: "Đánh giá",   href: "/staff/reviews" },
-  { icon: MdAssignment, label: "Báo cáo",    href: "/staff/reports" },
+  { icon: MdDashboard, label: "Tổng quan", href: "/staff" },
+  { icon: MdShoppingBag, label: "Đơn hàng", href: "/staff/orders" },
+  { icon: MdStar, label: "Đánh giá", href: "/staff/reviews" },
+  { icon: MdAssignment, label: "Báo cáo", href: "/staff/reports" },
 ];
 
 interface Props {
@@ -61,13 +61,21 @@ export default function StaffSidebar({ open = false, onClose }: Props) {
         className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center mb-8 hover:bg-white/25 transition-colors overflow-hidden"
         title="Về trang chủ"
       >
-        <Image src="/logo.webp" alt="Design a Bear" width={36} height={36} className="object-contain" />
+        <Image
+          src="/logo.webp"
+          alt="Design a Bear"
+          width={36}
+          height={36}
+          className="object-contain"
+        />
       </Link>
 
       {/* Nav */}
       <nav className="flex flex-col gap-2 flex-1 items-center">
         {NAV.map(({ icon: Icon, label, href }) => {
-          const active = pathname === href || (href !== "/staff" && pathname.startsWith(href));
+          const active =
+            pathname === href ||
+            (href !== "/staff" && pathname.startsWith(href));
           return (
             <Link
               key={href}

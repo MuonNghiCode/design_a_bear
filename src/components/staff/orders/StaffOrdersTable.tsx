@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { MdSearch, MdCheckCircle, MdLocalShipping, MdInventory } from "react-icons/md";
+import {
+  MdSearch,
+  MdCheckCircle,
+  MdLocalShipping,
+  MdInventory,
+} from "react-icons/md";
 import { ORDERS, type OrderRow, type OrderStatus } from "@/data/admin";
 
 // Staff can only move: pending→packing, packing→shipping
@@ -12,29 +17,31 @@ const STATUS_CFG: Record<
   OrderStatus,
   { label: string; color: string; bg: string }
 > = {
-  pending:   { label: "Chờ xử lý",  color: "#FF8C42", bg: "#FF8C4218" },
-  packing:   { label: "Đóng gói",   color: "#7C5CFC", bg: "#7C5CFC18" },
-  shipping:  { label: "Vận chuyển", color: "#17409A", bg: "#17409A18" },
-  done:      { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
-  cancelled: { label: "Đã hủy",     color: "#FF6B9D", bg: "#FF6B9D18" },
+  pending: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
+  packing: { label: "Đóng gói", color: "#7C5CFC", bg: "#7C5CFC18" },
+  shipping: { label: "Vận chuyển", color: "#17409A", bg: "#17409A18" },
+  done: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
+  cancelled: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
 };
 
 const TABS: { key: OrderStatus | "all"; label: string }[] = [
-  { key: "all",      label: "Tất cả"     },
-  { key: "pending",  label: "Chờ xử lý"  },
-  { key: "packing",  label: "Đóng gói"   },
+  { key: "all", label: "Tất cả" },
+  { key: "pending", label: "Chờ xử lý" },
+  { key: "packing", label: "Đóng gói" },
   { key: "shipping", label: "Vận chuyển" },
-  { key: "done",     label: "Hoàn thành" },
+  { key: "done", label: "Hoàn thành" },
 ];
 
 export default function StaffOrdersTable() {
-  const [tab, setTab]       = useState<OrderStatus | "all">("all");
+  const [tab, setTab] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
-  const [rows, setRows]     = useState<OrderRow[]>(ORDERS);
+  const [rows, setRows] = useState<OrderRow[]>(ORDERS);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: rows.length };
-    rows.forEach((o) => { c[o.status] = (c[o.status] ?? 0) + 1; });
+    rows.forEach((o) => {
+      c[o.status] = (c[o.status] ?? 0) + 1;
+    });
     return c;
   }, [rows]);
 
@@ -59,8 +66,10 @@ export default function StaffOrdersTable() {
     setRows((prev) =>
       prev.map((o) => {
         if (o.id !== id) return o;
-        if (o.status === "pending")  return { ...o, status: "packing"  as OrderStatus };
-        if (o.status === "packing")  return { ...o, status: "shipping" as OrderStatus };
+        if (o.status === "pending")
+          return { ...o, status: "packing" as OrderStatus };
+        if (o.status === "packing")
+          return { ...o, status: "shipping" as OrderStatus };
         return o;
       }),
     );
@@ -93,7 +102,9 @@ export default function StaffOrdersTable() {
               {label}
               <span
                 className={`rounded-lg px-1.5 py-0.5 text-[10px] font-black ${
-                  tab === key ? "bg-white/20 text-white" : "bg-white text-[#17409A]"
+                  tab === key
+                    ? "bg-white/20 text-white"
+                    : "bg-white text-[#17409A]"
                 }`}
               >
                 {counts[key] ?? 0}
@@ -108,7 +119,15 @@ export default function StaffOrdersTable() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#F4F7FF]">
-              {["Mã đơn", "Khách hàng", "Sản phẩm", "Khu vực", "Ngày", "Trạng thái", "Hành động"].map((h) => (
+              {[
+                "Mã đơn",
+                "Khách hàng",
+                "Sản phẩm",
+                "Khu vực",
+                "Ngày",
+                "Trạng thái",
+                "Hành động",
+              ].map((h) => (
                 <th
                   key={h}
                   className="text-left text-[#9CA3AF] font-semibold text-xs uppercase tracking-wide px-5 py-3"
@@ -121,15 +140,22 @@ export default function StaffOrdersTable() {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center text-[#9CA3AF] text-sm py-10">
+                <td
+                  colSpan={7}
+                  className="text-center text-[#9CA3AF] text-sm py-10"
+                >
                   Không có đơn hàng nào
                 </td>
               </tr>
             ) : (
               filtered.map((o) => {
                 const cfg = STATUS_CFG[o.status];
-                const canAdvance = o.status === "pending" || o.status === "packing";
-                const nextLabel  = o.status === "pending" ? "Bắt đầu đóng gói" : "Gửi vận chuyển";
+                const canAdvance =
+                  o.status === "pending" || o.status === "packing";
+                const nextLabel =
+                  o.status === "pending"
+                    ? "Bắt đầu đóng gói"
+                    : "Gửi vận chuyển";
                 return (
                   <tr
                     key={o.id}
@@ -137,7 +163,9 @@ export default function StaffOrdersTable() {
                   >
                     {/* ID */}
                     <td className="px-5 py-4">
-                      <span className="font-black text-[#17409A] text-xs">{o.id}</span>
+                      <span className="font-black text-[#17409A] text-xs">
+                        {o.id}
+                      </span>
                     </td>
 
                     {/* Customer */}
@@ -149,18 +177,25 @@ export default function StaffOrdersTable() {
                         >
                           {o.avatar}
                         </div>
-                        <span className="font-semibold text-[#1A1A2E] whitespace-nowrap">{o.customer}</span>
+                        <span className="font-semibold text-[#1A1A2E] whitespace-nowrap">
+                          {o.customer}
+                        </span>
                       </div>
                     </td>
 
                     {/* Product */}
                     <td className="px-5 py-4">
                       <div>
-                        <p className="text-[#374151] font-medium">{o.product}</p>
+                        <p className="text-[#374151] font-medium">
+                          {o.product}
+                        </p>
                         {o.badge && (
                           <span
                             className="text-[10px] font-black px-1.5 py-0.5 rounded-lg"
-                            style={{ color: o.badgeColor, backgroundColor: `${o.badgeColor}18` }}
+                            style={{
+                              color: o.badgeColor,
+                              backgroundColor: `${o.badgeColor}18`,
+                            }}
                           >
                             {o.badge}
                           </span>
@@ -169,7 +204,9 @@ export default function StaffOrdersTable() {
                     </td>
 
                     {/* City */}
-                    <td className="px-5 py-4 text-[#9CA3AF] text-xs">{o.city}</td>
+                    <td className="px-5 py-4 text-[#9CA3AF] text-xs">
+                      {o.city}
+                    </td>
 
                     {/* Date + time */}
                     <td className="px-5 py-4 whitespace-nowrap text-[#9CA3AF] text-xs">
@@ -182,7 +219,10 @@ export default function StaffOrdersTable() {
                         className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl"
                         style={{ color: cfg.color, backgroundColor: cfg.bg }}
                       >
-                        <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: cfg.color }} />
+                        <span
+                          className="w-1.5 h-1.5 rounded-full inline-block"
+                          style={{ backgroundColor: cfg.color }}
+                        />
                         {cfg.label}
                       </span>
                     </td>
@@ -236,7 +276,9 @@ export default function StaffOrdersTable() {
                     {o.avatar}
                   </div>
                   <div>
-                    <p className="font-bold text-[#1A1A2E] text-sm">{o.customer}</p>
+                    <p className="font-bold text-[#1A1A2E] text-sm">
+                      {o.customer}
+                    </p>
                     <p className="text-[#9CA3AF] text-xs">{o.product}</p>
                     <p className="text-[#17409A] text-xs font-black">{o.id}</p>
                   </div>
@@ -253,15 +295,23 @@ export default function StaffOrdersTable() {
                   onClick={() => advanceStatus(o.id)}
                   className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer self-start"
                 >
-                  {o.status === "pending" ? <MdInventory /> : <MdLocalShipping />}
-                  {o.status === "pending" ? "Bắt đầu đóng gói" : "Gửi vận chuyển"}
+                  {o.status === "pending" ? (
+                    <MdInventory />
+                  ) : (
+                    <MdLocalShipping />
+                  )}
+                  {o.status === "pending"
+                    ? "Bắt đầu đóng gói"
+                    : "Gửi vận chuyển"}
                 </button>
               )}
             </div>
           );
         })}
         {filtered.length === 0 && (
-          <p className="text-center text-[#9CA3AF] text-sm py-10">Không có đơn hàng</p>
+          <p className="text-center text-[#9CA3AF] text-sm py-10">
+            Không có đơn hàng
+          </p>
         )}
       </div>
     </div>

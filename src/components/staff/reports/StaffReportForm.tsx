@@ -52,10 +52,14 @@ const EMPTY_FORM: FormState = {
   generalNotes: "",
 };
 
-const SEVERITY_OPTIONS: { value: IssueSeverity; label: string; color: string }[] = [
-  { value: "low",    label: "Thấp",         color: "#4ECDC4" },
-  { value: "medium", label: "Trung bình",   color: "#FF8C42" },
-  { value: "high",   label: "Cao",          color: "#FF6B9D" },
+const SEVERITY_OPTIONS: {
+  value: IssueSeverity;
+  label: string;
+  color: string;
+}[] = [
+  { value: "low", label: "Thấp", color: "#4ECDC4" },
+  { value: "medium", label: "Trung bình", color: "#FF8C42" },
+  { value: "high", label: "Cao", color: "#FF6B9D" },
 ];
 
 interface StaffReportFormProps {
@@ -63,10 +67,13 @@ interface StaffReportFormProps {
   onSubmit: () => void;
 }
 
-export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormProps) {
-  const { user }  = useAuth();
-  const [form, setForm]       = useState<FormState>(EMPTY_FORM);
-  const [step, setStep]       = useState<1 | 2 | 3 | 4>(1);
+export default function StaffReportForm({
+  onClose,
+  onSubmit,
+}: StaffReportFormProps) {
+  const { user } = useAuth();
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [submitted, setSubmitted] = useState(false);
 
   function set<K extends keyof FormState>(k: K, v: FormState[K]) {
@@ -76,7 +83,12 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
   function addIssue() {
     set("issues", [
       ...form.issues,
-      { id: `I-${Date.now()}`, severity: "medium", description: "", resolved: false },
+      {
+        id: `I-${Date.now()}`,
+        severity: "medium",
+        description: "",
+        resolved: false,
+      },
     ]);
   }
 
@@ -88,7 +100,10 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
   }
 
   function removeIssue(id: string) {
-    set("issues", form.issues.filter((i) => i.id !== id));
+    set(
+      "issues",
+      form.issues.filter((i) => i.id !== id),
+    );
   }
 
   function handleSubmit(asDraft = false) {
@@ -100,9 +115,9 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
 
   const STEPS = [
     { n: 1 as const, label: "Thông tin ca" },
-    { n: 2 as const, label: "Công việc"    },
-    { n: 3 as const, label: "Sự cố & kho"  },
-    { n: 4 as const, label: "Bàn giao"     },
+    { n: 2 as const, label: "Công việc" },
+    { n: 3 as const, label: "Sự cố & kho" },
+    { n: 4 as const, label: "Bàn giao" },
   ];
 
   if (submitted) {
@@ -111,11 +126,16 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
         <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 flex flex-col items-center gap-5 text-center">
           <div className="w-20 h-20 rounded-full bg-[#4ECDC4]/10 flex items-center justify-center">
-            <MdCheckCircle className="text-[#4ECDC4]" style={{ fontSize: 44 }} />
+            <MdCheckCircle
+              className="text-[#4ECDC4]"
+              style={{ fontSize: 44 }}
+            />
           </div>
           <div>
             <p className="font-black text-[#1A1A2E] text-xl">Báo cáo đã nộp!</p>
-            <p className="text-[#9CA3AF] text-sm mt-1">Admin sẽ xem xét trong thời gian sớm nhất.</p>
+            <p className="text-[#9CA3AF] text-sm mt-1">
+              Admin sẽ xem xét trong thời gian sớm nhất.
+            </p>
           </div>
         </div>
       </div>
@@ -124,17 +144,26 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden max-h-[95vh]">
-
         {/* ── Header ── */}
         <div className="bg-[#17409A] px-6 py-5">
           <div className="flex items-start justify-between gap-3 mb-4">
             <div>
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-0.5">Tạo báo cáo mới</p>
-              <p className="text-white font-black text-lg">{user?.name ?? "Nhân viên"}</p>
+              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-0.5">
+                Tạo báo cáo mới
+              </p>
+              <p className="text-white font-black text-lg">
+                {user?.name ?? "Nhân viên"}
+              </p>
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0">
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
+            >
               <MdClose className="text-lg" />
             </button>
           </div>
@@ -152,8 +181,8 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
                       step === s.n
                         ? "bg-white text-[#17409A]"
                         : step > s.n
-                        ? "bg-[#4ECDC4] text-white"
-                        : "bg-white/15 text-white/50"
+                          ? "bg-[#4ECDC4] text-white"
+                          : "bg-white/15 text-white/50"
                     }`}
                   >
                     {step > s.n ? <MdCheckCircle className="text-sm" /> : s.n}
@@ -176,17 +205,25 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
 
         {/* ── Body ── */}
         <div className="overflow-y-auto flex-1 p-6">
-
           {/* Step 1: Info */}
           {step === 1 && (
             <div className="flex flex-col gap-5">
-              <p className="font-black text-[#1A1A2E] text-base">Thông tin ca làm việc</p>
+              <p className="font-black text-[#1A1A2E] text-base">
+                Thông tin ca làm việc
+              </p>
 
               {/* Report type */}
               <div>
-                <label className="text-[#1A1A2E] text-sm font-bold block mb-2">Loại báo cáo</label>
+                <label className="text-[#1A1A2E] text-sm font-bold block mb-2">
+                  Loại báo cáo
+                </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {(Object.entries(REPORT_TYPE_CFG) as [ReportType, (typeof REPORT_TYPE_CFG)[ReportType]][]).map(([key, cfg]) => (
+                  {(
+                    Object.entries(REPORT_TYPE_CFG) as [
+                      ReportType,
+                      (typeof REPORT_TYPE_CFG)[ReportType],
+                    ][]
+                  ).map(([key, cfg]) => (
                     <button
                       key={key}
                       onClick={() => set("type", key)}
@@ -198,7 +235,9 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
                     >
                       <span
                         className="text-xs font-black block"
-                        style={{ color: form.type === key ? cfg.color : "#9CA3AF" }}
+                        style={{
+                          color: form.type === key ? cfg.color : "#9CA3AF",
+                        }}
                       >
                         {cfg.label}
                       </span>
@@ -209,9 +248,16 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
 
               {/* Shift */}
               <div>
-                <label className="text-[#1A1A2E] text-sm font-bold block mb-2">Ca làm việc</label>
+                <label className="text-[#1A1A2E] text-sm font-bold block mb-2">
+                  Ca làm việc
+                </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(Object.entries(SHIFT_CFG) as [ShiftType, (typeof SHIFT_CFG)[ShiftType]][]).map(([key, cfg]) => (
+                  {(
+                    Object.entries(SHIFT_CFG) as [
+                      ShiftType,
+                      (typeof SHIFT_CFG)[ShiftType],
+                    ][]
+                  ).map(([key, cfg]) => (
                     <button
                       key={key}
                       onClick={() => set("shift", key)}
@@ -221,8 +267,12 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
                           : "border-[#F4F7FF] bg-[#F4F7FF] hover:border-[#17409A]/30"
                       }`}
                     >
-                      <span className="text-xs font-black block text-[#1A1A2E]">{cfg.label}</span>
-                      <span className="text-[10px] text-[#9CA3AF]">{cfg.time}</span>
+                      <span className="text-xs font-black block text-[#1A1A2E]">
+                        {cfg.label}
+                      </span>
+                      <span className="text-[10px] text-[#9CA3AF]">
+                        {cfg.time}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -230,7 +280,9 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
 
               {/* Date */}
               <div>
-                <label className="text-[#1A1A2E] text-sm font-bold block mb-2">Ngày</label>
+                <label className="text-[#1A1A2E] text-sm font-bold block mb-2">
+                  Ngày
+                </label>
                 <input
                   type="text"
                   value={form.date}
@@ -245,16 +297,32 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
           {/* Step 2: Work summary */}
           {step === 2 && (
             <div className="flex flex-col gap-5">
-              <p className="font-black text-[#1A1A2E] text-base">Tổng kết công việc trong ca</p>
+              <p className="font-black text-[#1A1A2E] text-base">
+                Tổng kết công việc trong ca
+              </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
-                  { key: "ordersProcessed" as const, label: "Số đơn đã xử lý",   placeholder: "VD: 12" },
-                  { key: "packagingDone"   as const, label: "Số đơn đã đóng gói", placeholder: "VD: 12" },
-                  { key: "reviewsAnswered" as const, label: "Phản hồi đánh giá",  placeholder: "VD: 3"  },
+                  {
+                    key: "ordersProcessed" as const,
+                    label: "Số đơn đã xử lý",
+                    placeholder: "VD: 12",
+                  },
+                  {
+                    key: "packagingDone" as const,
+                    label: "Số đơn đã đóng gói",
+                    placeholder: "VD: 12",
+                  },
+                  {
+                    key: "reviewsAnswered" as const,
+                    label: "Phản hồi đánh giá",
+                    placeholder: "VD: 3",
+                  },
                 ].map(({ key, label, placeholder }) => (
                   <div key={key}>
-                    <label className="text-[#1A1A2E] text-sm font-bold block mb-2">{label}</label>
+                    <label className="text-[#1A1A2E] text-sm font-bold block mb-2">
+                      {label}
+                    </label>
                     <input
                       type="number"
                       min="0"
@@ -268,7 +336,9 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
               </div>
 
               <div>
-                <label className="text-[#1A1A2E] text-sm font-bold block mb-2">Ghi chú chung về công việc</label>
+                <label className="text-[#1A1A2E] text-sm font-bold block mb-2">
+                  Ghi chú chung về công việc
+                </label>
                 <textarea
                   rows={4}
                   value={form.generalNotes}
@@ -284,7 +354,9 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
           {step === 3 && (
             <div className="flex flex-col gap-5">
               <div className="flex items-center justify-between">
-                <p className="font-black text-[#1A1A2E] text-base">Sự cố phát sinh</p>
+                <p className="font-black text-[#1A1A2E] text-base">
+                  Sự cố phát sinh
+                </p>
                 <button
                   onClick={addIssue}
                   className="flex items-center gap-1.5 bg-[#FF8C42]/10 text-[#FF8C42] text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer hover:bg-[#FF8C42]/20 transition-colors"
@@ -302,18 +374,27 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
 
               <div className="flex flex-col gap-3">
                 {form.issues.map((issue) => (
-                  <div key={issue.id} className="bg-[#F4F7FF] rounded-2xl p-4 flex flex-col gap-3">
+                  <div
+                    key={issue.id}
+                    className="bg-[#F4F7FF] rounded-2xl p-4 flex flex-col gap-3"
+                  >
                     <div className="flex items-center justify-between gap-3">
                       {/* Severity */}
                       <div className="flex gap-1.5">
                         {SEVERITY_OPTIONS.map((s) => (
                           <button
                             key={s.value}
-                            onClick={() => updateIssue(issue.id, { severity: s.value })}
+                            onClick={() =>
+                              updateIssue(issue.id, { severity: s.value })
+                            }
                             className="text-[10px] font-black px-2.5 py-1 rounded-xl transition-all cursor-pointer"
                             style={{
-                              color: issue.severity === s.value ? "white" : s.color,
-                              backgroundColor: issue.severity === s.value ? s.color : `${s.color}20`,
+                              color:
+                                issue.severity === s.value ? "white" : s.color,
+                              backgroundColor:
+                                issue.severity === s.value
+                                  ? s.color
+                                  : `${s.color}20`,
                             }}
                           >
                             {s.label}
@@ -323,9 +404,13 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
 
                       {/* Resolved toggle */}
                       <div className="flex items-center gap-2">
-                        <span className="text-[#9CA3AF] text-xs">Đã giải quyết</span>
+                        <span className="text-[#9CA3AF] text-xs">
+                          Đã giải quyết
+                        </span>
                         <button
-                          onClick={() => updateIssue(issue.id, { resolved: !issue.resolved })}
+                          onClick={() =>
+                            updateIssue(issue.id, { resolved: !issue.resolved })
+                          }
                           className={`w-9 h-5 rounded-full transition-colors cursor-pointer relative ${
                             issue.resolved ? "bg-[#4ECDC4]" : "bg-[#D1D5DB]"
                           }`}
@@ -350,7 +435,9 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
                     <textarea
                       rows={2}
                       value={issue.description}
-                      onChange={(e) => updateIssue(issue.id, { description: e.target.value })}
+                      onChange={(e) =>
+                        updateIssue(issue.id, { description: e.target.value })
+                      }
                       placeholder="Mô tả chi tiết sự cố, nguyên nhân, hướng xử lý…"
                       className="w-full bg-white rounded-xl px-3 py-2 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/20 resize-none transition"
                     />
@@ -361,7 +448,8 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
               {/* Stock notes */}
               <div>
                 <label className="text-[#1A1A2E] text-sm font-bold flex items-center gap-1.5 mb-2">
-                  <MdWarning className="text-[#FFD93D]" /> Tình trạng kho / nguyên vật liệu
+                  <MdWarning className="text-[#FFD93D]" /> Tình trạng kho /
+                  nguyên vật liệu
                 </label>
                 <textarea
                   rows={3}
@@ -377,11 +465,17 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
           {/* Step 4: Handover */}
           {step === 4 && (
             <div className="flex flex-col gap-5">
-              <p className="font-black text-[#1A1A2E] text-base">Ghi chú bàn giao ca</p>
+              <p className="font-black text-[#1A1A2E] text-base">
+                Ghi chú bàn giao ca
+              </p>
 
               <div className="bg-[#FFD93D]/10 border border-[#FFD93D]/30 rounded-2xl p-4 text-sm text-[#374151]">
-                <p className="font-bold text-[#e6a800] mb-1 text-xs uppercase tracking-wide">Quan trọng</p>
-                Nội dung bàn giao sẽ hiển thị nổi bật cho ca tiếp theo. Hãy ghi rõ những đầu việc chưa hoàn thành và những thông tin nhân viên ca sau cần biết.
+                <p className="font-bold text-[#e6a800] mb-1 text-xs uppercase tracking-wide">
+                  Quan trọng
+                </p>
+                Nội dung bàn giao sẽ hiển thị nổi bật cho ca tiếp theo. Hãy ghi
+                rõ những đầu việc chưa hoàn thành và những thông tin nhân viên
+                ca sau cần biết.
               </div>
 
               <textarea
@@ -394,21 +488,28 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
 
               {/* Summary preview */}
               <div className="bg-[#F4F7FF] rounded-2xl p-4 flex flex-col gap-3">
-                <p className="font-black text-[#1A1A2E] text-sm">Xác nhận nộp báo cáo</p>
+                <p className="font-black text-[#1A1A2E] text-sm">
+                  Xác nhận nộp báo cáo
+                </p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    { label: "Loại",       value: REPORT_TYPE_CFG[form.type].label             },
-                    { label: "Ca",         value: SHIFT_CFG[form.shift].label                  },
-                    { label: "Đơn xử lý", value: form.ordersProcessed || "0"                  },
-                    { label: "Sự cố",      value: form.issues.length.toString()                },
+                    { label: "Loại", value: REPORT_TYPE_CFG[form.type].label },
+                    { label: "Ca", value: SHIFT_CFG[form.shift].label },
+                    { label: "Đơn xử lý", value: form.ordersProcessed || "0" },
+                    { label: "Sự cố", value: form.issues.length.toString() },
                   ].map(({ label, value }) => (
-                    <div key={label} className="bg-white rounded-xl px-3 py-2 flex justify-between">
+                    <div
+                      key={label}
+                      className="bg-white rounded-xl px-3 py-2 flex justify-between"
+                    >
                       <span className="text-[#9CA3AF]">{label}</span>
                       <span className="font-bold text-[#1A1A2E]">{value}</span>
                     </div>
                   ))}
                 </div>
-                <p className="text-[#9CA3AF] text-xs">Nhân viên: {user?.name ?? "—"}</p>
+                <p className="text-[#9CA3AF] text-xs">
+                  Nhân viên: {user?.name ?? "—"}
+                </p>
               </div>
             </div>
           )}
@@ -427,7 +528,9 @@ export default function StaffReportForm({ onClose, onSubmit }: StaffReportFormPr
           <div className="flex gap-2">
             {step < 4 ? (
               <button
-                onClick={() => setStep((s) => Math.min(4, s + 1) as 1 | 2 | 3 | 4)}
+                onClick={() =>
+                  setStep((s) => Math.min(4, s + 1) as 1 | 2 | 3 | 4)
+                }
                 className="flex items-center gap-2 bg-[#17409A] hover:bg-[#1a3a8a] text-white text-sm font-bold px-5 py-2.5 rounded-2xl transition-colors cursor-pointer"
               >
                 Tiếp theo →

@@ -15,8 +15,8 @@ import { useAuth } from "@/contexts/AuthContext";
 const ACCENT = "#17409A";
 
 const TABS = [
-  { label: "TỔNG QUAN",  href: "/staff",         icon: MdDashboard  },
-  { label: "BÁO CÁO",    href: "/staff/reports",  icon: MdAssignment },
+  { label: "TỔNG QUAN", href: "/staff", icon: MdDashboard },
+  { label: "BÁO CÁO", href: "/staff/reports", icon: MdAssignment },
 ];
 
 export default function StaffTopBar({

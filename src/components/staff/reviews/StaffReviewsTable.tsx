@@ -13,11 +13,14 @@ import {
 
 // Staff can only see + reply — no approve/hide/flag actions
 
-const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  published: { label: "Đã duyệt",   color: "#4ECDC4", bg: "#4ECDC415" },
-  pending:   { label: "Chờ duyệt",  color: "#e6a800", bg: "#FFD93D15" },
-  flagged:   { label: "Bị báo cáo", color: "#FF6B9D", bg: "#FF6B9D15" },
-  hidden:    { label: "Đã ẩn",      color: "#9CA3AF", bg: "#9CA3AF15" },
+const STATUS_LABELS: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
+  published: { label: "Đã duyệt", color: "#4ECDC4", bg: "#4ECDC415" },
+  pending: { label: "Chờ duyệt", color: "#e6a800", bg: "#FFD93D15" },
+  flagged: { label: "Bị báo cáo", color: "#FF6B9D", bg: "#FF6B9D15" },
+  hidden: { label: "Đã ẩn", color: "#9CA3AF", bg: "#9CA3AF15" },
 };
 
 function Stars({ rating }: { rating: number }) {
@@ -27,34 +30,54 @@ function Stars({ rating }: { rating: number }) {
         s <= rating ? (
           <MdStar key={s} className="text-[#FFD93D]" style={{ fontSize: 14 }} />
         ) : (
-          <MdStarBorder key={s} className="text-[#D1D5DB]" style={{ fontSize: 14 }} />
+          <MdStarBorder
+            key={s}
+            className="text-[#D1D5DB]"
+            style={{ fontSize: 14 }}
+          />
         ),
       )}
     </div>
   );
 }
 
-function ReplyModal({ review, onClose }: { review: AdminReview; onClose: () => void }) {
+function ReplyModal({
+  review,
+  onClose,
+}: {
+  review: AdminReview;
+  onClose: () => void;
+}) {
   const [reply, setReply] = useState(review.reply ?? "");
   const [saved, setSaved] = useState(false);
 
   const handleSend = () => {
     if (!reply.trim()) return;
     setSaved(true);
-    setTimeout(() => { setSaved(false); onClose(); }, 1500);
+    setTimeout(() => {
+      setSaved(false);
+      onClose();
+    }, 1500);
   };
 
   const cfg = STATUS_LABELS[review.status] ?? STATUS_LABELS.published;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[90vh]">
         {/* Header */}
         <div className="bg-[#17409A] px-6 py-5 flex items-start justify-between gap-3">
           <div>
-            <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">Phản hồi đánh giá</p>
-            <p className="text-white font-black text-base leading-snug">{review.title}</p>
+            <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">
+              Phản hồi đánh giá
+            </p>
+            <p className="text-white font-black text-base leading-snug">
+              {review.title}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -74,30 +97,45 @@ function ReplyModal({ review, onClose }: { review: AdminReview; onClose: () => v
               {review.avatar}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-[#1A1A2E] text-sm">{review.customer}</p>
-              <p className="text-[#9CA3AF] text-xs truncate">{review.product}</p>
+              <p className="font-bold text-[#1A1A2E] text-sm">
+                {review.customer}
+              </p>
+              <p className="text-[#9CA3AF] text-xs truncate">
+                {review.product}
+              </p>
               <div className="flex items-center gap-2 mt-1">
                 <Stars rating={review.rating} />
                 <span className="text-[#9CA3AF] text-xs">{review.date}</span>
               </div>
             </div>
-            <span className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-xl ${cfg.bg}`} style={{ color: cfg.color }}>
+            <span
+              className={`shrink-0 text-xs font-bold px-2.5 py-1 rounded-xl ${cfg.bg}`}
+              style={{ color: cfg.color }}
+            >
               {cfg.label}
             </span>
           </div>
 
           {/* Review content */}
           <div className="bg-[#F4F7FF] rounded-2xl p-4">
-            <p className="text-[#374151] text-sm font-bold mb-1">{review.title}</p>
-            <p className="text-[#374151] text-sm leading-relaxed">{review.content}</p>
+            <p className="text-[#374151] text-sm font-bold mb-1">
+              {review.title}
+            </p>
+            <p className="text-[#374151] text-sm leading-relaxed">
+              {review.content}
+            </p>
           </div>
 
           {/* Helpful */}
-          <p className="text-[#9CA3AF] text-xs">{review.helpful} người thấy hữu ích</p>
+          <p className="text-[#9CA3AF] text-xs">
+            {review.helpful} người thấy hữu ích
+          </p>
 
           {/* Reply textarea */}
           <div className="flex flex-col gap-2">
-            <label className="text-[#1A1A2E] font-bold text-sm">Phản hồi của bạn</label>
+            <label className="text-[#1A1A2E] font-bold text-sm">
+              Phản hồi của bạn
+            </label>
             <textarea
               rows={4}
               value={reply}
@@ -105,7 +143,9 @@ function ReplyModal({ review, onClose }: { review: AdminReview; onClose: () => v
               placeholder="Nhập phản hồi thân thiện cho khách hàng…"
               className="w-full bg-[#F4F7FF] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/30 resize-none transition"
             />
-            <p className="text-[#9CA3AF] text-xs">Phản hồi sẽ được admin xem xét trước khi hiển thị công khai.</p>
+            <p className="text-[#9CA3AF] text-xs">
+              Phản hồi sẽ được admin xem xét trước khi hiển thị công khai.
+            </p>
           </div>
         </div>
 
@@ -132,16 +172,19 @@ function ReplyModal({ review, onClose }: { review: AdminReview; onClose: () => v
 }
 
 export default function StaffReviewsTable() {
-  const [search, setSearch]     = useState("");
-  const [filter, setFilter]     = useState<"all" | "pending" | "unanswered">("all");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "pending" | "unanswered">("all");
   const [selected, setSelected] = useState<AdminReview | null>(null);
 
   const filtered = ADMIN_REVIEWS.filter((r) => {
-    if (filter === "pending"    && r.status !== "pending")   return false;
-    if (filter === "unanswered" && r.reply)                  return false;
+    if (filter === "pending" && r.status !== "pending") return false;
+    if (filter === "unanswered" && r.reply) return false;
     if (search) {
       const q = search.toLowerCase();
-      return r.customer.toLowerCase().includes(q) || r.product.toLowerCase().includes(q);
+      return (
+        r.customer.toLowerCase().includes(q) ||
+        r.product.toLowerCase().includes(q)
+      );
     }
     return true;
   });
@@ -171,7 +214,11 @@ export default function StaffReviewsTable() {
                     : "bg-[#F4F7FF] text-[#9CA3AF] hover:bg-[#EEF1FF] hover:text-[#17409A]"
                 }`}
               >
-                {f === "all" ? "Tất cả" : f === "pending" ? "Chờ duyệt" : "Chưa trả lời"}
+                {f === "all"
+                  ? "Tất cả"
+                  : f === "pending"
+                    ? "Chờ duyệt"
+                    : "Chưa trả lời"}
               </button>
             ))}
           </div>
@@ -182,8 +229,18 @@ export default function StaffReviewsTable() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#F4F7FF]">
-                {["Khách hàng", "Sản phẩm", "Đánh giá", "Nội dung", "Ngày", ""].map((h) => (
-                  <th key={h} className="text-left text-[#9CA3AF] font-semibold text-xs uppercase tracking-wide px-5 py-3">
+                {[
+                  "Khách hàng",
+                  "Sản phẩm",
+                  "Đánh giá",
+                  "Nội dung",
+                  "Ngày",
+                  "",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="text-left text-[#9CA3AF] font-semibold text-xs uppercase tracking-wide px-5 py-3"
+                  >
                     {h}
                   </th>
                 ))}
@@ -192,36 +249,56 @@ export default function StaffReviewsTable() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-[#9CA3AF] text-sm py-10">Không tìm thấy đánh giá</td>
+                  <td
+                    colSpan={6}
+                    className="text-center text-[#9CA3AF] text-sm py-10"
+                  >
+                    Không tìm thấy đánh giá
+                  </td>
                 </tr>
               ) : (
                 filtered.map((r) => {
-                  const cfg = STATUS_LABELS[r.status] ?? STATUS_LABELS.published;
+                  const cfg =
+                    STATUS_LABELS[r.status] ?? STATUS_LABELS.published;
                   return (
-                    <tr key={r.id} className="border-b border-[#F4F7FF] last:border-0 hover:bg-[#F4F7FF]/60 transition-colors">
+                    <tr
+                      key={r.id}
+                      className="border-b border-[#F4F7FF] last:border-0 hover:bg-[#F4F7FF]/60 transition-colors"
+                    >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0" style={{ backgroundColor: r.avatarColor }}>
+                          <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0"
+                            style={{ backgroundColor: r.avatarColor }}
+                          >
                             {r.avatar}
                           </div>
-                          <span className="font-semibold text-[#1A1A2E] whitespace-nowrap">{r.customer}</span>
+                          <span className="font-semibold text-[#1A1A2E] whitespace-nowrap">
+                            {r.customer}
+                          </span>
                         </div>
                       </td>
                       <td className="px-5 py-4 max-w-40">
-                        <span className="text-[#374151] truncate block">{r.product}</span>
+                        <span className="text-[#374151] truncate block">
+                          {r.product}
+                        </span>
                       </td>
                       <td className="px-5 py-4">
                         <Stars rating={r.rating} />
                       </td>
                       <td className="px-5 py-4 max-w-52">
-                        <p className="text-[#374151] line-clamp-2 text-xs leading-relaxed">{r.content}</p>
+                        <p className="text-[#374151] line-clamp-2 text-xs leading-relaxed">
+                          {r.content}
+                        </p>
                         {r.reply && (
                           <span className="inline-flex items-center gap-1 mt-1 text-[#17409A] text-[10px] font-bold">
                             <MdReply className="text-xs" /> Đã phản hồi
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-4 whitespace-nowrap text-[#9CA3AF] text-xs">{r.date}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-[#9CA3AF] text-xs">
+                        {r.date}
+                      </td>
                       <td className="px-5 py-4">
                         <button
                           onClick={() => setSelected(r)}
@@ -244,11 +321,16 @@ export default function StaffReviewsTable() {
           {filtered.map((r) => (
             <div key={r.id} className="p-4 flex flex-col gap-3">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0" style={{ backgroundColor: r.avatarColor }}>
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0"
+                  style={{ backgroundColor: r.avatarColor }}
+                >
                   {r.avatar}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[#1A1A2E] text-sm">{r.customer}</p>
+                  <p className="font-bold text-[#1A1A2E] text-sm">
+                    {r.customer}
+                  </p>
                   <p className="text-[#9CA3AF] text-xs truncate">{r.product}</p>
                   <Stars rating={r.rating} />
                 </div>
@@ -262,11 +344,17 @@ export default function StaffReviewsTable() {
               </button>
             </div>
           ))}
-          {filtered.length === 0 && <p className="text-center text-[#9CA3AF] text-sm py-10">Không tìm thấy</p>}
+          {filtered.length === 0 && (
+            <p className="text-center text-[#9CA3AF] text-sm py-10">
+              Không tìm thấy
+            </p>
+          )}
         </div>
       </div>
 
-      {selected && <ReplyModal review={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <ReplyModal review={selected} onClose={() => setSelected(null)} />
+      )}
     </>
   );
 }

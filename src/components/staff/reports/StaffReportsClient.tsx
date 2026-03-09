@@ -8,9 +8,9 @@ import StaffReportsList from "./StaffReportsList";
 import StaffReportForm from "./StaffReportForm";
 
 export default function StaffReportsClient() {
-  const ref      = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const [showForm, setShowForm] = useState(false);
-  const [submitted, setSubmitted]  = useState(0); // increment to force re-render list
+  const [submitted, setSubmitted] = useState(0); // increment to force re-render list
 
   useEffect(() => {
     if (!ref.current) return;

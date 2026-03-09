@@ -8,6 +8,7 @@ import {
   MdShoppingBag,
   MdStar,
   MdAssignment,
+  MdInventory2,
   MdClose,
   MdLogout,
 } from "react-icons/md";
@@ -20,6 +21,7 @@ const ACCENT = "#17409A";
 const NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/staff" },
   { icon: MdShoppingBag, label: "Đơn hàng", href: "/staff/orders" },
+  { icon: MdInventory2, label: "Sản phẩm", href: "/staff/products" },
   { icon: MdStar, label: "Đánh giá", href: "/staff/reviews" },
   { icon: MdAssignment, label: "Báo cáo", href: "/staff/reports" },
 ];

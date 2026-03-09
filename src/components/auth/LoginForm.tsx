@@ -34,6 +34,8 @@ export default function LoginForm({
       const user = stored ? JSON.parse(stored) : null;
       if (user?.role === "admin") {
         router.push("/admin");
+      } else if (user?.role === "staff") {
+        router.push("/staff");
       } else {
         router.push("/");
       }

@@ -8,7 +8,7 @@ import {
   IoNotificationsOutline,
   IoMenuOutline,
 } from "react-icons/io5";
-import { MdDashboard, MdAssignment } from "react-icons/md";
+import { MdDashboard, MdAssignment, MdInventory2 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -16,6 +16,7 @@ const ACCENT = "#17409A";
 
 const TABS = [
   { label: "TỔNG QUAN", href: "/staff", icon: MdDashboard },
+  { label: "SẢN PHẨM", href: "/staff/products", icon: MdInventory2 },
   { label: "BÁO CÁO", href: "/staff/reports", icon: MdAssignment },
 ];
 

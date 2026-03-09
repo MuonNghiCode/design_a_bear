@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopBar from "@/components/admin/AdminTopBar";
 import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -12,6 +14,18 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { accent, density } = useAdminPrefs();
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== "admin") {
+      router.replace("/auth");
+    }
+  }, [isAuthenticated, user, router]);
+
+  if (!isAuthenticated || user?.role !== "admin") {
+    return null;
+  }
 
   const contentPadding =
     density === "compact"

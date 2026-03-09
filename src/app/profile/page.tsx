@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -11,7 +12,9 @@ export default function ProfilePage() {
   return (
     <>
       <Header />
-      <ProfileClient />
+      <Suspense fallback={null}>
+        <ProfileClient />
+      </Suspense>
       <Footer />
     </>
   );

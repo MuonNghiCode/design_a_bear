@@ -73,7 +73,10 @@ export default function SecurityTab({ onLogout }: Props) {
             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
             style={{ backgroundColor: "#17409A18" }}
           >
-            <IoShieldCheckmarkOutline className="text-xl" style={{ color: "#17409A" }} />
+            <IoShieldCheckmarkOutline
+              className="text-xl"
+              style={{ color: "#17409A" }}
+            />
           </div>
           <div className="flex-1">
             <p className="text-[#1A1A2E] font-bold text-sm">Đổi mật khẩu</p>
@@ -96,7 +99,10 @@ export default function SecurityTab({ onLogout }: Props) {
             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
             style={{ backgroundColor: "#4ECDC418" }}
           >
-            <IoCheckmarkCircle className="text-xl" style={{ color: "#4ECDC4" }} />
+            <IoCheckmarkCircle
+              className="text-xl"
+              style={{ color: "#4ECDC4" }}
+            />
           </div>
           <div className="flex-1">
             <p className="text-[#1A1A2E] font-bold text-sm">Xác thực 2 bước</p>
@@ -130,7 +136,7 @@ export default function SecurityTab({ onLogout }: Props) {
           </div>
           <button
             onClick={onLogout}
-          className="cursor-pointer flex items-center gap-1.5 text-[#FF6B9D] text-xs font-black bg-[#FF6B9D]/10 hover:bg-[#FF6B9D]/20 px-4 py-2 rounded-xl transition-colors shrink-0"
+            className="cursor-pointer flex items-center gap-1.5 text-[#FF6B9D] text-xs font-black bg-[#FF6B9D]/10 hover:bg-[#FF6B9D]/20 px-4 py-2 rounded-xl transition-colors shrink-0"
           >
             <IoLogOutOutline />
             Đăng xuất
@@ -159,8 +165,12 @@ export default function SecurityTab({ onLogout }: Props) {
                   <IoLockClosedOutline className="text-[#17409A] text-xl" />
                 </div>
                 <div>
-                  <p className="text-[#1A1A2E] font-black text-lg leading-tight">Đổi mật khẩu</p>
-                  <p className="text-[#9CA3AF] text-[11px] font-semibold">Cập nhật mật khẩu bảo mật</p>
+                  <p className="text-[#1A1A2E] font-black text-lg leading-tight">
+                    Đổi mật khẩu
+                  </p>
+                  <p className="text-[#9CA3AF] text-[11px] font-semibold">
+                    Cập nhật mật khẩu bảo mật
+                  </p>
                 </div>
               </div>
               <button
@@ -190,7 +200,11 @@ export default function SecurityTab({ onLogout }: Props) {
                     onClick={() => setShowCurrent((v) => !v)}
                     className="cursor-pointer absolute right-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
                   >
-                    {showCurrent ? <IoEyeOffOutline className="text-lg" /> : <IoEyeOutline className="text-lg" />}
+                    {showCurrent ? (
+                      <IoEyeOffOutline className="text-lg" />
+                    ) : (
+                      <IoEyeOutline className="text-lg" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -213,7 +227,11 @@ export default function SecurityTab({ onLogout }: Props) {
                     onClick={() => setShowNew((v) => !v)}
                     className="cursor-pointer absolute right-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
                   >
-                    {showNew ? <IoEyeOffOutline className="text-lg" /> : <IoEyeOutline className="text-lg" />}
+                    {showNew ? (
+                      <IoEyeOffOutline className="text-lg" />
+                    ) : (
+                      <IoEyeOutline className="text-lg" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -236,7 +254,11 @@ export default function SecurityTab({ onLogout }: Props) {
                     onClick={() => setShowConfirm((v) => !v)}
                     className="cursor-pointer absolute right-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] hover:text-[#6B7280] transition-colors"
                   >
-                    {showConfirm ? <IoEyeOffOutline className="text-lg" /> : <IoEyeOutline className="text-lg" />}
+                    {showConfirm ? (
+                      <IoEyeOffOutline className="text-lg" />
+                    ) : (
+                      <IoEyeOutline className="text-lg" />
+                    )}
                   </button>
                 </div>
               </div>

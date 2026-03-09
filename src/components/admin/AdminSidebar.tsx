@@ -11,6 +11,7 @@ import {
   MdSettings,
   MdClose,
   MdLogout,
+  MdStar,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
@@ -23,6 +24,7 @@ const NAV = [
   { icon: GiPawPrint, label: "Sản phẩm", href: "/admin/products" },
   { icon: MdPeople, label: "Khách hàng", href: "/admin/customers" },
   { icon: MdBarChart, label: "Thống kê", href: "/admin/analytics" },
+  { icon: MdStar, label: "Đánh giá", href: "/admin/reviews" },
 ];
 
 interface AdminSidebarProps {

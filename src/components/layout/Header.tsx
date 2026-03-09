@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   IoChevronDown,
   IoPersonOutline,
@@ -11,6 +12,9 @@ import {
   IoBagOutline,
   IoCloseOutline,
   IoMenuOutline,
+  IoLogOutOutline,
+  IoShieldCheckmarkOutline,
+  IoStarOutline,
 } from "react-icons/io5";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -24,11 +28,15 @@ interface HeaderProps {
 }
 
 export default function Header({ hideOnHero = false }: HeaderProps) {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { totalItems, openCart } = useCart();
+  const router = useRouter();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const userBtnRef = useRef<HTMLButtonElement>(null);
   const headerRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -36,6 +44,23 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Close user menu on outside click
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(e.target as Node) &&
+        userBtnRef.current &&
+        !userBtnRef.current.contains(e.target as Node)
+      ) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showUserMenu]);
 
   const openDropdown = (name: string) => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
@@ -366,12 +391,110 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
 
               {/* Account / CTA - Far Right */}
               {isAuthenticated ? (
-                <button
-                  className="text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110"
-                  aria-label="Tài khoản"
-                >
-                  <IoPersonOutline className="text-2xl" />
-                </button>
+                <div className="relative">
+                  <button
+                    ref={userBtnRef}
+                    onClick={() => setShowUserMenu((v) => !v)}
+                    className="flex items-center justify-center w-9 h-9 rounded-full bg-[#17409A]/10 hover:bg-[#17409A]/20 transition-colors"
+                    aria-label="Tài khoản"
+                  >
+                    {user?.avatar ? (
+                      <Image
+                        src={user.avatar}
+                        alt={user.name}
+                        width={36}
+                        height={36}
+                        className="rounded-full object-cover w-9 h-9"
+                      />
+                    ) : (
+                      <span className="text-[#17409A] font-black text-xs">
+                        {user?.name
+                          .split(" ")
+                          .slice(-2)
+                          .map((w) => w[0])
+                          .join("")
+                          .toUpperCase()}
+                      </span>
+                    )}
+                  </button>
+
+                  {showUserMenu && (
+                    <div
+                      ref={userMenuRef}
+                      className="absolute top-full right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+                      style={{ fontFamily: "'Nunito', sans-serif" }}
+                    >
+                      {/* User info header */}
+                      <div className="px-4 py-3 bg-[#F4F7FF] border-b border-gray-100">
+                        <p className="text-[#1A1A2E] font-black text-sm truncate">
+                          {user?.name}
+                        </p>
+                        <p className="text-[#9CA3AF] text-[11px] font-semibold truncate">
+                          {user?.email}
+                        </p>
+                      </div>
+
+                      {/* Tab links */}
+                      <div className="py-1.5">
+                        <Link
+                          href="/profile"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
+                        >
+                          <IoPersonOutline className="text-base text-[#17409A]" />
+                          Hồ sơ cá nhân
+                        </Link>
+                        <Link
+                          href="/profile?tab=orders"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
+                        >
+                          <IoBagOutline className="text-base text-[#17409A]" />
+                          Đơn hàng
+                        </Link>
+                        <Link
+                          href="/profile?tab=wishlist"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
+                        >
+                          <IoHeartOutline className="text-base text-[#FF6B9D]" />
+                          Yêu thích
+                        </Link>
+                        <Link
+                          href="/profile?tab=reviews"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
+                        >
+                          <IoStarOutline className="text-base text-[#FFD93D]" />
+                          Đánh giá
+                        </Link>
+                        <Link
+                          href="/profile?tab=security"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
+                        >
+                          <IoShieldCheckmarkOutline className="text-base text-[#4ECDC4]" />
+                          Bảo mật
+                        </Link>
+                      </div>
+
+                      {/* Logout */}
+                      <div className="border-t border-gray-100 py-1.5">
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            logout();
+                            router.push("/auth");
+                          }}
+                          className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-[#FF6B9D]/8 text-sm font-bold text-[#FF6B9D] transition-colors"
+                        >
+                          <IoLogOutOutline className="text-base" />
+                          Đăng xuất
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <Link href="/auth">
                   <button className="hidden sm:block bg-[#17409A] text-white px-6 py-2.5 rounded-2xl font-bold text-sm hover:bg-[#0f2d6e] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 whitespace-nowrap">
@@ -531,7 +654,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
           <div className="border-t border-gray-200 pt-6">
             {isAuthenticated ? (
               <Link
-                href="/account"
+                href="/profile"
                 onClick={() => setShowMobileMenu(false)}
                 className="flex items-center gap-3 text-gray-800 hover:text-blue-600 transition-colors mb-4"
               >

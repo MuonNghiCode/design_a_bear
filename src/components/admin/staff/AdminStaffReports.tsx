@@ -8,6 +8,11 @@ import {
   MdClose,
   MdWarning,
   MdOutlineInventory2,
+  MdLocalShipping,
+  MdCardGiftcard,
+  MdChat,
+  MdAssignment,
+  MdStickyNote2,
 } from "react-icons/md";
 import {
   STAFF_REPORTS,
@@ -110,9 +115,10 @@ function ReviewModal({
                 onReview(report.id, "acknowledged", note);
                 onClose();
               }}
-              className="flex-1 py-2.5 rounded-2xl bg-[#4ECDC4] hover:bg-[#3dbdb5] text-white font-bold text-sm transition-colors cursor-pointer"
+              className="flex-1 py-2.5 rounded-2xl bg-[#4ECDC4] hover:bg-[#3dbdb5] text-white font-bold text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             >
-              Ghi nhận ✓
+              <MdCheckCircle className="text-base" />
+              Ghi nhận
             </button>
           </div>
         </div>
@@ -258,9 +264,18 @@ export default function AdminStaffReports() {
 
                   {/* Quick stats */}
                   <div className="flex items-center gap-3 flex-wrap text-xs text-[#6B7280]">
-                    <span>📦 {r.ordersProcessed} đơn</span>
-                    <span>🎁 {r.packagingDone} đóng gói</span>
-                    <span>💬 {r.reviewsAnswered} phản hồi</span>
+                    <span className="flex items-center gap-1">
+                      <MdLocalShipping className="text-[#9CA3AF]" />
+                      {r.ordersProcessed} đơn
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MdCardGiftcard className="text-[#9CA3AF]" />
+                      {r.packagingDone} đóng gói
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MdChat className="text-[#9CA3AF]" />
+                      {r.reviewsAnswered} phản hồi
+                    </span>
                     {r.issuesCount > 0 && (
                       <span className="text-[#FF8C42] font-bold flex items-center gap-1">
                         <MdWarning className="text-sm" /> {r.issuesCount} sự cố
@@ -348,8 +363,8 @@ export default function AdminStaffReports() {
                     {/* Handover notes */}
                     {r.handoverNotes && (
                       <div className="sm:col-span-2">
-                        <p className="text-xs font-black text-[#1A1A2E] mb-2">
-                          📋 Bàn giao ca
+                        <p className="text-xs font-black text-[#1A1A2E] mb-2 flex items-center gap-1.5">
+                          <MdAssignment style={{ color: "#FFD93D" }} /> Bàn giao ca
                         </p>
                         <div className="bg-[#FFD93D]/10 border border-[#FFD93D]/30 rounded-2xl p-3">
                           <p className="text-xs text-[#374151] leading-relaxed">
@@ -362,8 +377,8 @@ export default function AdminStaffReports() {
                     {/* General notes */}
                     {r.generalNotes && (
                       <div className="sm:col-span-2">
-                        <p className="text-xs font-black text-[#1A1A2E] mb-2">
-                          💬 Ghi chú chung
+                        <p className="text-xs font-black text-[#1A1A2E] mb-2 flex items-center gap-1.5">
+                          <MdStickyNote2 style={{ color: "#4ECDC4" }} /> Ghi chú chung
                         </p>
                         <div className="bg-white rounded-2xl p-3 shadow-sm">
                           <p className="text-xs text-[#4B5563] leading-relaxed">
@@ -376,8 +391,8 @@ export default function AdminStaffReports() {
                     {/* Admin review note */}
                     {r.reviewNote && (
                       <div className="sm:col-span-2">
-                        <p className="text-xs font-black text-[#1A1A2E] mb-2">
-                          ✅ Phản hồi của Admin
+                        <p className="text-xs font-black text-[#1A1A2E] mb-2 flex items-center gap-1.5">
+                          <MdCheckCircle style={{ color: "#4ECDC4" }} /> Phản hồi của Admin
                         </p>
                         <div className="bg-[#17409A]/5 border border-[#17409A]/15 rounded-2xl p-3">
                           <p className="text-xs text-[#17409A] leading-relaxed font-semibold">

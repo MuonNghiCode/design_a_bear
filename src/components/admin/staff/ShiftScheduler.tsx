@@ -338,37 +338,25 @@ export default function ShiftScheduler() {
               >
                 {/* Shift label */}
                 <div
-                  className="px-5 py-6 flex flex-col justify-start gap-1 border-r-4"
-                  style={{
-                    backgroundColor: cfg.color + "0D",
-                    borderRightColor: cfg.color + "60",
-                  }}
+                  className="px-5 py-6 flex flex-col justify-start gap-1 border-r-2 bg-[#FAFAFA]"
+                  style={{ borderRightColor: cfg.color }}
                 >
                   <div className="flex items-center gap-2">
                     {SHIFT_ICON[shift]}
-                    <span
-                      className="text-sm font-black"
-                      style={{ color: cfg.color }}
-                    >
+                    <span className="text-sm font-black text-[#1A1A2E]">
                       {cfg.label}
                     </span>
                   </div>
                   <span className="text-[10px] text-[#9CA3AF] font-semibold leading-snug">
                     {cfg.time}
                   </span>
-                  <div
-                    className="mt-2 rounded-xl px-2.5 py-1 text-[9px] font-black self-start"
-                    style={{
-                      backgroundColor: cfg.color + "18",
-                      color: cfg.color,
-                    }}
-                  >
+                  <span className="text-[9px] text-[#C4CAD4] mt-1.5">
                     {WEEK.reduce(
                       (s, d) => s + getSlot(d.date, shift).length,
                       0,
                     )}{" "}
                     lượt tuần này
-                  </div>
+                  </span>
                 </div>
 
                 {/* Day cells */}
@@ -387,23 +375,16 @@ export default function ShiftScheduler() {
                       {slotItems.map((a) => (
                         <div
                           key={a.id}
-                          className="group flex items-center gap-2.5 rounded-2xl px-3 py-2.5 shadow-sm"
-                          style={{
-                            backgroundColor: a.staffColor + "15",
-                            border: `1.5px solid ${a.staffColor}25`,
-                          }}
+                          className="group flex items-center gap-2.5 rounded-2xl px-3 py-2.5 bg-white border border-[#E5E7EB] shadow-sm"
                         >
                           <div
-                            className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0 shadow-sm"
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0"
                             style={{ backgroundColor: a.staffColor }}
                           >
                             {a.staffInitial}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p
-                              className="text-xs font-black leading-tight truncate"
-                              style={{ color: a.staffColor }}
-                            >
+                            <p className="text-xs font-black leading-tight truncate text-[#1A1A2E]">
                               {a.staffName.split(" ").slice(-2).join(" ")}
                             </p>
                             {a.note && (
@@ -427,33 +408,11 @@ export default function ShiftScheduler() {
                       {/* Add button */}
                       <button
                         onClick={() => setModalSlot({ date: d.date, shift })}
-                        className="flex items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed py-2.5 transition-all cursor-pointer mt-auto"
-                        style={{
-                          borderColor:
-                            slotItems.length === 0
-                              ? cfg.color + "60"
-                              : "#E5E7EB",
-                          color: slotItems.length === 0 ? cfg.color : "#C4CAD4",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = cfg.color + "90";
-                          e.currentTarget.style.color = cfg.color;
-                          e.currentTarget.style.backgroundColor =
-                            cfg.color + "08";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor =
-                            slotItems.length === 0
-                              ? cfg.color + "60"
-                              : "#E5E7EB";
-                          e.currentTarget.style.color =
-                            slotItems.length === 0 ? cfg.color : "#C4CAD4";
-                          e.currentTarget.style.backgroundColor = "transparent";
-                        }}
+                        className="flex items-center justify-center gap-1.5 rounded-2xl border border-dashed border-[#D1D5DB] hover:border-[#17409A] text-[#C4CAD4] hover:text-[#17409A] hover:bg-[#F4F7FF] py-2.5 transition-all cursor-pointer mt-auto"
                       >
                         <MdAdd style={{ fontSize: 14 }} />
                         <span className="text-[10px] font-bold">
-                          Thêm nhân viên
+                          Thêm
                         </span>
                       </button>
                     </div>
@@ -466,7 +425,7 @@ export default function ShiftScheduler() {
       </div>
 
       {/* ── Summary bar ── */}
-      <div className="px-6 py-4 border-t border-[#F4F7FF] flex items-center gap-6 flex-wrap">
+      <div className="px-6 py-4 border-t border-[#F4F7FF] flex items-center gap-6 flex-wrap bg-[#FAFAFA]">
         {SHIFTS.map((shift) => {
           const cfg = SHIFT_CFG[shift];
           const total = WEEK.reduce(
@@ -482,22 +441,18 @@ export default function ShiftScheduler() {
               {SHIFT_ICON[shift]}
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span
-                    className="text-xs font-bold"
-                    style={{ color: cfg.color }}
-                  >
+                  <span className="text-xs font-bold text-[#4B5563]">
                     {cfg.label}
                   </span>
                   <span className="text-[10px] text-[#9CA3AF]">
                     {total}/{max}
                   </span>
                 </div>
-                <div className="h-2 bg-[#F4F7FF] rounded-full overflow-hidden">
+                <div className="h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full bg-[#17409A] transition-all duration-500"
                     style={{
                       width: `${Math.min((total / max) * 100, 100)}%`,
-                      backgroundColor: cfg.color,
                     }}
                   />
                 </div>

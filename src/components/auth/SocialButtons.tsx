@@ -111,7 +111,10 @@ export default function SocialButtons({
 
           // Google can emit skipped/notDisplayed for non-error reasons (FedCM/UI policy).
           // Do not reject immediately to avoid false "Bạn đã hủy" errors.
-          if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+          if (
+            notification.isNotDisplayed?.() ||
+            notification.isSkippedMoment?.()
+          ) {
             return;
           }
         });

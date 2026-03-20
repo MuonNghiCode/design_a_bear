@@ -9,7 +9,11 @@ import {
 } from "react";
 import { STORAGE_KEYS } from "@/constants";
 import { authService } from "@/services/auth.service";
-import type { RegisterRequest } from "@/types";
+import type {
+  GoogleCompleteProfileRequest,
+  GoogleLoginResponseData,
+  RegisterRequest,
+} from "@/types";
 
 export type UserRole = "admin" | "staff" | "user";
 
@@ -26,11 +30,26 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   pendingVerification: { email: string } | null;
+  pendingGoogleProfile: {
+    registrationToken: string;
+    email?: string;
+    fullName?: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
+    gender?: "M" | "F";
+  } | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (
+    credential: string,
+  ) => Promise<{ requiresProfileCompletion: boolean }>;
+  completeGoogleProfile: (
+    data: Omit<GoogleCompleteProfileRequest, "registrationToken">,
+  ) => Promise<void>;
   logout: () => void;
   signup: (data: RegisterRequest) => Promise<void>;
   verifyEmail: (email: string, otp: string) => Promise<void>;
   clearPendingVerification: () => void;
+  clearPendingGoogleProfile: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -91,6 +110,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pendingVerification, setPendingVerification] = useState<{
     email: string;
   } | null>(null);
+  const [pendingGoogleProfile, setPendingGoogleProfile] = useState<{
+    registrationToken: string;
+    email?: string;
+    fullName?: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
+    gender?: "M" | "F";
+  } | null>(null);
+
+  const finalizeLogin = (token: string) => {
+    const parsedUser = buildUserFromToken(token);
+    if (!parsedUser) {
+      throw new Error("Không thể đọc thông tin người dùng từ token");
+    }
+
+    setUser(parsedUser);
+    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(parsedUser));
+    localStorage.setItem("dab_user", JSON.stringify(parsedUser));
+    setPendingGoogleProfile(null);
+  };
 
   useEffect(() => {
     const storedUser =
@@ -118,15 +158,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Không nhận được token đăng nhập");
     }
 
-    const parsedUser = buildUserFromToken(token);
-    if (!parsedUser) {
-      throw new Error("Không thể đọc thông tin người dùng từ token");
+    finalizeLogin(token);
+  };
+
+  const loginWithGoogle = async (credential: string) => {
+    const response = await authService.googleLogin({ credential });
+    if (response.isFailure) {
+      throw new Error(
+        response.error?.description || "Đăng nhập Google thất bại",
+      );
     }
 
-    setUser(parsedUser);
-    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(parsedUser));
-    localStorage.setItem("dab_user", JSON.stringify(parsedUser));
+    const value = (response.value ?? {}) as GoogleLoginResponseData;
+
+    if (value.token) {
+      finalizeLogin(value.token);
+      return { requiresProfileCompletion: false };
+    }
+
+    if (value.registrationToken) {
+      setPendingGoogleProfile({
+        registrationToken: value.registrationToken,
+        email: value.email,
+        fullName: value.fullName,
+        phoneNumber: value.phoneNumber,
+        dateOfBirth: value.dateOfBirth,
+        gender: value.gender,
+      });
+      return { requiresProfileCompletion: true };
+    }
+
+    throw new Error("Không thể xử lý đăng nhập Google");
+  };
+
+  const completeGoogleProfile = async (
+    data: Omit<GoogleCompleteProfileRequest, "registrationToken">,
+  ) => {
+    if (!pendingGoogleProfile?.registrationToken) {
+      throw new Error("Thiếu registrationToken cho tài khoản Google");
+    }
+
+    const response = await authService.googleCompleteProfile({
+      registrationToken: pendingGoogleProfile.registrationToken,
+      ...data,
+    });
+
+    if (response.isFailure) {
+      throw new Error(
+        response.error?.description || "Hoàn tất hồ sơ Google thất bại",
+      );
+    }
+
+    const token = response.value?.token;
+    if (!token) {
+      throw new Error("Không nhận được token sau khi hoàn tất hồ sơ");
+    }
+
+    finalizeLogin(token);
   };
 
   const signup = async (data: RegisterRequest) => {
@@ -149,21 +237,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Không nhận được token xác nhận");
     }
 
-    const parsedUser = buildUserFromToken(token);
-    if (!parsedUser) {
-      throw new Error("Không thể đọc thông tin người dùng từ token");
-    }
-
-    setUser(parsedUser);
+    finalizeLogin(token);
     setPendingVerification(null);
-    localStorage.setItem(STORAGE_KEYS.TOKEN, token);
-    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(parsedUser));
-    localStorage.setItem("dab_user", JSON.stringify(parsedUser));
   };
 
   const logout = () => {
     setUser(null);
     setPendingVerification(null);
+    setPendingGoogleProfile(null);
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER);
     localStorage.removeItem("dab_user");
@@ -173,6 +254,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPendingVerification(null);
   };
 
+  const clearPendingGoogleProfile = () => {
+    setPendingGoogleProfile(null);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -180,11 +265,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         loading,
         pendingVerification,
+        pendingGoogleProfile,
         login,
+        loginWithGoogle,
+        completeGoogleProfile,
         logout,
         signup,
         verifyEmail,
         clearPendingVerification,
+        clearPendingGoogleProfile,
       }}
     >
       {children}

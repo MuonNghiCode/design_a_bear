@@ -21,3 +21,16 @@ export interface VerifyEmailRequest {
     email: string;
     otp: string;
 }
+
+export interface GoogleLoginRequest {
+    credential: string;
+}
+
+export interface GoogleCompleteProfileRequest {
+    registrationToken: string;
+    phoneNumber: string;
+    password: string;
+    fullName: string;
+    dateOfBirth: string;
+    gender: "M" | "F";
+}

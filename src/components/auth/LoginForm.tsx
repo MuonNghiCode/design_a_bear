@@ -103,7 +103,10 @@ export default function LoginForm({
       </div>
 
       <div className="field-item mt-5">
-        <SocialButtons label="đăng nhập" />
+        <SocialButtons
+          label="đăng nhập"
+          onGoogleProfileRequired={onSwitchRegister}
+        />
       </div>
 
       <div className="field-item text-center text-sm text-[#6B7280] mt-4">

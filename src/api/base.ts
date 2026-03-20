@@ -75,7 +75,9 @@ class BaseApiService {
                 const isPublicEndpoint =
                     url.includes('/login') ||
                     url.includes('/signup') ||
-                    url.includes('/verify-email');
+                    url.includes('/verify-email') ||
+                    url.includes('/google-login') ||
+                    url.includes('/google-complete-profile');
                 
                 if (error.response?.status === 401 && !isPublicEndpoint) {
                     localStorage.removeItem(STORAGE_KEYS.TOKEN);

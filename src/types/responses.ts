@@ -36,6 +36,24 @@ export interface VerifyEmailResponseData {
     message: string;
 }
 
+export interface GoogleLoginResponseData {
+    token?: string;
+    message?: string;
+    registrationToken?: string;
+    email?: string;
+    fullName?: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
+    gender?: "M" | "F";
+}
+
+export interface GoogleCompleteProfileResponseData {
+    token: string;
+    message?: string;
+}
+
 export type ProfileResponse = ApiResponse<ProfileResponseData>;
 export type RegisterResponse = ApiResponse<string>;
 export type VerifyEmailResponse = ApiResponse<VerifyEmailResponseData>;
+export type GoogleLoginResponse = ApiResponse<GoogleLoginResponseData>;
+export type GoogleCompleteProfileResponse = ApiResponse<GoogleCompleteProfileResponseData>;

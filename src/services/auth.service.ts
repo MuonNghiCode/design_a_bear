@@ -1,6 +1,12 @@
 import BaseApiService from "@/api/base";
 import { API_ENDPOINTS } from "@/constants";
 import type {
+  GoogleCompleteProfileRequest,
+  GoogleCompleteProfileResponse,
+  GoogleCompleteProfileResponseData,
+  GoogleLoginRequest,
+  GoogleLoginResponse,
+  GoogleLoginResponseData,
   LoginRequest,
   LoginResponse,
   LoginResponseData,
@@ -33,6 +39,28 @@ class AuthService extends BaseApiService {
     return this.post<VerifyEmailResponseData>(API_ENDPOINTS.AUTH.VERIFY_EMAIL, data, {
       withCredentials: false,
     });
+  }
+
+  async googleLogin(data: GoogleLoginRequest): Promise<GoogleLoginResponse> {
+    return this.post<GoogleLoginResponseData>(
+      API_ENDPOINTS.AUTH.GOOGLE_LOGIN,
+      data,
+      {
+        withCredentials: false,
+      },
+    );
+  }
+
+  async googleCompleteProfile(
+    data: GoogleCompleteProfileRequest,
+  ): Promise<GoogleCompleteProfileResponse> {
+    return this.post<GoogleCompleteProfileResponseData>(
+      API_ENDPOINTS.AUTH.GOOGLE_COMPLETE_PROFILE,
+      data,
+      {
+        withCredentials: false,
+      },
+    );
   }
 
   async logout(logoutData: LogoutRequest): Promise<LogoutResponse> {

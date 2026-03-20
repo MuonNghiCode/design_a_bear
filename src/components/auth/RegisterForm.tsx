@@ -14,7 +14,7 @@ import {
 } from "react-icons/io5";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
-import type { RegisterRequest } from "@/types";
+import type { GoogleCompleteProfileRequest, RegisterRequest } from "@/types";
 import { z } from "zod";
 
 interface RegisterFormProps {
@@ -53,12 +53,51 @@ const registerSchema = z.object({
   }),
 });
 
+const googleCompleteProfileSchema = z.object({
+  phoneNumber: z
+    .string()
+    .trim()
+    .regex(
+      /^0[0-9]{9}$/,
+      "Phone number must be exactly 10 digits, start with 0, and not be a popular fake number.",
+    ),
+  password: z
+    .string()
+    .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
+    .regex(/[A-Z]/, "Mật khẩu phải có ít nhất 1 chữ in hoa")
+    .regex(/[a-z]/, "Mật khẩu phải có ít nhất 1 chữ thường")
+    .regex(/[0-9]/, "Mật khẩu phải có ít nhất 1 chữ số")
+    .regex(/[^A-Za-z0-9]/, "Mật khẩu phải có ít nhất 1 ký tự đặc biệt"),
+  fullName: z.string().trim().min(2, "Họ tên phải có ít nhất 2 ký tự"),
+  dateOfBirth: z
+    .string()
+    .min(1, "Vui lòng chọn ngày sinh")
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), {
+      message: "Ngày sinh không hợp lệ",
+    }),
+  gender: z.enum(["M", "F"], {
+    error: "Giới tính không hợp lệ",
+  }),
+});
+
 type RegisterFieldErrors = Partial<Record<keyof RegisterRequest, string>>;
+type GoogleProfilePayload = Omit<
+  GoogleCompleteProfileRequest,
+  "registrationToken"
+>;
+type GoogleProfileErrors = Partial<Record<keyof GoogleProfilePayload, string>>;
 
 export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
   const router = useRouter();
-  const { signup, verifyEmail, pendingVerification, clearPendingVerification } =
-    useAuth();
+  const {
+    signup,
+    verifyEmail,
+    pendingVerification,
+    clearPendingVerification,
+    pendingGoogleProfile,
+    completeGoogleProfile,
+    clearPendingGoogleProfile,
+  } = useAuth();
   const { success, error: toastError, info } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -66,6 +105,8 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
   const [avatarFileName, setAvatarFileName] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
+  const [googleProfileErrors, setGoogleProfileErrors] =
+    useState<GoogleProfileErrors>({});
 
   const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const cloudinaryUploadPreset =
@@ -86,6 +127,15 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
   const [verificationData, setVerificationData] = useState({
     otp: "",
   });
+
+  const [googleProfileData, setGoogleProfileData] =
+    useState<GoogleProfilePayload>({
+      phoneNumber: "",
+      password: "",
+      fullName: "",
+      dateOfBirth: "",
+      gender: "M",
+    });
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -122,6 +172,34 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
     }));
     setError("");
   };
+
+  const handleGoogleProfileChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = e.target;
+    setGoogleProfileData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setGoogleProfileErrors((prev) => ({
+      ...prev,
+      [name]: undefined,
+    }));
+    setError("");
+  };
+
+  const setGoogleProfileField =
+    (name: keyof GoogleProfilePayload) => (value: string) => {
+      setGoogleProfileData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+      setGoogleProfileErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
+      setError("");
+    };
 
   const handleAvatarFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -211,6 +289,18 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
       }
     };
   }, [avatarPreview]);
+
+  useEffect(() => {
+    if (!pendingGoogleProfile) return;
+
+    setGoogleProfileData((prev) => ({
+      ...prev,
+      phoneNumber: pendingGoogleProfile.phoneNumber ?? prev.phoneNumber,
+      fullName: pendingGoogleProfile.fullName ?? prev.fullName,
+      dateOfBirth: pendingGoogleProfile.dateOfBirth ?? prev.dateOfBirth,
+      gender: pendingGoogleProfile.gender ?? prev.gender,
+    }));
+  }, [pendingGoogleProfile]);
 
   const passwordStrength = useMemo(() => {
     const password = formData.password;
@@ -314,6 +404,190 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
       setIsLoading(false);
     }
   };
+
+  const handleGoogleCompleteProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    setGoogleProfileErrors({});
+
+    try {
+      const validated =
+        googleCompleteProfileSchema.safeParse(googleProfileData);
+      if (!validated.success) {
+        const nextErrors: GoogleProfileErrors = {};
+        const flattened = validated.error.flatten().fieldErrors;
+
+        (Object.keys(flattened) as Array<keyof GoogleProfilePayload>).forEach(
+          (key) => {
+            const firstError = flattened[key]?.[0];
+            if (firstError) {
+              nextErrors[key] = firstError;
+            }
+          },
+        );
+
+        setGoogleProfileErrors(nextErrors);
+        const message = "Vui lòng kiểm tra lại hồ sơ Google";
+        setError(message);
+        toastError(message);
+        return;
+      }
+
+      await completeGoogleProfile(validated.data);
+      success("Hoàn tất hồ sơ Google thành công");
+
+      const stored = localStorage.getItem("dab_user");
+      const user = stored ? JSON.parse(stored) : null;
+      if (user?.role === "admin") {
+        router.push("/admin");
+      } else if (user?.role === "staff") {
+        router.push("/staff");
+      } else {
+        router.push("/");
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Hoàn tất hồ sơ Google thất bại";
+      setError(message);
+      toastError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (pendingGoogleProfile) {
+    return (
+      <>
+        <div className="field-item text-center mb-6">
+          <h1 className="font-black text-[#1A1A2E] text-3xl leading-tight mb-2">
+            Hoàn tất hồ sơ Google
+          </h1>
+          <p className="text-[#6B7280] text-sm">
+            {pendingGoogleProfile.email
+              ? `Tài khoản ${pendingGoogleProfile.email} cần bổ sung thông tin trước khi đăng nhập.`
+              : "Bạn cần bổ sung thông tin trước khi đăng nhập bằng Google."}
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleGoogleCompleteProfile}
+          className="field-item grid grid-cols-1 md:grid-cols-2 gap-3"
+        >
+          <div>
+            <InputField
+              type="text"
+              placeholder="Họ và tên"
+              name="fullName"
+              value={googleProfileData.fullName}
+              onChange={setGoogleProfileField("fullName")}
+              rightIcon={<IoPersonOutline />}
+            />
+            {googleProfileErrors.fullName && (
+              <p className="mt-1 text-xs text-red-500">
+                {googleProfileErrors.fullName}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <InputField
+              type="text"
+              placeholder="Số điện thoại"
+              name="phoneNumber"
+              value={googleProfileData.phoneNumber}
+              onChange={setGoogleProfileField("phoneNumber")}
+              rightIcon={<IoCallOutline />}
+            />
+            {googleProfileErrors.phoneNumber && (
+              <p className="mt-1 text-xs text-red-500">
+                {googleProfileErrors.phoneNumber}
+              </p>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <InputField
+              type="password"
+              placeholder="Tạo mật khẩu"
+              name="password"
+              value={googleProfileData.password}
+              onChange={setGoogleProfileField("password")}
+              rightIcon={<IoLockClosedOutline />}
+            />
+            {googleProfileErrors.password && (
+              <p className="mt-1 text-xs text-red-500">
+                {googleProfileErrors.password}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[#6B7280] mb-1">
+              Ngày sinh
+            </label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              value={googleProfileData.dateOfBirth}
+              onChange={handleGoogleProfileChange}
+              className="w-full px-4 py-3.5 rounded-2xl border border-[#E5E7EB] focus:border-[#17409A] focus:outline-none transition-colors"
+            />
+            {googleProfileErrors.dateOfBirth && (
+              <p className="mt-1 text-xs text-red-500">
+                {googleProfileErrors.dateOfBirth}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-[#6B7280] mb-1">
+              Giới tính
+            </label>
+            <select
+              name="gender"
+              value={googleProfileData.gender}
+              onChange={handleGoogleProfileChange}
+              className="w-full px-4 py-3.5 rounded-2xl border border-[#E5E7EB] focus:border-[#17409A] focus:outline-none transition-colors"
+            >
+              <option value="M">Nam</option>
+              <option value="F">Nữ</option>
+            </select>
+            {googleProfileErrors.gender && (
+              <p className="mt-1 text-xs text-red-500">
+                {googleProfileErrors.gender}
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <div className="text-red-500 text-sm md:col-span-2">{error}</div>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full bg-[#17409A] text-white font-bold py-3.5 rounded-2xl hover:bg-[#0E2A66] transition-colors duration-200 shadow-lg shadow-[#17409A]/20 text-base disabled:opacity-50 disabled:cursor-not-allowed md:col-span-2"
+          >
+            {isLoading ? "Đang hoàn tất..." : "Hoàn tất và đăng nhập"}
+          </button>
+        </form>
+
+        <div className="field-item text-center text-sm text-[#6B7280] mt-4">
+          <button
+            type="button"
+            onClick={() => {
+              clearPendingGoogleProfile();
+              onSwitchLogin();
+            }}
+            className="text-[#17409A] font-bold hover:underline underline-offset-2"
+          >
+            Quay lại đăng nhập
+          </button>
+        </div>
+      </>
+    );
+  }
 
   // Show email verification form if registration is pending
   if (pendingVerification) {

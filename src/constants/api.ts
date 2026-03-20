@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
     GET_PROFILE: "/api/Users/{userId}/profile",
     SIGNUP: "/api/auth/signup",
     VERIFY_EMAIL: "/api/auth/verify-email",
+    GOOGLE_LOGIN: "/api/auth/google-login",
+    GOOGLE_COMPLETE_PROFILE: "/api/auth/google-complete-profile",
   }
 } as const;
 

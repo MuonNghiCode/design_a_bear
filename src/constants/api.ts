@@ -1,10 +1,14 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:7002";
 
 export const API_ENDPOINTS = {
-    AUTH: {
-        LOGIN: "/api/Auth/login",
-        REGISTER: "/api/Auth/register",
-    },
+  AUTH: {
+    LOGIN: "/api/Auth/login",
+    LOGOUT: "/api/Auth/logout",
+    PROFILE: "/api/Auth/profile",
+    GET_PROFILE: "/api/Users/{userId}/profile",
+    SIGNUP: "/api/auth/signup",
+    VERIFY_EMAIL: "/api/auth/verify-email",
+  }
 } as const;
 
 export const HTTP_METHOD = {

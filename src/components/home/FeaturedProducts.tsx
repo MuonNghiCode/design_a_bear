@@ -34,6 +34,7 @@ export default function FeaturedProducts() {
   const headingRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
+  const triggersRef = useRef<ReturnType<typeof ScrollTrigger.create>[]>([]);
 
   const { getProducts, loading } = useProductApi();
   const [products, setProducts] = useState<ProductCardProps[]>([]);
@@ -50,70 +51,66 @@ export default function FeaturedProducts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // GSAP animations — chạy lại khi products thay đổi
   useEffect(() => {
     if (!sectionRef.current) return;
+    // Kill only our own previous triggers
+    triggersRef.current.forEach((t) => t.kill());
+    triggersRef.current = [];
 
     // Heading animation
     if (headingRef.current) {
-      gsap.fromTo(
-        headingRef.current,
-        { y: 25, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: headingRef.current,
-            start: "top 85%",
-            once: true,
-          },
+      const t = ScrollTrigger.create({
+        trigger: headingRef.current,
+        start: "top 85%",
+        once: true,
+        onEnter: () => {
+          gsap.fromTo(
+            headingRef.current,
+            { y: 25, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" },
+          );
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
-    // Cards stagger — chỉ khi đã có data
+    // Cards stagger
     if (gridRef.current && products.length > 0) {
-      gsap.fromTo(
-        gridRef.current.children,
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          stagger: 0.1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: gridRef.current,
-            start: "top 80%",
-            once: true,
-          },
+      const t = ScrollTrigger.create({
+        trigger: gridRef.current,
+        start: "top 80%",
+        once: true,
+        onEnter: () => {
+          gsap.fromTo(
+            gridRef.current!.children,
+            { y: 30, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "power2.out" },
+          );
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
     // CTA animation
     if (ctaRef.current) {
-      gsap.fromTo(
-        ctaRef.current,
-        { y: 15, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ctaRef.current,
-            start: "top 90%",
-            once: true,
-          },
+      const t = ScrollTrigger.create({
+        trigger: ctaRef.current,
+        start: "top 90%",
+        once: true,
+        onEnter: () => {
+          gsap.fromTo(
+            ctaRef.current,
+            { y: 15, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
+          );
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
     return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
+      triggersRef.current.forEach((t) => t.kill());
+      triggersRef.current = [];
     };
   }, [products]);
 

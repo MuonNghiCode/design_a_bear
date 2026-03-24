@@ -76,49 +76,44 @@ export default function Collections() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
+  const triggersRef = useRef<ReturnType<typeof ScrollTrigger.create>[]>([]);
 
   useEffect(() => {
     if (!sectionRef.current) return;
 
+    // Set initial hidden state immediately
+    if (headingRef.current) gsap.set(headingRef.current, { y: 20, opacity: 0 });
+    if (cardsRef.current) gsap.set(cardsRef.current.children, { y: 20, opacity: 0 });
+
     if (headingRef.current) {
-      gsap.fromTo(
-        headingRef.current,
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: headingRef.current,
-            start: "top 85%",
-            once: true,
-          },
+      const t = ScrollTrigger.create({
+        trigger: headingRef.current,
+        start: "top 85%",
+        once: true,
+        onEnter: () => {
+          gsap.to(headingRef.current, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" });
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
     if (cardsRef.current) {
-      gsap.fromTo(
-        cardsRef.current.children,
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          stagger: 0.08,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: cardsRef.current,
-            start: "top 80%",
-            once: true,
-          },
+      const t = ScrollTrigger.create({
+        trigger: cardsRef.current,
+        start: "top 80%",
+        once: true,
+        onEnter: () => {
+          gsap.to(cardsRef.current!.children, {
+            y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "power2.out",
+          });
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
     return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
+      triggersRef.current.forEach((t) => t.kill());
+      triggersRef.current = [];
     };
   }, []);
 

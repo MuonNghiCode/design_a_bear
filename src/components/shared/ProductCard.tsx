@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,6 +35,7 @@ export default function ProductCard({
   const productLink = href || `/products/${id}`;
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const [imgSrc, setImgSrc] = useState(image || "/teddy_bear.png");
 
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -58,11 +60,13 @@ export default function ProductCard({
       {/* ── Background Image (fills entire card) ── */}
       <div className="relative aspect-3/4 overflow-hidden">
         <Image
-          src={image}
+          src={imgSrc}
           alt={name}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-110"
           priority
+          unoptimized={imgSrc.startsWith("http")}
+          onError={() => setImgSrc("/teddy_bear.png")}
         />
 
         {/* Badge góc trên phải */}

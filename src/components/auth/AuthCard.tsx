@@ -26,7 +26,8 @@ export default function AuthCard() {
         return;
       }
 
-      const fields = formRef.current.querySelectorAll<HTMLElement>(".field-item");
+      const fields =
+        formRef.current.querySelectorAll<HTMLElement>(".field-item");
 
       gsap.to(fields, {
         y: -36,
@@ -39,7 +40,7 @@ export default function AuthCard() {
         },
       });
     },
-    [mode]
+    [mode],
   );
 
   // Fly-in after mode changes
@@ -61,9 +62,14 @@ export default function AuthCard() {
     });
   }, [mode]);
 
+  const cardClassName =
+    mode === "register"
+      ? "w-full max-w-4xl bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl shadow-[#17409A]/10 px-6 md:px-8 py-8 md:py-10 transition-all duration-300"
+      : "w-full max-w-lg bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl shadow-[#17409A]/10 px-8 md:px-12 py-10 md:py-12 transition-all duration-300";
+
   return (
     /* Card: white 70% opacity + blob blur */
-    <div className="w-full max-w-lg bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl shadow-[#17409A]/10 px-12 py-12 transition-all duration-300">
+    <div className={cardClassName}>
       {/* Bear logo */}
       <div className="flex justify-center mb-6">
         <div className="relative w-20 h-20">

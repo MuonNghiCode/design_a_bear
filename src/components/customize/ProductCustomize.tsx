@@ -11,6 +11,8 @@ import {
   VOICE_OPTIONS,
 } from "@/data/customize";
 import { type CustomizeConfig, type AIRecommendation } from "@/types/customize";
+import { useCart } from "@/contexts/CartContext";
+import { type ProductItem } from "@/types/products";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -348,9 +350,17 @@ type StepIndex = 0 | 1 | 2 | 3 | 4;
    ──────────────────────────────────────────── */
 interface Props {
   accentColor: string;
+  product: ProductItem;
+  quantity: number;
 }
 
-export default function ProductCustomize({ accentColor }: Props) {
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+
+export default function ProductCustomize({ accentColor, product, quantity }: Props) {
+  const [addingToCart, setAddingToCart] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
   const sectionRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -484,6 +494,38 @@ export default function ProductCustomize({ accentColor }: Props) {
 
   const isComplete =
     config.fur && config.theme && config.subjects.length > 0 && config.voice;
+
+  const { addItem } = useCart();
+
+  const onAddToCart = async () => {
+    if (!isAuthenticated) {
+      router.push("/auth");
+      return;
+    }
+
+    try {
+      setAddingToCart(true);
+      // Pass null for buildId temporarily as requested by user
+      await addItem(
+        {
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          image: product.image || "/teddy_bear.png",
+          badge: product.badge,
+          badgeColor: product.badgeColor,
+        },
+        quantity
+      );
+      // alert("Đã thêm gấu tuỳ chỉnh vào giỏ hàng!"); 
+      // Context will handle opening the drawer
+    } catch (err) {
+      alert("Lỗi khi thêm vào giỏ: " + (err instanceof Error ? err.message : ""));
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   /* ── Render step content ── */
   const renderStep = () => {
@@ -693,6 +735,8 @@ export default function ProductCustomize({ accentColor }: Props) {
             isComplete={!!isComplete}
             currentStep={step}
             goToStep={goToStep}
+            onAddToCart={onAddToCart}
+            addingToCart={addingToCart}
           />
         </div>
       </div>
@@ -724,6 +768,8 @@ function CustomizeSummary({
   isComplete,
   currentStep,
   goToStep,
+  onAddToCart,
+  addingToCart,
 }: {
   config: CustomizeConfig;
   setConfig: React.Dispatch<React.SetStateAction<CustomizeConfig>>;
@@ -731,6 +777,8 @@ function CustomizeSummary({
   isComplete: boolean;
   currentStep: StepIndex;
   goToStep: (s: StepIndex) => void;
+  onAddToCart: () => Promise<void>;
+  addingToCart: boolean;
 }) {
   const selectedFur = FUR_OPTIONS.find((f) => f.id === config.fur);
   const selectedTheme = THEME_OPTIONS.find((t) => t.id === config.theme);
@@ -833,11 +881,12 @@ function CustomizeSummary({
       {/* CTA */}
       <button
         type="button"
-        disabled={!isComplete}
+        disabled={!isComplete || addingToCart}
+        onClick={isComplete ? onAddToCart : undefined}
         className="w-full py-4 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 cursor-pointer"
         style={{ backgroundColor: accentColor }}
       >
-        {isComplete ? "Thêm vào giỏ hàng" : "Hoàn tất để tiếp tục"}
+        {addingToCart ? "Đang xử lý..." : isComplete ? "Thêm vào giỏ hàng" : "Hoàn tất để tiếp tục"}
       </button>
 
       {isComplete && (

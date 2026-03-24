@@ -208,6 +208,9 @@ export default function HeroSection() {
     const section = sectionRef.current;
     if (!video || !section) return;
 
+    // Force browser to buffer the video for reliable seeking
+    video.load();
+
     const st = ScrollTrigger.create({
       trigger: section,
       start: "top top",
@@ -217,7 +220,8 @@ export default function HeroSection() {
         const progress = self.progress;
         const currentTime = progress * VIDEO_DURATION;
 
-        if (video.readyState >= 2) {
+        // readyState >= 1 (HAVE_METADATA) is enough to seek
+        if (video.readyState >= 1) {
           video.currentTime = currentTime;
         }
 
@@ -315,10 +319,16 @@ export default function HeroSection() {
       },
     });
 
+    // Refresh after layout settles (important when overflow was locked by intro)
+    requestAnimationFrame(() => {
+      ScrollTrigger.refresh();
+    });
+
     return () => {
       st.kill();
     };
   }, []);
+
 
   return (
     <section

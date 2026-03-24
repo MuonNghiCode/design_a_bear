@@ -58,9 +58,11 @@ class BaseApiService {
         // Request interceptor
         this.api.interceptors.request.use(
             (config) => {
-                const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
-                if (token) {
-                    config.headers[API_HEADERS.AUTHORIZATION] = `Bearer ${token}`;
+                if (typeof window !== 'undefined') {
+                    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+                    if (token) {
+                        config.headers[API_HEADERS.AUTHORIZATION] = `Bearer ${token}`;
+                    }
                 }
                 return config;
             },
@@ -80,9 +82,11 @@ class BaseApiService {
                     url.includes('/google-complete-profile');
 
                 if (error.response?.status === 401 && !isPublicEndpoint) {
-                    localStorage.removeItem(STORAGE_KEYS.TOKEN);
-                    localStorage.removeItem(STORAGE_KEYS.USER);
-                    window.location.href = '/';
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem(STORAGE_KEYS.TOKEN);
+                        localStorage.removeItem(STORAGE_KEYS.USER);
+                        window.location.href = '/';
+                    }
                 }
                 return Promise.reject(error);
             }

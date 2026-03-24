@@ -4,6 +4,8 @@ import type {
     GetProductsRequest,
     GetProductsResponse,
     GetProductsResponseData,
+    GetProductDetailResponse,
+    ProductDetail,
 } from "@/types";
 
 class ProductService extends BaseApiService {
@@ -11,6 +13,22 @@ class ProductService extends BaseApiService {
         return this.get<GetProductsResponseData>(
             API_ENDPOINTS.PRODUCTS.GET_ALL,
             params as Record<string, unknown>,
+            { withCredentials: false },
+        );
+    }
+
+    async getProductBySlug(slug: string): Promise<GetProductDetailResponse> {
+        return this.get<ProductDetail>(
+            `${API_ENDPOINTS.PRODUCTS.GET_BY_SLUG}/${slug}`,
+            undefined,
+            { withCredentials: false },
+        );
+    }
+
+    async getProductById(id: string): Promise<GetProductDetailResponse> {
+        return this.get<ProductDetail>(
+            `${API_ENDPOINTS.PRODUCTS.GET_BY_ID}/${id}`,
+            undefined,
             { withCredentials: false },
         );
     }

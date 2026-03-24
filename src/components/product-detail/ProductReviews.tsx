@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { type Review } from "@/types/review";
+import { type ProductReview } from "@/types";
 import { MOCK_REVIEWS } from "@/data/reviews";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -292,6 +293,7 @@ function ReviewCarousel({
    ──────────────────────────────────────────── */
 interface Props {
   accentColor: string;
+  reviews?: ProductReview[];
 }
 
 const STAR_FILTERS = [0, 5, 4, 3, 2, 1] as const;
@@ -304,14 +306,44 @@ const STAR_LABELS: Record<number, string> = {
   1: "1 ★",
 };
 
-export default function ProductReviews({ accentColor }: Props) {
+/* ── Map API Review to UI Review ── */
+function mapApiReviewToUI(r: ProductReview): Review {
+  const date = new Date(r.createdAt);
+  const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  
+  return {
+    id: r.reviewId,
+    name: "Khách hàng", // API doesn't return user name yet, using fallback
+    avatar: "K",
+    rating: r.rating,
+    date: formattedDate,
+    text: r.body || r.title,
+    verified: true,
+  };
+}
+
+export default function ProductReviews({ accentColor, reviews = [] }: Props) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [filterStar, setFilterStar] = useState<number>(0);
 
+  // Use API reviews if available and not empty, otherwise fallback to mock for testing
+  // In production, you might want to remove the fallback and just show empty state
+  const rawReviews = reviews.length > 0 ? reviews.map(mapApiReviewToUI) : MOCK_REVIEWS;
+
   const filtered =
     filterStar === 0
-      ? MOCK_REVIEWS
-      : MOCK_REVIEWS.filter((r) => r.rating === filterStar);
+      ? rawReviews
+      : rawReviews.filter((r) => r.rating === filterStar);
+
+  // Calculate average rating dynamically based on provided reviews
+  const avgRating = rawReviews.length > 0 
+    ? (rawReviews.reduce((acc, curr) => acc + curr.rating, 0) / rawReviews.length).toFixed(1)
+    : "5.0";
+  const numReviews = rawReviews.length;
+  // Estimate satisfaction
+  const satisfaction = rawReviews.length > 0 
+    ? Math.round((rawReviews.filter(r => r.rating >= 4).length / rawReviews.length) * 100)
+    : 100;
 
   useEffect(() => {
     if (!sectionRef.current) return;
@@ -368,7 +400,7 @@ export default function ProductReviews({ accentColor }: Props) {
                 className="text-5xl font-black leading-none"
                 style={{ color: accentColor }}
               >
-                4.9
+                {avgRating}
               </p>
               <div className="flex gap-0.5 mt-2 justify-center">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -380,14 +412,14 @@ export default function ProductReviews({ accentColor }: Props) {
             <div className="w-px h-16 bg-[#E5E7EB]" />
             <div className="text-center">
               <p className="text-5xl font-black text-[#1A1A2E] leading-none">
-                2.4k
+                {numReviews >= 1000 ? (numReviews/1000).toFixed(1) + 'k' : numReviews}
               </p>
               <p className="text-xs text-[#6B7280] mt-2">Đánh giá</p>
             </div>
             <div className="w-px h-16 bg-[#E5E7EB]" />
             <div className="text-center">
               <p className="text-5xl font-black text-[#1A1A2E] leading-none">
-                98%
+                {satisfaction}%
               </p>
               <p className="text-xs text-[#6B7280] mt-2">Hài lòng</p>
             </div>
@@ -399,8 +431,8 @@ export default function ProductReviews({ accentColor }: Props) {
           {STAR_FILTERS.map((star) => {
             const count =
               star === 0
-                ? MOCK_REVIEWS.length
-                : MOCK_REVIEWS.filter((r) => r.rating === star).length;
+                ? rawReviews.length
+                : rawReviews.filter((r) => r.rating === star).length;
             const active = filterStar === star;
             return (
               <button

@@ -13,6 +13,8 @@ export const API_ENDPOINTS = {
   },
   PRODUCTS: {
     GET_ALL: "/api/Products",
+    GET_BY_ID: "/api/Products",       // /api/Products/{id}
+    GET_BY_SLUG: "/api/Products/slug", // /api/Products/slug/{slug}
   },
 } as const;
 

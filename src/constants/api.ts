@@ -1,24 +1,45 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:7002";
 
 export const API_ENDPOINTS = {
-    AUTH: {
-        LOGIN: "/api/Auth/login",
-        REGISTER: "/api/Auth/register",
-    },
+  AUTH: {
+    LOGIN: "/api/Auth/login",
+    LOGOUT: "/api/Auth/logout",
+    PROFILE: "/api/Auth/profile",
+    GET_PROFILE: "/api/Users/{userId}/profile",
+    SIGNUP: "/api/auth/signup",
+    VERIFY_EMAIL: "/api/auth/verify-email",
+    GOOGLE_LOGIN: "/api/auth/google-login",
+    GOOGLE_COMPLETE_PROFILE: "/api/auth/google-complete-profile",
+  },
+  PRODUCTS: {
+    GET_ALL: "/api/Products",
+    GET_BY_ID: "/api/Products",
+    GET_BY_SLUG: "/api/Products/slug",
+  },
+  CARTS: {
+    BASE: "/api/Carts",
+    ITEMS: "/api/Carts/items",
+  },
+  PERSONALIZATION_RULES: {
+    GET_ACTIVE: "/api/PersonalizationRules/product", // /api/PersonalizationRules/product/{baseProductId}/active
+  },
+  BUILDS: {
+    BASE: "/api/Builds",
+  },
 } as const;
 
 export const HTTP_METHOD = {
-    GET: "GET",
-    POST: "POST",
-    PUT: "PUT",
-    DELETE: "DELETE",
-    PATCH: "PATCH",
+  GET: "GET",
+  POST: "POST",
+  PUT: "PUT",
+  DELETE: "DELETE",
+  PATCH: "PATCH",
 } as const;
 
 export const API_STATUS = {
-    SUCCESS: "success",
-    ERROR: "error",
-    LOADING: "loading",
+  SUCCESS: "success",
+  ERROR: "error",
+  LOADING: "loading",
 } as const;
 
 export const API_HEADERS = {

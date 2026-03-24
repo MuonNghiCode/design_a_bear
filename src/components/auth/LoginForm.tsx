@@ -6,6 +6,7 @@ import InputField from "./InputField";
 import SocialButtons from "./SocialButtons";
 import { IoMailOutline, IoLockClosedOutline } from "react-icons/io5";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 
 interface LoginFormProps {
   onSwitchRegister: () => void;
@@ -17,18 +18,18 @@ export default function LoginForm({
   onSwitchForgot,
 }: LoginFormProps) {
   const { login } = useAuth();
+  const { success, error: toastError } = useToast();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
     try {
       await login(email, password);
+      success("Đăng nhập thành công");
       // AuthContext now stores role — read from localStorage to redirect
       const stored = localStorage.getItem("dab_user");
       const user = stored ? JSON.parse(stored) : null;
@@ -40,7 +41,7 @@ export default function LoginForm({
         router.push("/");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Đăng nhập thất bại");
+      toastError(err instanceof Error ? err.message : "Đăng nhập thất bại");
     } finally {
       setLoading(false);
     }
@@ -77,14 +78,6 @@ export default function LoginForm({
         />
       </div>
 
-      {error && (
-        <div className="field-item mt-3">
-          <p className="text-[#FF6B9D] text-sm font-semibold text-center bg-[#FF6B9D]/10 rounded-xl py-2 px-3">
-            {error}
-          </p>
-        </div>
-      )}
-
       <div className="field-item flex items-center justify-between mt-3 mb-5">
         <label className="flex items-center gap-2 text-sm text-[#6B7280] cursor-pointer select-none">
           <input type="checkbox" className="w-4 h-4 rounded accent-[#17409A]" />
@@ -110,7 +103,10 @@ export default function LoginForm({
       </div>
 
       <div className="field-item mt-5">
-        <SocialButtons label="đăng nhập" />
+        <SocialButtons
+          label="đăng nhập"
+          onGoogleProfileRequired={onSwitchRegister}
+        />
       </div>
 
       <div className="field-item text-center text-sm text-[#6B7280] mt-4">

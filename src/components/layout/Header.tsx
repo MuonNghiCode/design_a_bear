@@ -75,12 +75,13 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
     if (!headerRef.current) return;
 
     if (hideOnHero) {
-      // Start hidden — will appear after hero section
+      // Lần đầu: ẩn header, dùng ScrollTrigger để reveal sau hero
       gsap.set(headerRef.current, { y: -100, opacity: 0 });
 
       const heroEl = document.getElementById("hero-section");
       if (heroEl) {
         ScrollTrigger.create({
+          id: "header-hero-trigger",
           trigger: heroEl,
           start: "bottom top",
           onEnter: () => {
@@ -102,11 +103,12 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
         });
       }
     } else {
-      // Normal entrance animation
+      // Không có intro HOẶC intro vừa xong: kill trigger cũ, slide in bình thường
+      ScrollTrigger.getById("header-hero-trigger")?.kill();
       gsap.fromTo(
         headerRef.current,
         { y: -100, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
+        { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
       );
     }
   }, [hideOnHero]);

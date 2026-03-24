@@ -10,21 +10,24 @@ export const API_ENDPOINTS = {
     VERIFY_EMAIL: "/api/auth/verify-email",
     GOOGLE_LOGIN: "/api/auth/google-login",
     GOOGLE_COMPLETE_PROFILE: "/api/auth/google-complete-profile",
-  }
+  },
+  PRODUCTS: {
+    GET_ALL: "/api/Products",
+  },
 } as const;
 
 export const HTTP_METHOD = {
-    GET: "GET",
-    POST: "POST",
-    PUT: "PUT",
-    DELETE: "DELETE",
-    PATCH: "PATCH",
+  GET: "GET",
+  POST: "POST",
+  PUT: "PUT",
+  DELETE: "DELETE",
+  PATCH: "PATCH",
 } as const;
 
 export const API_STATUS = {
-    SUCCESS: "success",
-    ERROR: "error",
-    LOADING: "loading",
+  SUCCESS: "success",
+  ERROR: "error",
+  LOADING: "loading",
 } as const;
 
 export const API_HEADERS = {

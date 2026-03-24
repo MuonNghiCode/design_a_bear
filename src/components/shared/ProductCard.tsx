@@ -6,12 +6,6 @@ import { useRouter } from "next/navigation";
 import { IoHeartOutline, IoBagOutline } from "react-icons/io5";
 import { useAuth } from "@/contexts/AuthContext";
 
-/* ────────────────────────────────────────────
-   ProductCard — Overlay Style
-   Image fills entire card, info overlays at bottom
-   với background màu tối để highlight text
-   ──────────────────────────────────────────── */
-
 export interface ProductCardProps {
   id: string;
   name: string;

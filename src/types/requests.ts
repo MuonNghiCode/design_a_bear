@@ -34,3 +34,10 @@ export interface GoogleCompleteProfileRequest {
     dateOfBirth: string;
     gender: "M" | "F";
 }
+
+export interface GetProductsRequest {
+    pageIndex?: number;
+    pageSize?: number;
+    productType?: string;
+    sortBy?: string;
+}

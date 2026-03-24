@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 
+// Module-level flag: google.accounts.id.initialize() chỉ được gọi đúng 1 lần
+let isGoogleInitialized = false;
+
 declare global {
   interface Window {
     google?: {
@@ -89,22 +92,25 @@ export default function SocialButtons({
           }
         }, 15000);
 
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (response) => {
-            if (settled) return;
-            if (response.credential) {
+        if (!isGoogleInitialized) {
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response) => {
+              if (settled) return;
+              if (response.credential) {
+                settled = true;
+                window.clearTimeout(timeoutId);
+                resolve(response.credential);
+                return;
+              }
+
               settled = true;
               window.clearTimeout(timeoutId);
-              resolve(response.credential);
-              return;
-            }
-
-            settled = true;
-            window.clearTimeout(timeoutId);
-            reject(new Error("Google không trả về credential"));
-          },
-        });
+              reject(new Error("Google không trả về credential"));
+            },
+          });
+          isGoogleInitialized = true;
+        }
 
         window.google.accounts.id.prompt((notification) => {
           if (settled) return;
@@ -129,7 +135,6 @@ export default function SocialButtons({
       toastError("Thiếu NEXT_PUBLIC_GOOGLE_CLIENT_ID trong môi trường");
       return;
     }
-
     setIsGoogleLoading(true);
     try {
       const credential = await getGoogleCredential(clientId);

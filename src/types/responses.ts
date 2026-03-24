@@ -57,3 +57,43 @@ export type RegisterResponse = ApiResponse<string>;
 export type VerifyEmailResponse = ApiResponse<VerifyEmailResponseData>;
 export type GoogleLoginResponse = ApiResponse<GoogleLoginResponseData>;
 export type GoogleCompleteProfileResponse = ApiResponse<GoogleCompleteProfileResponseData>;
+
+/* ── Product API ── */
+
+export interface ProductMedia {
+    mediaId: string;
+    productId: string;
+    url: string;
+    sortOrder: number;
+    altText: string;
+}
+
+export interface ProductListItem {
+    productId: string;
+    name: string;
+    slug: string;
+    productType: string;
+    isActive: boolean;
+    imageUrl: string | null;
+    price: number;
+    shortDescription: string;
+    totalSales: number;
+    minPrice: number;
+    viewCountIn10Min: number;
+    discountRate: number;
+    averageRating: number;
+    reviewCount: number;
+    media: ProductMedia[];
+}
+
+export interface GetProductsResponseData {
+    pageIndex: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+    items: ProductListItem[];
+}
+
+export type GetProductsResponse = ApiResponse<GetProductsResponseData>;

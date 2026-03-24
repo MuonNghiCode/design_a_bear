@@ -57,14 +57,14 @@ class BaseApiService {
     private setupInterceptors(): void {
         // Request interceptor
         this.api.interceptors.request.use(
-        (config) => {
-            const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
-            if (token) {
-                config.headers[API_HEADERS.AUTHORIZATION] = `Bearer ${token}`;
-            }
-            return config;
-        },
-        (error) => Promise.reject(error)
+            (config) => {
+                const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+                if (token) {
+                    config.headers[API_HEADERS.AUTHORIZATION] = `Bearer ${token}`;
+                }
+                return config;
+            },
+            (error) => Promise.reject(error)
         );
 
         // Response interceptor
@@ -78,7 +78,7 @@ class BaseApiService {
                     url.includes('/verify-email') ||
                     url.includes('/google-login') ||
                     url.includes('/google-complete-profile');
-                
+
                 if (error.response?.status === 401 && !isPublicEndpoint) {
                     localStorage.removeItem(STORAGE_KEYS.TOKEN);
                     localStorage.removeItem(STORAGE_KEYS.USER);
@@ -89,9 +89,9 @@ class BaseApiService {
         )
     }
 
-    protected async get<T>(url: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
+    protected async get<T>(url: string, params?: Record<string, unknown>, config?: Record<string, unknown>): Promise<ApiResponse<T>> {
         try {
-            const response = await this.api.get<ApiResponse<T>>(url, { params });
+            const response = await this.api.get<ApiResponse<T>>(url, { params, ...config });
             return response.data;
         } catch (error) {
             throw new Error(this.extractErrorMessage(error));

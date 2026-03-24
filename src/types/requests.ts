@@ -41,3 +41,28 @@ export interface GetProductsRequest {
     productType?: string;
     sortBy?: string;
 }
+
+/* ── Build API Requests ── */
+
+export interface CreateBuildRequest {
+    customerId: string | null;
+    baseVariantId: string;
+    buildName: string;
+    personalizationNote: string;
+    buildComponents: { optionVariantId: string }[];
+}
+
+/* ── Cart API Requests ── */
+
+export interface CreateCartRequest {
+    customerId: string | null;
+    currency: string;
+}
+
+export interface AddToCartRequest {
+    cartId: string;
+    variantId: string;
+    buildId: string | null;
+    quantity: number;
+    unitPriceSnapshot: number;
+}

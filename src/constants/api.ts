@@ -13,8 +13,18 @@ export const API_ENDPOINTS = {
   },
   PRODUCTS: {
     GET_ALL: "/api/Products",
-    GET_BY_ID: "/api/Products",       // /api/Products/{id}
-    GET_BY_SLUG: "/api/Products/slug", // /api/Products/slug/{slug}
+    GET_BY_ID: "/api/Products",
+    GET_BY_SLUG: "/api/Products/slug",
+  },
+  CARTS: {
+    BASE: "/api/Carts",
+    ITEMS: "/api/Carts/items",
+  },
+  PERSONALIZATION_RULES: {
+    GET_ACTIVE: "/api/PersonalizationRules/product", // /api/PersonalizationRules/product/{baseProductId}/active
+  },
+  BUILDS: {
+    BASE: "/api/Builds",
   },
 } as const;
 

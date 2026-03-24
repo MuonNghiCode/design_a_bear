@@ -139,6 +139,41 @@ export interface ProductDetail {
     reviews: ProductReview[];
 }
 
+export interface CartItem {
+    cartItemId: string;
+    cartId: string;
+    variantId: string;
+    buildId: string | null;
+    quantity: number;
+    unitPriceSnapshot: number;
+    variantName: string;
+    variantPrice: number;
+    sku: string;
+    productName: string;
+    productSlug: string;
+    productType: string;
+}
+
+export interface Cart {
+    cartId: string;
+    customerId: string | null;
+    currency: string;
+    createdAt: string;
+    updatedAt: string;
+    cartItems: CartItem[];
+}
+
+export interface PersonalizationRule {
+    ruleId: string;
+    baseProductId: string;
+    groupId: string;
+    allowedComponentProductId: string;
+    isRequired: boolean;
+    maxQuantity: number;
+    ruleType: "OPTIONAL" | "REQUIRED";
+    addonProduct: ProductDetail; // Same structure as ProductDetail
+}
+
 export type ProfileResponse = ApiResponse<ProfileResponseData>;
 export type RegisterResponse = ApiResponse<string>;
 export type VerifyEmailResponse = ApiResponse<VerifyEmailResponseData>;
@@ -146,6 +181,31 @@ export type GoogleLoginResponse = ApiResponse<GoogleLoginResponseData>;
 export type GoogleCompleteProfileResponse = ApiResponse<GoogleCompleteProfileResponseData>;
 export type GetProductsResponse = ApiResponse<GetProductsResponseData>;
 export type GetProductDetailResponse = ApiResponse<ProductDetail>;
+export type GetCartResponse = ApiResponse<Cart>;
+export type AddToCartResponse = ApiResponse<CartItem>;
+export type GetPersonalizationRulesResponse = ApiResponse<PersonalizationRule[]>;
 
+export interface BuildComponent {
+    buildComponentId: string;
+    buildId: string;
+    optionVariantId: string;
+    priceSnapshot: number;
+    createdAt: string;
+    updatedAt: string;
+}
 
+export interface Build {
+    buildId: string;
+    customerId: string | null;
+    baseVariantId: string;
+    buildName: string;
+    personalizationNote: string;
+    totalWeightGram: number | null;
+    calculatedPrice: number | null;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    buildComponents: BuildComponent[];
+}
 
+export type CreateBuildResponse = ApiResponse<Build>;

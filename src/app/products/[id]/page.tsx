@@ -4,6 +4,7 @@ import Footer from "@/components/layout/Footer";
 import ProductDetailClient from "@/components/product-detail/ProductDetailClient";
 import { productService } from "@/services/product.service";
 import { ProductItem } from "@/types/products";
+import { type PersonalizationRule } from "@/types/responses";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -16,7 +17,7 @@ export default async function ProductDetailPage({ params }: Props) {
     // Determine if id is a slug or uuid
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     
-    const response = isUuid 
+    const response = isUuid
       ? await productService.getProductById(id)
       : await productService.getProductBySlug(id);
 
@@ -25,6 +26,19 @@ export default async function ProductDetailPage({ params }: Props) {
     }
 
     const product = response.value;
+
+    // Fetch personalization rules concurrently if possible (or wait if we need productId)
+    let rules: PersonalizationRule[] = [];
+    try {
+      if (product.productId) {
+        const rulesResponse = await productService.getPersonalizationRules(product.productId);
+        if (!rulesResponse.isFailure && rulesResponse.value) {
+          rules = rulesResponse.value;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch personalization rules:", e);
+    }
 
     // Fetch related products (optional)
     let related: ProductItem[] = [];
@@ -53,7 +67,7 @@ export default async function ProductDetailPage({ params }: Props) {
       <main className="min-h-screen" style={{ backgroundColor: "#F4F7FF" }}>
         <Header />
         <div className="pt-25">
-          <ProductDetailClient product={product} related={related} />
+          <ProductDetailClient product={product} related={related} personalizationRules={rules} />
         </div>
         <Footer />
       </main>

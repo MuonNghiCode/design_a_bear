@@ -5,10 +5,19 @@ import type {
     GetProductsResponse,
     GetProductsResponseData,
     GetProductDetailResponse,
+    GetPersonalizationRulesResponse,
+    PersonalizationRule,
     ProductDetail,
 } from "@/types";
 
 class ProductService extends BaseApiService {
+    async getPersonalizationRules(productId: string): Promise<GetPersonalizationRulesResponse> {
+        return this.get<PersonalizationRule[]>(
+            `${API_ENDPOINTS.PERSONALIZATION_RULES.GET_ACTIVE}/${productId}/active`,
+            undefined,
+            { withCredentials: false }
+        );
+    }
     async getProducts(params?: GetProductsRequest): Promise<GetProductsResponse> {
         return this.get<GetProductsResponseData>(
             API_ENDPOINTS.PRODUCTS.GET_ALL,

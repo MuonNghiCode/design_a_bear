@@ -6,7 +6,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { type ProductItem } from "@/types/products";
 import { useCart } from "@/contexts/CartContext";
-import { type ProductVariant, type PersonalizationRule } from "@/types/responses";
+import {
+  type ProductVariant,
+  type PersonalizationRule,
+} from "@/types/responses";
 import { buildService } from "@/services/build.service";
 import { STORAGE_KEYS } from "@/constants";
 import { useToast } from "@/contexts/ToastContext";
@@ -175,16 +178,18 @@ export default function ProductInfoPanel({
   const toast = useToast();
   const [addingToCart, setAddingToCart] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    variants.length > 0 ? variants[0] : null
+    variants.length > 0 ? variants[0] : null,
   );
-  
-  const [selectedAccessories, setSelectedAccessories] = useState<PersonalizationRule[]>([]);
+
+  const [selectedAccessories, setSelectedAccessories] = useState<
+    PersonalizationRule[]
+  >([]);
 
   // Calculate total price
   const basePrice = selectedVariant ? selectedVariant.price : product.price;
   const accessoriesPrice = selectedAccessories.reduce(
     (acc, rule) => acc + (rule.addonProduct.price || 0),
-    0
+    0,
   );
   const currentTotalPrice = basePrice + accessoriesPrice;
 
@@ -211,7 +216,9 @@ export default function ProductInfoPanel({
     try {
       setAddingToCart(true);
 
-      const baseVariantId = selectedVariant ? selectedVariant.variantId : product.id;
+      const baseVariantId = selectedVariant
+        ? selectedVariant.variantId
+        : product.id;
       let targetBuildId: string | null = null;
 
       // 1. If user selected accessories, CREATE A BUILD FIRST
@@ -232,7 +239,8 @@ export default function ProductInfoPanel({
           personalizationNote: "Mua kèm phụ kiện",
           buildComponents: selectedAccessories.map((acc) => ({
             optionVariantId:
-              acc.addonProduct.variants?.[0]?.variantId || acc.addonProduct.productId,
+              acc.addonProduct.variants?.[0]?.variantId ||
+              acc.addonProduct.productId,
           })),
         });
 
@@ -246,27 +254,32 @@ export default function ProductInfoPanel({
         {
           id: baseVariantId,
           name: product.name,
-          description: selectedAccessories.length > 0 
-            ? `Combo Gấu + ${selectedAccessories.length} Phụ kiện`
-            : product.description,
+          description:
+            selectedAccessories.length > 0
+              ? `Combo Gấu + ${selectedAccessories.length} Phụ kiện`
+              : product.description,
           price: currentTotalPrice, // Snap to the combo price!
           image: product.image || "/teddy_bear.png",
           badge: product.badge,
           badgeColor: product.badgeColor,
         },
         quantity,
-        targetBuildId
+        targetBuildId,
       );
 
       if (goCheckout) {
-        toast.success(`Đã thêm "${product.name}" vào giỏ. Đang chuyển đến thanh toán...`);
+        toast.success(
+          `Đã thêm "${product.name}" vào giỏ. Đang chuyển đến thanh toán...`,
+        );
         router.push("/checkout");
       } else {
         toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
       }
-      
     } catch (err) {
-      toast.error("Thêm vào giỏ hàng thất bại: " + (err instanceof Error ? err.message : "Vui lòng thử lại"));
+      toast.error(
+        "Thêm vào giỏ hàng thất bại: " +
+          (err instanceof Error ? err.message : "Vui lòng thử lại"),
+      );
     } finally {
       setAddingToCart(false);
     }
@@ -351,10 +364,14 @@ export default function ProductInfoPanel({
       {/* ── Accessories Rules Checklist ── */}
       {personalizationRules.length > 0 && (
         <div className="space-y-3">
-          <p className="font-bold text-[#1A1A2E]">Phụ kiện mua kèm (Tùy chọn):</p>
+          <p className="font-bold text-[#1A1A2E]">
+            Phụ kiện mua kèm (Tùy chọn):
+          </p>
           <div className="space-y-2">
             {personalizationRules.map((rule) => {
-              const isSelected = selectedAccessories.some((r) => r.ruleId === rule.ruleId);
+              const isSelected = selectedAccessories.some(
+                (r) => r.ruleId === rule.ruleId,
+              );
               return (
                 <button
                   key={rule.ruleId}
@@ -374,12 +391,24 @@ export default function ProductInfoPanel({
                       }`}
                     >
                       {isSelected && (
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                       )}
                     </div>
-                    <span className={`font-semibold text-sm ${isSelected ? 'text-[#17409A]' : 'text-gray-700'}`}>
+                    <span
+                      className={`font-semibold text-sm ${isSelected ? "text-[#17409A]" : "text-gray-700"}`}
+                    >
                       {rule.addonProduct.name}
                     </span>
                   </div>

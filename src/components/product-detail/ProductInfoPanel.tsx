@@ -9,6 +9,7 @@ import { useCart } from "@/contexts/CartContext";
 import { type ProductVariant, type PersonalizationRule } from "@/types/responses";
 import { buildService } from "@/services/build.service";
 import { STORAGE_KEYS } from "@/constants";
+import { useToast } from "@/contexts/ToastContext";
 
 /* ── Inline SVG icons (no emoji, no react-icons) ── */
 function IconMinus() {
@@ -136,8 +137,8 @@ function IconReturn() {
   );
 }
 
-function formatPrice(price: number): string {
-  return price.toLocaleString("vi-VN") + " đ";
+function formatPrice(price: number | null | undefined): string {
+  return (price ?? 0).toLocaleString("vi-VN") + " đ";
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -171,6 +172,7 @@ export default function ProductInfoPanel({
   const router = useRouter();
   const accent = product.badgeColor || "#17409A";
   const { addItem } = useCart();
+  const toast = useToast();
   const [addingToCart, setAddingToCart] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     variants.length > 0 ? variants[0] : null
@@ -259,9 +261,11 @@ export default function ProductInfoPanel({
         quantity,
         targetBuildId
       );
+
+      toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
       
     } catch (err) {
-      alert("Lỗi khi thêm vào giỏ hàng: " + (err instanceof Error ? err.message : ""));
+      toast.error("Thêm vào giỏ hàng thất bại: " + (err instanceof Error ? err.message : "Vui lòng thử lại"));
     } finally {
       setAddingToCart(false);
     }

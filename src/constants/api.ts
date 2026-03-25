@@ -22,9 +22,11 @@ export const API_ENDPOINTS = {
   CARTS: {
     BASE: "/api/Carts",
     ITEMS: "/api/Carts/items",
+    ITEM: "/api/Carts/items",
+    CLEAR: "/api/Carts",
   },
   PERSONALIZATION_RULES: {
-    GET_ACTIVE: "/api/PersonalizationRules/product", // /api/PersonalizationRules/product/{baseProductId}/active
+    GET_ACTIVE: "/api/PersonalizationRules/product",
   },
   BUILDS: {
     BASE: "/api/Builds",

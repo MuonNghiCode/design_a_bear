@@ -6,7 +6,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrderApi } from "@/hooks/useOrderApi";
 import type { Order } from "@/types";
 
-const STATUS_STYLE: Record<string, { label: string; color: string; bg: string }> = {
+const STATUS_STYLE: Record<
+  string,
+  { label: string; color: string; bg: string }
+> = {
   PAID: { label: "Đã thanh toán", color: "#4ECDC4", bg: "#4ECDC418" },
   PENDING: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
   CANCELLED: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
@@ -42,7 +45,9 @@ export default function OrdersTab() {
   const PAGE_SIZE = 4;
   const [orders, setOrders] = useState<Order[]>([]);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
-  const [orderDetailsMap, setOrderDetailsMap] = useState<Record<string, Order>>({});
+  const [orderDetailsMap, setOrderDetailsMap] = useState<Record<string, Order>>(
+    {},
+  );
   const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -52,7 +57,8 @@ export default function OrdersTab() {
       try {
         const data = await getOrdersByUserId(user.id);
         const sorted = [...data].sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
         setOrders(sorted);
       } catch {
@@ -64,7 +70,10 @@ export default function OrdersTab() {
   }, [user?.id, getOrdersByUserId]);
 
   const totalSpent = useMemo(
-    () => orders.filter((o) => o.status === "PAID").reduce((sum, o) => sum + o.grandTotal, 0),
+    () =>
+      orders
+        .filter((o) => o.status === "PAID")
+        .reduce((sum, o) => sum + o.grandTotal, 0),
     [orders],
   );
 
@@ -152,13 +161,19 @@ export default function OrdersTab() {
         const isExpanded = expandedOrderId === order.orderId;
 
         return (
-          <div key={order.orderId} className="bg-[#F8F9FF] rounded-2xl p-5 hover:shadow-md hover:shadow-[#17409A]/5 transition-shadow">
+          <div
+            key={order.orderId}
+            className="bg-[#F8F9FF] rounded-2xl p-5 hover:shadow-md hover:shadow-[#17409A]/5 transition-shadow"
+          >
             <div
               className="flex items-center gap-4 cursor-pointer"
               onClick={() => handleToggleDetail(order)}
             >
               <div className="w-16 h-16 rounded-xl bg-[#17409A]/8 flex items-center justify-center shrink-0">
-                <span className="text-sm font-black" style={{ color: "#17409A" }}>
+                <span
+                  className="text-sm font-black"
+                  style={{ color: "#17409A" }}
+                >
                   #{orders.findIndex((o) => o.orderId === order.orderId) + 1}
                 </span>
               </div>
@@ -196,36 +211,60 @@ export default function OrdersTab() {
             {isExpanded && (
               <div className="mt-4 pt-4 border-t border-[#E5E7EB] space-y-2">
                 {detailLoadingId === order.orderId && (
-                  <p className="text-xs text-[#9CA3AF]">Đang tải chi tiết đơn hàng...</p>
+                  <p className="text-xs text-[#9CA3AF]">
+                    Đang tải chi tiết đơn hàng...
+                  </p>
                 )}
 
                 {!detailLoadingId && detail && (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">Mã đơn:</span> {detail.orderId}
+                        <span className="font-bold text-[#1A1A2E]">
+                          Mã đơn:
+                        </span>{" "}
+                        {detail.orderId}
                       </p>
                       <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">Ghi chú:</span> {detail.notes || "-"}
+                        <span className="font-bold text-[#1A1A2E]">
+                          Ghi chú:
+                        </span>{" "}
+                        {detail.notes || "-"}
                       </p>
                       <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">Tạm tính:</span> {formatMoney(detail.subtotal, detail.currency)}
+                        <span className="font-bold text-[#1A1A2E]">
+                          Tạm tính:
+                        </span>{" "}
+                        {formatMoney(detail.subtotal, detail.currency)}
                       </p>
                       <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">Phí ship:</span> {formatMoney(detail.shippingTotal, detail.currency)}
+                        <span className="font-bold text-[#1A1A2E]">
+                          Phí ship:
+                        </span>{" "}
+                        {formatMoney(detail.shippingTotal, detail.currency)}
                       </p>
                       <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">Giảm giá:</span> {formatMoney(detail.discountTotal, detail.currency)}
+                        <span className="font-bold text-[#1A1A2E]">
+                          Giảm giá:
+                        </span>{" "}
+                        {formatMoney(detail.discountTotal, detail.currency)}
                       </p>
                       <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">Thành tiền:</span> {formatMoney(detail.grandTotal, detail.currency)}
+                        <span className="font-bold text-[#1A1A2E]">
+                          Thành tiền:
+                        </span>{" "}
+                        {formatMoney(detail.grandTotal, detail.currency)}
                       </p>
                     </div>
 
                     <div className="mt-3">
-                      <p className="text-xs font-black text-[#17409A] mb-2">Danh sách sản phẩm</p>
+                      <p className="text-xs font-black text-[#17409A] mb-2">
+                        Danh sách sản phẩm
+                      </p>
                       {detail.orderItems.length === 0 ? (
-                        <p className="text-xs text-[#9CA3AF]">Đơn hàng hiện chưa có item snapshot.</p>
+                        <p className="text-xs text-[#9CA3AF]">
+                          Đơn hàng hiện chưa có item snapshot.
+                        </p>
                       ) : (
                         <div className="space-y-2">
                           {detail.orderItems.map((item) => (
@@ -234,12 +273,19 @@ export default function OrdersTab() {
                               className="rounded-xl bg-white p-3 border border-[#E5E7EB]"
                             >
                               <p className="text-xs font-bold text-[#1A1A2E]">
-                                {item.productNameSnapshot || "Sản phẩm không có tên snapshot"}
+                                {item.productNameSnapshot ||
+                                  "Sản phẩm không có tên snapshot"}
                               </p>
                               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#6B7280]">
                                 <span>SL: {item.quantity}</span>
-                                <span>Đơn giá: {formatMoney(item.unitPrice, detail.currency)}</span>
-                                <span>Line total: {formatMoney(item.lineTotal, detail.currency)}</span>
+                                <span>
+                                  Đơn giá:{" "}
+                                  {formatMoney(item.unitPrice, detail.currency)}
+                                </span>
+                                <span>
+                                  Line total:{" "}
+                                  {formatMoney(item.lineTotal, detail.currency)}
+                                </span>
                               </div>
                             </div>
                           ))}

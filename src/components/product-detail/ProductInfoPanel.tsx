@@ -188,12 +188,8 @@ export default function ProductInfoPanel({
   );
   const currentTotalPrice = basePrice + accessoriesPrice;
 
-  const handleBuyNow = () => {
-    if (!isAuthenticated) {
-      router.push("/auth");
-      return;
-    }
-    // TODO: navigate to checkout
+  const handleBuyNow = async () => {
+    await addToCartInternal(true);
   };
 
   const handleToggleAccessory = (rule: PersonalizationRule) => {
@@ -206,7 +202,7 @@ export default function ProductInfoPanel({
     });
   };
 
-  const onAddToCart = async () => {
+  const addToCartInternal = async (goCheckout: boolean) => {
     if (!isAuthenticated) {
       router.push("/auth");
       return;
@@ -262,13 +258,22 @@ export default function ProductInfoPanel({
         targetBuildId
       );
 
-      toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      if (goCheckout) {
+        toast.success(`Đã thêm "${product.name}" vào giỏ. Đang chuyển đến thanh toán...`);
+        router.push("/checkout");
+      } else {
+        toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
+      }
       
     } catch (err) {
       toast.error("Thêm vào giỏ hàng thất bại: " + (err instanceof Error ? err.message : "Vui lòng thử lại"));
     } finally {
       setAddingToCart(false);
     }
+  };
+
+  const onAddToCart = async () => {
+    await addToCartInternal(false);
   };
 
   return (
@@ -450,10 +455,11 @@ export default function ProductInfoPanel({
         <button
           type="button"
           onClick={handleBuyNow}
+          disabled={addingToCart}
           className="flex-1 py-4 px-8 rounded-2xl text-white font-black text-base tracking-wide shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
           style={{ backgroundColor: accent }}
         >
-          Mua ngay
+          {addingToCart ? "Đang xử lý..." : "Mua ngay"}
         </button>
         <button
           type="button"

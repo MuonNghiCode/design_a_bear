@@ -61,13 +61,18 @@ export default function CheckoutClient() {
   const contentRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { totalPrice, clearCart, totalItems } = useCart();
+  const { totalPrice, clearCart, totalItems, closeCart } = useCart();
   const { isAuthenticated } = useAuth();
   const toast = useToast();
 
   const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
   const DISCOUNT = couponApplied ? 50_000 : 0;
   const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
+
+  // Ensure cart drawer is closed when arriving at checkout.
+  useEffect(() => {
+    closeCart();
+  }, [closeCart]);
 
   // Handle PayOS redirect callback: /checkout?orderCode=...&status=...
   useEffect(() => {

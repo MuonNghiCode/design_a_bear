@@ -243,7 +243,15 @@ export interface OrderItem {
     lineTotal: number;
     productNameSnapshot: string | null;
     personalizationSnapshot: string | null;
-    // productionJobs omitted or can be added if needed
+    productionJobs?: {
+        jobId: string;
+        orderItemId: string;
+        status: string;
+        assignedUser: string | null;
+        startedAt: string | null;
+        completedAt: string | null;
+        serialNumber: string;
+    }[];
 }
 
 export interface Order {
@@ -267,6 +275,8 @@ export interface Order {
 
 export type GetAddressesResponse = ApiResponse<Address[]>;
 export type CreateOrderResponse = ApiResponse<Order>;
+export type GetOrdersByUserResponse = ApiResponse<Order[]>;
+export type GetOrderDetailResponse = ApiResponse<Order>;
 
 /* ── Promotion & Payment Responses ── */
 

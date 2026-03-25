@@ -21,6 +21,8 @@ export const API_ENDPOINTS = {
   },
   ORDERS: {
     FROM_CART: "/api/Orders/from-cart/{cartId}", // POST /api/Orders/from-cart/{cartId}
+    GET_BY_USER: "/api/Orders/user/{userId}", // GET /api/Orders/user/{userId}
+    GET_BY_ID: "/api/Orders/{id}", // GET /api/Orders/{id}
   },
   PRODUCTS: {
     GET_ALL: "/api/Products",

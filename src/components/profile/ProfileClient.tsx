@@ -94,8 +94,8 @@ export default function ProfileClient() {
 
       <ProfileStats />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 pb-16 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 flex flex-col gap-5">
+      <div className="max-w-screen-2xl mx-auto px-8 md:px-16 pb-20 grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="xl:col-span-1 flex flex-col gap-6">
           <ProfileInfoCard
             user={user}
             editMode={editMode}

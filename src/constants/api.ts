@@ -15,6 +15,9 @@ export const API_ENDPOINTS = {
     GET_ALL: "/api/Products",
     GET_BY_ID: "/api/Products",
     GET_BY_SLUG: "/api/Products/slug",
+    CREATE: "/api/Products",
+    UPDATE: "/api/Products",
+    DELETE: "/api/Products",
   },
   CARTS: {
     BASE: "/api/Carts",

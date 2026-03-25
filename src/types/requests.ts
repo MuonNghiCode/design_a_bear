@@ -42,6 +42,36 @@ export interface GetProductsRequest {
     sortBy?: string;
 }
 
+export interface CreateProductVariantRequest {
+    sku: string;
+    variantName: string;
+    price: number;
+    currency: string;
+    imageUrl: string;
+}
+
+export interface CreateProductMediaRequest {
+    url: string;
+    altText: string;
+    sortOrder: number;
+}
+
+export interface CreateProductRequest {
+    name: string;
+    slug: string;
+    productType: string;
+    description: string;
+    model3DUrl: string;
+    isPersonalizable: boolean;
+    isActive: boolean;
+    categoryIds: string[];
+    characterIds: string[];
+    variants: CreateProductVariantRequest[];
+    media: CreateProductMediaRequest[];
+}
+
+export type UpdateProductRequest = CreateProductRequest;
+
 /* ── Build API Requests ── */
 
 export interface CreateBuildRequest {

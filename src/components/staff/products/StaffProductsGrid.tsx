@@ -105,7 +105,7 @@ function StockModal({
           {/* Current stock */}
           <div className="flex items-center gap-3 bg-[#F4F7FF] rounded-2xl p-4">
             <Image
-              src={product.image}
+              src={product.imageUrl}
               alt={product.name}
               width={52}
               height={52}
@@ -199,7 +199,7 @@ function ProductCard({
         style={{ backgroundColor: p.badgeColor + "0d" }}
       >
         <Image
-          src={p.image}
+          src={p.imageUrl}
           alt={p.name}
           width={96}
           height={96}
@@ -397,7 +397,7 @@ export default function StaffProductsGrid() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <Image
-                            src={p.image}
+                            src={p.imageUrl}
                             alt={p.name}
                             width={40}
                             height={40}

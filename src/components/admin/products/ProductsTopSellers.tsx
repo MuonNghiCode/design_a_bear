@@ -37,7 +37,7 @@ export default function ProductsTopSellers() {
                 {/* Rank thumbnail */}
                 <div className="relative w-10 h-10 rounded-2xl overflow-hidden shrink-0 transition-transform duration-200 group-hover:scale-105 bg-[#F4F7FF]">
                   <Image
-                    src={p.image}
+                    src={p.imageUrl || "/teddy_bear.png"}
                     alt={p.name}
                     width={40}
                     height={40}

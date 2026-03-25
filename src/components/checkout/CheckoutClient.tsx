@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -21,7 +21,12 @@ import { StepConfirm } from "./StepConfirm";
 import { SuccessScreen } from "./SuccessScreen";
 import { OrderSummary } from "./OrderSummary";
 import Image from "next/image";
-
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
+import { userService } from "@/services/user.service";
+import { addressService } from "@/services/address.service";
+import { orderService } from "@/services/order.service";
+import { STORAGE_KEYS } from "@/constants";
 /*  Main Component */
 export default function CheckoutClient() {
   const [step, setStep] = useState(1);
@@ -48,13 +53,71 @@ export default function CheckoutClient() {
     () => "DAB" + Math.random().toString(36).slice(2, 8).toUpperCase(),
   );
 
+  const [orderDetails, setOrderDetails] = useState<any>(null); // Save response order for SuccessScreen
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   const contentRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { totalPrice, clearCart, totalItems } = useCart();
+  const { isAuthenticated } = useAuth();
+  const toast = useToast();
 
-  const SHIPPING_FEE = totalPrice >= FREE_SHIP ? 0 : 30_000;
+  const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
   const DISCOUNT = couponApplied ? 50_000 : 0;
   const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
+
+  // Fetch initial profile & address data
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast.info("Vui lòng đăng nhập để thanh toán.");
+      router.push("/auth");
+      return;
+    }
+
+    if (totalItems === 0) {
+      setLoadingInitial(false);
+      return;
+    }
+
+    const loadData = async () => {
+      try {
+        let defaultForm = { ...form };
+
+        // 1. Get Profile
+        try {
+          const profileRes = await userService.getProfile();
+          if (profileRes.isSuccess && profileRes.value) {
+            defaultForm.name = profileRes.value.fullName || "";
+            defaultForm.email = profileRes.value.email || "";
+          }
+        } catch (e) {}
+
+        // 2. Get Addresses
+        try {
+          const addressRes = await addressService.getMyAddresses();
+          if (addressRes.isSuccess && addressRes.value && addressRes.value.length > 0) {
+            const defAddr = addressRes.value.find((a) => a.isDefaultShipping) || addressRes.value[0];
+            defaultForm.name = defAddr.fullName || defaultForm.name;
+            defaultForm.phone = defAddr.phoneNumber || "";
+            defaultForm.email = defAddr.email || defaultForm.email;
+            defaultForm.address = defAddr.line1 || "";
+            // province/district mapping is tricky so user might have to re-select, 
+            // but we can set city implicitly if we want.
+            // defaultForm.provinceName = defAddr.city;
+            // defaultForm.districtName = defAddr.state;
+          }
+        } catch (e) {}
+
+        setForm(defaultForm);
+      } finally {
+        setLoadingInitial(false);
+      }
+    };
+
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   /*  Step transitions  */
   const transition = useCallback((nextStep: number, direction: 1 | -1) => {
@@ -93,23 +156,81 @@ export default function CheckoutClient() {
     }
     if (step < 3) transition(step + 1, 1);
     else {
-      // Place order
-      gsap.to(contentRef.current, {
-        scale: 0.96,
-        opacity: 0,
-        duration: 0.3,
-        onComplete: () => {
-          setOrderPlaced(true);
-          clearCart();
-          gsap.fromTo(
-            contentRef.current,
-            { scale: 0.96, opacity: 0 },
-            { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.2)" },
-          );
-        },
-      });
+      // Place order via API
+      setSubmitting(true);
+      (async () => {
+        try {
+          // 1. Create Address
+          const createAddrRes = await addressService.createAddress({
+            fullName: form.name,
+            phoneNumber: form.phone,
+            email: form.email,
+            city: form.provinceName || form.province,
+            state: form.districtName || form.district,
+            line1: form.address,
+            line2: form.note,
+            isDefaultShipping: true,
+            isDefaultBilling: true,
+          });
+
+          if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
+            throw new Error("Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.");
+          }
+          const addressId = createAddrRes.value.addressId;
+
+          // 2. Create Order
+          const userObj = localStorage.getItem(STORAGE_KEYS.USER);
+          const userId = userObj ? JSON.parse(userObj).id : null;
+          const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
+          
+          if (!cartId) throw new Error("Chưa có giỏ hàng.");
+
+          const orderPayload = {
+            userId,
+            shippingAddressId: addressId,
+            billingAddressId: addressId,
+            currency: "VND",
+            subtotal: totalPrice,
+            discountTotal: DISCOUNT,
+            taxTotal: 0,
+            shippingTotal: SHIPPING_FEE,
+            grandTotal: FINAL_TOTAL,
+            notes: form.note || "Order from NextJS Frontend",
+            promoCode: couponApplied ? coupon : undefined,
+          };
+
+          const orderRes = await orderService.createOrderFromCart(cartId, orderPayload);
+
+          if (orderRes.isSuccess && orderRes.value) {
+            setOrderDetails(orderRes.value);
+            toast.success("Đặt hàng thành công!");
+
+            // Animation out then show success
+            gsap.to(contentRef.current, {
+              scale: 0.96,
+              opacity: 0,
+              duration: 0.3,
+              onComplete: () => {
+                setOrderPlaced(true);
+                clearCart();
+                gsap.fromTo(
+                  contentRef.current,
+                  { scale: 0.96, opacity: 0 },
+                  { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.2)" },
+                );
+              },
+            });
+          } else {
+            throw new Error(orderRes.error?.description || "Lỗi tạo đơn hàng");
+          }
+        } catch (error: any) {
+          toast.error(error.message || "Đã có lỗi xảy ra");
+        } finally {
+          setSubmitting(false);
+        }
+      })();
     }
-  }, [step, form, transition, clearCart]);
+  }, [step, form, transition, clearCart, totalPrice, DISCOUNT, SHIPPING_FEE, FINAL_TOTAL, couponApplied, coupon, toast]);
 
   const goBack = useCallback(() => {
     if (step > 1) transition(step - 1, -1);
@@ -127,6 +248,8 @@ export default function CheckoutClient() {
 
   /* Empty cart redirect */
   if (totalItems === 0 && !orderPlaced) {
+    if (loadingInitial) return <div className="min-h-screen bg-[#F4F7FF]" />; // prevent flicker
+
     return (
       <div
         className="min-h-screen flex items-center justify-center flex-col gap-5"
@@ -157,6 +280,14 @@ export default function CheckoutClient() {
           <IoArrowBack />
           Quay lại mua sắm
         </Link>
+      </div>
+    );
+  }
+
+  if (loadingInitial) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F4F7FF]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#17409A] border-t-transparent" />
       </div>
     );
   }
@@ -244,7 +375,7 @@ export default function CheckoutClient() {
             {/* Step content */}
             <div ref={contentRef} className="relative">
               {orderPlaced ? (
-                <SuccessScreen orderId={orderId} />
+                <SuccessScreen orderId={orderDetails?.orderNumber || orderDetails?.orderId || orderId} />
               ) : (
                 <>
                   {step === 1 && (
@@ -295,7 +426,7 @@ export default function CheckoutClient() {
                 {/* Next / Submit */}
                 <button
                   onClick={goNext}
-                  disabled={step === 3 && !agreed}
+                  disabled={(step === 3 && !agreed) || submitting}
                   className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-black text-white transition-all duration-200 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{
                     background:
@@ -308,7 +439,9 @@ export default function CheckoutClient() {
                         : "0 6px 20px rgba(23,64,154,0.35)",
                   }}
                 >
-                  {step < 3 ? (
+                  {submitting ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent mx-8" />
+                  ) : step < 3 ? (
                     <>
                       Tiếp theo
                       <IoArrowForward className="text-base" />
@@ -362,14 +495,22 @@ export default function CheckoutClient() {
           </div>
           <button
             onClick={goNext}
-            disabled={step === 3 && !agreed}
+            disabled={(step === 3 && !agreed) || submitting}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black text-white transition-all duration-200 disabled:opacity-50"
             style={{
               background: "linear-gradient(135deg, #17409A 0%, #4ECDC4 100%)",
             }}
           >
-            {step < 3 ? "Tiếp theo" : "Đặt hàng"}
-            <IoArrowForward className="text-sm" />
+            {submitting ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : step < 3 ? (
+              <>
+                Tiếp theo
+                <IoArrowForward className="text-sm" />
+              </>
+            ) : (
+              "Đặt hàng"
+            )}
           </button>
         </div>
       )}

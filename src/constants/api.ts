@@ -1,15 +1,26 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:7002";
 
 export const API_ENDPOINTS = {
+
   AUTH: {
     LOGIN: "/api/Auth/login",
     LOGOUT: "/api/Auth/logout",
     PROFILE: "/api/Auth/profile",
     GET_PROFILE: "/api/Users/{userId}/profile",
-    SIGNUP: "/api/auth/signup",
-    VERIFY_EMAIL: "/api/auth/verify-email",
-    GOOGLE_LOGIN: "/api/auth/google-login",
-    GOOGLE_COMPLETE_PROFILE: "/api/auth/google-complete-profile",
+    SIGNUP: "/api/Auth/signup",
+    VERIFY_EMAIL: "/api/Auth/verify-email",
+    GOOGLE_LOGIN: "/api/Auth/google-login",
+    GOOGLE_COMPLETE_PROFILE: "/api/Auth/google-complete-profile",
+  },
+  USERS: {
+    PROFILE: "/api/Users/profile", // GET /api/Users/profile
+  },
+  ADDRESSES: {
+    MY_ADDRESSES: "/api/Addresses/my-addresses", // GET
+    CREATE: "/api/Addresses", // POST
+  },
+  ORDERS: {
+    FROM_CART: "/api/Orders/from-cart", // POST /api/Orders/from-cart/{cartId}
   },
   PRODUCTS: {
     GET_ALL: "/api/Products",

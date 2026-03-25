@@ -111,18 +111,18 @@ class BaseApiService {
         }
     }
 
-    protected async put<T>(url: string, data?: unknown): Promise<ApiResponse<T>> {
+    protected async put<T>(url: string, data?: unknown, config?: Record<string, unknown>): Promise<ApiResponse<T>> {
         try {
-            const response = await this.api.put<ApiResponse<T>>(url, data);
+            const response = await this.api.put<ApiResponse<T>>(url, data, config);
             return response.data;
         } catch (error) {
             throw new Error(this.extractErrorMessage(error));
         }
     }
 
-    protected async delete<T>(url: string): Promise<ApiResponse<T>> {
+    protected async delete<T>(url: string, config?: Record<string, unknown>): Promise<ApiResponse<T>> {
         try {
-            const response = await this.api.delete<ApiResponse<T>>(url);
+            const response = await this.api.delete<ApiResponse<T>>(url, config);
             return response.data;
         } catch (error) {
             throw new Error(this.extractErrorMessage(error));

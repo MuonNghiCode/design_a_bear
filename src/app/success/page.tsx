@@ -1,6 +1,7 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import PaymentSuccessClient from "@/components/success/PaymentSuccessClient";
+import { Suspense } from "react";
 
 export const metadata = {
   title: "Thanh toán thành công | Design A Bear",
@@ -15,7 +16,9 @@ export default function SuccessPage() {
         className="pt-50 pb-16 min-h-screen"
         style={{ backgroundColor: "#F4F7FF" }}
       >
-        <PaymentSuccessClient />
+        <Suspense fallback={null}>
+          <PaymentSuccessClient />
+        </Suspense>
       </div>
       <Footer />
     </>

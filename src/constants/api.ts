@@ -13,16 +13,16 @@ export const API_ENDPOINTS = {
     GOOGLE_COMPLETE_PROFILE: "/api/Auth/google-complete-profile",
   },
   USERS: {
-    PROFILE: "/api/Users/profile", // GET /api/Users/profile
+    PROFILE: "/api/Users/profile", 
   },
   ADDRESSES: {
-    MY_ADDRESSES: "/api/Addresses/my-addresses", // GET
-    CREATE: "/api/Addresses", // POST
+    MY_ADDRESSES: "/api/Addresses/my-addresses", 
+    CREATE: "/api/Addresses", 
   },
   ORDERS: {
-    FROM_CART: "/api/Orders/from-cart/{cartId}", // POST /api/Orders/from-cart/{cartId}
-    GET_BY_USER: "/api/Orders/user/{userId}", // GET /api/Orders/user/{userId}
-    GET_BY_ID: "/api/Orders/{id}", // GET /api/Orders/{id}
+    FROM_CART: "/api/Orders/from-cart/{cartId}", 
+    GET_BY_USER: "/api/Orders/user/{userId}", 
+    GET_BY_ID: "/api/Orders/{id}", 
   },
   PRODUCTS: {
     GET_ALL: "/api/Products",

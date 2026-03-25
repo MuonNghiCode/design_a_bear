@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   THEME: 'theme',
   LANGUAGE: 'language',
   CART_ID: 'cart_id',
+  PENDING_PAYMENT_ORDER: 'pending_payment_order',
 } as const;
 
 export const PAGINATION = {

@@ -82,6 +82,20 @@ export interface CreateBuildRequest {
     buildComponents: { optionVariantId: string }[];
 }
 
+export interface CreateOrderFromCartRequest {
+    userId: string | null;
+    shippingAddressId: string | null;
+    billingAddressId: string | null;
+    currency: string;
+    subtotal: number;
+    discountTotal: number;
+    taxTotal: number;
+    shippingTotal: number;
+    grandTotal: number;
+    notes?: string;
+    promoCode?: string;
+}
+
 /* ── Cart API Requests ── */
 
 export interface CreateCartRequest {
@@ -96,3 +110,19 @@ export interface AddToCartRequest {
     quantity: number;
     unitPriceSnapshot: number;
 }
+
+/* ── Promotion & Payment Requests ── */
+
+export interface ValidatePromotionRequest {
+    code: string;
+}
+
+export interface CreatePaymentRequest {
+    orderId: string;
+    itemName: string;
+    quantity: number;
+    amount: number;
+    description?: string;
+}
+
+export interface ConfirmPaymentRequest {}

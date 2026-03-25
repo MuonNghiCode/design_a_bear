@@ -12,7 +12,7 @@ import {
 } from "react-icons/io5";
 import type { DeliveryForm } from "./checkout.types";
 import { deliverySchema } from "./checkout.config";
-import { FormField, SelectField } from "./checkout.fields";
+import { FormField, SelectField, SearchableSelectField } from "./checkout.fields";
 
 export function StepDelivery({
   form,
@@ -177,7 +177,7 @@ export function StepDelivery({
             error={fieldErr("email")}
           />
 
-          <SelectField
+          <SearchableSelectField
             icon={IoLocationOutline}
             label={provinces.length === 0 ? "Đang tải..." : "Tỉnh / Thành phố"}
             value={form.province}
@@ -192,7 +192,7 @@ export function StepDelivery({
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <SelectField
+            <SearchableSelectField
               icon={IoLocationOutline}
               label={loadingD ? "Đang tải..." : "Quận / Huyện"}
               value={form.district}
@@ -204,7 +204,7 @@ export function StepDelivery({
               disabled={!form.province || loadingD}
               error={fieldErr("district")}
             />
-            <SelectField
+            <SearchableSelectField
               icon={IoLocationOutline}
               label={loadingC ? "Đang tải..." : "Phường / Xã"}
               value={form.ward}

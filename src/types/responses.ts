@@ -23,12 +23,15 @@ export interface LogoutResponseData {
 export type LogoutResponse = ApiResponse<LogoutResponseData>;
 
 export interface ProfileResponseData {
-    id: string;
-    userName?: string;
-    name?: string;
+    userId: string;
     email: string;
-    role?: string;
-    avatar?: string;
+    fullName: string;
+    avatarUrl: string | null;
+    provider: string;
+    status: string;
+    roleName: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface VerifyEmailResponseData {
@@ -209,3 +212,95 @@ export interface Build {
 }
 
 export type CreateBuildResponse = ApiResponse<Build>;
+
+/* ── Address & Order API Responses ── */
+
+export interface Address {
+    addressId: string;
+    userId: string;
+    label: string | null;
+    fullName: string;
+    phoneNumber: string;
+    email: string | null;
+    line1: string;
+    line2: string | null;
+    city: string;
+    state: string;
+    postalCode: string | null;
+    country: string | null;
+    isDefaultShipping: boolean;
+    isDefaultBilling: boolean;
+    createdAt: string;
+}
+
+export interface OrderItem {
+    orderItemId: string;
+    orderId: string;
+    variantId: string;
+    buildId: string | null;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+    productNameSnapshot: string | null;
+    personalizationSnapshot: string | null;
+    productionJobs?: {
+        jobId: string;
+        orderItemId: string;
+        status: string;
+        assignedUser: string | null;
+        startedAt: string | null;
+        completedAt: string | null;
+        serialNumber: string;
+    }[];
+}
+
+export interface Order {
+    orderId: string;
+    orderNumber: string;
+    userId: string | null;
+    shippingAddressId: string | null;
+    billingAddressId: string | null;
+    status: string;
+    currency: string;
+    subtotal: number;
+    discountTotal: number;
+    taxTotal: number;
+    shippingTotal: number;
+    grandTotal: number;
+    notes: string | null;
+    createdAt: string;
+    updatedAt: string;
+    orderItems: OrderItem[];
+}
+
+export type GetAddressesResponse = ApiResponse<Address[]>;
+export type CreateOrderResponse = ApiResponse<Order>;
+export type GetOrdersByUserResponse = ApiResponse<Order[]>;
+export type GetOrderDetailResponse = ApiResponse<Order>;
+
+/* ── Promotion & Payment Responses ── */
+
+export interface PromotionResponseData {
+    // value is empty array as per backend spec
+}
+
+export type PromotionResponse = ApiResponse<PromotionResponseData>;
+
+export interface CreatePaymentResponseData {
+    checkoutUrl?: string;
+    paymentCode?: string;
+    orderCode?: string;
+    paymentUrl?: string;
+    message?: string;
+}
+
+export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
+
+export interface ConfirmPaymentResponseData {
+    paymentCode: string;
+    status: string;
+    transactionId?: string;
+    message?: string;
+}
+
+export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;

@@ -1,6 +1,7 @@
 import { type ProductCardProps } from "@/components/shared/ProductCard";
 
 export interface CartItem {
+  cartItemId?: string;
   product: ProductCardProps;
   quantity: number;
 }

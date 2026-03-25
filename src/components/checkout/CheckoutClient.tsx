@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import gsap from "gsap";
 import { useCart } from "@/contexts/CartContext";
 import {
@@ -26,6 +26,7 @@ import { useToast } from "@/contexts/ToastContext";
 import { userService } from "@/services/user.service";
 import { addressService } from "@/services/address.service";
 import { orderService } from "@/services/order.service";
+import { paymentService } from "@/services/payment.service";
 import { STORAGE_KEYS } from "@/constants";
 /*  Main Component */
 export default function CheckoutClient() {
@@ -59,6 +60,7 @@ export default function CheckoutClient() {
 
   const contentRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { totalPrice, clearCart, totalItems } = useCart();
   const { isAuthenticated } = useAuth();
   const toast = useToast();
@@ -66,6 +68,51 @@ export default function CheckoutClient() {
   const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
   const DISCOUNT = couponApplied ? 50_000 : 0;
   const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
+
+  // Handle PayOS redirect callback: /checkout?orderCode=...&status=...
+  useEffect(() => {
+    const orderCodeFromQuery =
+      searchParams.get("orderCode") ||
+      searchParams.get("paymentCode") ||
+      searchParams.get("code");
+
+    if (!orderCodeFromQuery) return;
+
+    const handlePaymentReturn = async () => {
+      try {
+        setSubmitting(true);
+        const confirmRes =
+          await paymentService.confirmPayment(orderCodeFromQuery);
+
+        if (!confirmRes.isSuccess) {
+          throw new Error(
+            confirmRes.error?.description || "Xác nhận thanh toán thất bại",
+          );
+        }
+
+        const pendingOrder = localStorage.getItem(
+          STORAGE_KEYS.PENDING_PAYMENT_ORDER,
+        );
+        if (pendingOrder) {
+          try {
+            const parsed = JSON.parse(pendingOrder);
+            setOrderDetails(parsed.orderDetails ?? null);
+          } catch {}
+          localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
+        }
+
+        setOrderPlaced(true);
+        clearCart();
+        toast.success("Thanh toán thành công!");
+      } catch (error: any) {
+        toast.error(error.message || "Không thể xác nhận thanh toán");
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    handlePaymentReturn();
+  }, [searchParams, clearCart, toast]);
 
   // Fetch initial profile & address data
   useEffect(() => {
@@ -96,13 +143,19 @@ export default function CheckoutClient() {
         // 2. Get Addresses
         try {
           const addressRes = await addressService.getMyAddresses();
-          if (addressRes.isSuccess && addressRes.value && addressRes.value.length > 0) {
-            const defAddr = addressRes.value.find((a) => a.isDefaultShipping) || addressRes.value[0];
+          if (
+            addressRes.isSuccess &&
+            addressRes.value &&
+            addressRes.value.length > 0
+          ) {
+            const defAddr =
+              addressRes.value.find((a) => a.isDefaultShipping) ||
+              addressRes.value[0];
             defaultForm.name = defAddr.fullName || defaultForm.name;
             defaultForm.phone = defAddr.phoneNumber || "";
             defaultForm.email = defAddr.email || defaultForm.email;
             defaultForm.address = defAddr.line1 || "";
-            // province/district mapping is tricky so user might have to re-select, 
+            // province/district mapping is tricky so user might have to re-select,
             // but we can set city implicitly if we want.
             // defaultForm.provinceName = defAddr.city;
             // defaultForm.districtName = defAddr.state;
@@ -174,7 +227,9 @@ export default function CheckoutClient() {
           });
 
           if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
-            throw new Error("Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.");
+            throw new Error(
+              "Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.",
+            );
           }
           const addressId = createAddrRes.value.addressId;
 
@@ -182,7 +237,7 @@ export default function CheckoutClient() {
           const userObj = localStorage.getItem(STORAGE_KEYS.USER);
           const userId = userObj ? JSON.parse(userObj).id : null;
           const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
-          
+
           if (!cartId) throw new Error("Chưa có giỏ hàng.");
 
           const orderPayload = {
@@ -199,9 +254,96 @@ export default function CheckoutClient() {
             promoCode: couponApplied ? coupon : undefined,
           };
 
-          const orderRes = await orderService.createOrderFromCart(cartId, orderPayload);
+          const orderRes = await orderService.createOrderFromCart(
+            cartId,
+            orderPayload,
+          );
 
           if (orderRes.isSuccess && orderRes.value) {
+            const orderId = orderRes.value.orderId;
+            const safeDescription = `DAB ${orderRes.value.orderNumber}`.slice(
+              0,
+              25,
+            );
+
+            // 3. Call create-payment
+            const createPaymentRes = await paymentService.createPayment({
+              orderId,
+              itemName: "Design A Bear",
+              quantity: Math.max(1, totalItems),
+              amount: FINAL_TOTAL,
+              description: safeDescription,
+            });
+
+            if (!createPaymentRes.isSuccess || !createPaymentRes.value) {
+              throw new Error(
+                createPaymentRes.error?.description || "Lỗi tạo thanh toán",
+              );
+            }
+
+            const checkoutUrl =
+              createPaymentRes.value.checkoutUrl ||
+              createPaymentRes.value.paymentUrl;
+
+            if (checkoutUrl) {
+              localStorage.setItem(
+                STORAGE_KEYS.PENDING_PAYMENT_ORDER,
+                JSON.stringify({
+                  orderDetails: orderRes.value,
+                  orderCode:
+                    (
+                      createPaymentRes.value as {
+                        orderCode?: string;
+                        paymentCode?: string;
+                      }
+                    ).orderCode ||
+                    (
+                      createPaymentRes.value as {
+                        orderCode?: string;
+                        paymentCode?: string;
+                      }
+                    ).paymentCode ||
+                    null,
+                  finalTotal: FINAL_TOTAL,
+                  createdAt: new Date().toISOString(),
+                }),
+              );
+
+              window.location.href = checkoutUrl;
+              return;
+            }
+
+            const paymentCode = String(
+              (
+                createPaymentRes.value as {
+                  paymentCode?: string;
+                  orderCode?: string;
+                }
+              ).paymentCode ??
+                (
+                  createPaymentRes.value as {
+                    paymentCode?: string;
+                    orderCode?: string;
+                  }
+                ).orderCode ??
+                "",
+            );
+
+            if (!paymentCode) {
+              throw new Error("Thiếu paymentCode/orderCode từ create-payment");
+            }
+
+            // 4. Call confirm-payment
+            const confirmPaymentRes =
+              await paymentService.confirmPayment(paymentCode);
+
+            if (!confirmPaymentRes.isSuccess) {
+              throw new Error(
+                confirmPaymentRes.error?.description ||
+                  "Lỗi xác nhận thanh toán",
+              );
+            }
+
             setOrderDetails(orderRes.value);
             toast.success("Đặt hàng thành công!");
 
@@ -216,7 +358,12 @@ export default function CheckoutClient() {
                 gsap.fromTo(
                   contentRef.current,
                   { scale: 0.96, opacity: 0 },
-                  { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.2)" },
+                  {
+                    scale: 1,
+                    opacity: 1,
+                    duration: 0.5,
+                    ease: "back.out(1.2)",
+                  },
                 );
               },
             });
@@ -230,7 +377,20 @@ export default function CheckoutClient() {
         }
       })();
     }
-  }, [step, form, transition, clearCart, totalPrice, DISCOUNT, SHIPPING_FEE, FINAL_TOTAL, couponApplied, coupon, toast]);
+  }, [
+    step,
+    form,
+    transition,
+    clearCart,
+    totalPrice,
+    DISCOUNT,
+    SHIPPING_FEE,
+    FINAL_TOTAL,
+    couponApplied,
+    coupon,
+    toast,
+    totalItems,
+  ]);
 
   const goBack = useCallback(() => {
     if (step > 1) transition(step - 1, -1);
@@ -375,7 +535,13 @@ export default function CheckoutClient() {
             {/* Step content */}
             <div ref={contentRef} className="relative">
               {orderPlaced ? (
-                <SuccessScreen orderId={orderDetails?.orderNumber || orderDetails?.orderId || orderId} />
+                <SuccessScreen
+                  orderId={
+                    orderDetails?.orderNumber ||
+                    orderDetails?.orderId ||
+                    orderId
+                  }
+                />
               ) : (
                 <>
                   {step === 1 && (
@@ -389,6 +555,12 @@ export default function CheckoutClient() {
                     <StepPayment
                       method={paymentMethod}
                       onChange={setPaymentMethod}
+                      coupon={coupon}
+                      onCouponChange={setCoupon}
+                      couponApplied={couponApplied}
+                      onCouponApplied={setCouponApplied}
+                      discount={DISCOUNT}
+                      isLoading={submitting}
                     />
                   )}
                   {step === 3 && (

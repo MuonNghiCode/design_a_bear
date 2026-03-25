@@ -110,3 +110,19 @@ export interface AddToCartRequest {
     quantity: number;
     unitPriceSnapshot: number;
 }
+
+/* ── Promotion & Payment Requests ── */
+
+export interface ValidatePromotionRequest {
+    code: string;
+}
+
+export interface CreatePaymentRequest {
+    orderId: string;
+    itemName: string;
+    quantity: number;
+    amount: number;
+    description?: string;
+}
+
+export interface ConfirmPaymentRequest {}

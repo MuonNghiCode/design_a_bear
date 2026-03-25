@@ -267,3 +267,30 @@ export interface Order {
 
 export type GetAddressesResponse = ApiResponse<Address[]>;
 export type CreateOrderResponse = ApiResponse<Order>;
+
+/* ── Promotion & Payment Responses ── */
+
+export interface PromotionResponseData {
+    // value is empty array as per backend spec
+}
+
+export type PromotionResponse = ApiResponse<PromotionResponseData>;
+
+export interface CreatePaymentResponseData {
+    checkoutUrl?: string;
+    paymentCode?: string;
+    orderCode?: string;
+    paymentUrl?: string;
+    message?: string;
+}
+
+export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
+
+export interface ConfirmPaymentResponseData {
+    paymentCode: string;
+    status: string;
+    transactionId?: string;
+    message?: string;
+}
+
+export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;

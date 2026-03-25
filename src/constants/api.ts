@@ -20,7 +20,7 @@ export const API_ENDPOINTS = {
     CREATE: "/api/Addresses", // POST
   },
   ORDERS: {
-    FROM_CART: "/api/Orders/from-cart", // POST /api/Orders/from-cart/{cartId}
+    FROM_CART: "/api/Orders/from-cart/{cartId}", // POST /api/Orders/from-cart/{cartId}
   },
   PRODUCTS: {
     GET_ALL: "/api/Products",
@@ -41,6 +41,13 @@ export const API_ENDPOINTS = {
   },
   BUILDS: {
     BASE: "/api/Builds",
+  },
+  PROMOTIONS: {
+    VALIDATE: "/api/Promotions/validate", // POST
+  },
+  PAYMENTS: {
+    CREATE: "/api/Payments/create-payment", // POST
+    CONFIRM: "/api/Payments/confirm-payment", // GET /api/Payments/confirm-payment/{orderCode}
   },
 } as const;
 

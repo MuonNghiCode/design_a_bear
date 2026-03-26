@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { ElementType } from "react";
 import { IoChevronDown } from "react-icons/io5";
+import CustomDropdown from "@/components/shared/CustomDropdown";
 
 export function FormField({
   icon: Icon,
@@ -127,27 +128,21 @@ export function SelectField({
           className="shrink-0 text-base"
           style={{ color: focused && !disabled ? "#17409A" : "#9CA3AF" }}
         />
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          disabled={disabled}
-          className="flex-1 text-sm font-semibold bg-transparent outline-none disabled:cursor-not-allowed"
-          style={{
-            color: value ? "#1A1A2E" : "#9CA3AF",
-            fontFamily: "'Nunito', sans-serif",
-          }}
-        >
-          <option value="" disabled>
-            {label}
-          </option>
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <div className="flex-1">
+          <CustomDropdown
+            options={options}
+            value={value}
+            onChange={onChange}
+            placeholder={label}
+            disabled={disabled}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onOpenChange={(open) => setFocused(open)}
+            buttonClassName="w-full text-sm font-semibold bg-transparent outline-none flex items-center justify-between disabled:cursor-not-allowed"
+            chevronClassName="shrink-0 text-sm transition-transform duration-300 text-[#9CA3AF]"
+            menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-[#E5E7EB] bg-white shadow-xl py-1"
+          />
+        </div>
       </div>
       {error && (
         <p
@@ -208,7 +203,7 @@ export function SearchableSelectField({
   }, []);
 
   const filteredOptions = options.filter((o) =>
-    o.label.toLowerCase().includes(search.toLowerCase())
+    o.label.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -300,7 +295,8 @@ export function SearchableSelectField({
                 className="px-4 py-3 cursor-pointer text-sm font-semibold transition-colors"
                 style={{
                   color: value === o.value ? "#17409A" : "#1A1A2E",
-                  backgroundColor: value === o.value ? "#F4F7FF" : "transparent",
+                  backgroundColor:
+                    value === o.value ? "#F4F7FF" : "transparent",
                 }}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.backgroundColor = "#F8FAFF")
@@ -320,7 +316,10 @@ export function SearchableSelectField({
               </div>
             ))
           ) : (
-            <div className="px-4 py-4 text-sm font-semibold text-center" style={{ color: "#9CA3AF" }}>
+            <div
+              className="px-4 py-4 text-sm font-semibold text-center"
+              style={{ color: "#9CA3AF" }}
+            >
               Không tìm thấy kết quả
             </div>
           )}

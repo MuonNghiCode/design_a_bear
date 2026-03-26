@@ -32,9 +32,10 @@ export default function StoryHero() {
               </h1>
 
               <p className="mt-6 text-base md:text-lg text-[#6B7280] leading-relaxed max-w-3xl">
-                Từ một câu hỏi rất đời thường của phụ huynh, Design a Bear bắt đầu
-                hành trình kết hợp sự mềm mại của gấu bông với AI và IoT, để bé được
-                trò chuyện, đặt câu hỏi và luyện tập trong một không gian ấm áp.
+                Từ một câu hỏi rất đời thường của phụ huynh, Design a Bear bắt
+                đầu hành trình kết hợp sự mềm mại của gấu bông với AI và IoT, để
+                bé được trò chuyện, đặt câu hỏi và luyện tập trong một không
+                gian ấm áp.
               </p>
             </div>
 
@@ -43,9 +44,7 @@ export default function StoryHero() {
                 Lời dẫn truyện
               </p>
               <p className="mt-3 text-lg md:text-xl font-extrabold leading-snug">
-                <StoryWordReveal
-                  text="Mỗi đứa trẻ đều xứng đáng có một người bạn học tập kiên nhẫn, vui vẻ và thấu hiểu."
-                />
+                <StoryWordReveal text="Mỗi đứa trẻ đều xứng đáng có một người bạn học tập kiên nhẫn, vui vẻ và thấu hiểu." />
               </p>
             </div>
           </div>
@@ -56,7 +55,10 @@ export default function StoryHero() {
                 key={item.label}
                 className="story-panel rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-4 md:p-5"
               >
-                <p className="text-xl md:text-2xl font-black" style={{ color: item.color }}>
+                <p
+                  className="text-xl md:text-2xl font-black"
+                  style={{ color: item.color }}
+                >
                   {item.value}
                 </p>
                 <p className="mt-1 text-xs md:text-sm text-[#6B7280] font-semibold">

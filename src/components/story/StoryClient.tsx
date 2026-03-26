@@ -41,7 +41,9 @@ export default function StoryClient() {
         );
       });
 
-      const chapterTitles = gsap.utils.toArray<HTMLElement>(".story-chapter-title");
+      const chapterTitles = gsap.utils.toArray<HTMLElement>(
+        ".story-chapter-title",
+      );
       chapterTitles.forEach((title) => {
         gsap.fromTo(
           title,
@@ -64,7 +66,9 @@ export default function StoryClient() {
 
       const lines = gsap.utils.toArray<HTMLElement>(".story-reveal-line");
       lines.forEach((line) => {
-        const triggerEl = line.closest(".story-reveal-wrap") as HTMLElement | null;
+        const triggerEl = line.closest(
+          ".story-reveal-wrap",
+        ) as HTMLElement | null;
         gsap.fromTo(
           line,
           { yPercent: 120, autoAlpha: 0 },
@@ -83,7 +87,9 @@ export default function StoryClient() {
         );
       });
 
-      const phraseGroups = gsap.utils.toArray<HTMLElement>(".story-phrase-group");
+      const phraseGroups = gsap.utils.toArray<HTMLElement>(
+        ".story-phrase-group",
+      );
       phraseGroups.forEach((group) => {
         const phrases = group.querySelectorAll(".story-phrase");
         gsap.fromTo(

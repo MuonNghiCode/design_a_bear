@@ -4,7 +4,11 @@ interface StoryDividerProps {
   reverse?: boolean;
 }
 
-export default function StoryDivider({ from, to, reverse = false }: StoryDividerProps) {
+export default function StoryDivider({
+  from,
+  to,
+  reverse = false,
+}: StoryDividerProps) {
   return (
     <div aria-hidden style={{ backgroundColor: from }}>
       <svg

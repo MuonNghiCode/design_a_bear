@@ -25,7 +25,9 @@ export default function StoryWordReveal({
           className="inline-block overflow-hidden align-bottom"
           style={{ marginRight: idx === phrases.length - 1 ? 0 : "0.32em" }}
         >
-          <span className={`story-phrase inline-block ${phraseClassName ?? ""}`}>
+          <span
+            className={`story-phrase inline-block ${phraseClassName ?? ""}`}
+          >
             {phrase}
           </span>
         </span>

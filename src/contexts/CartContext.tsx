@@ -18,6 +18,7 @@ const CartContext = createContext<CartContextType | null>(null);
 
 function mapApiToUI(apiItem: ApiCartItem): UICartItem {
   return {
+    cartItemId: apiItem.cartItemId,
     product: {
       id: apiItem.variantId,
       name: `${apiItem.productName} (${apiItem.variantName})`,
@@ -35,7 +36,7 @@ function mapApiToUI(apiItem: ApiCartItem): UICartItem {
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<UICartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const { getCart, createCart, addItemToCart } = useCartApi();
+  const { getCart, createCart, addItemToCart, updateItemQuantity, removeCartItem, clearCartItems } = useCartApi();
 
   const loadCart = useCallback(async () => {
     try {
@@ -87,41 +88,103 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
         const addRes = await addItemToCart({
           cartId,
-          variantId: product.id, // Assuming product.id is the variantId in this context
+          variantId: product.id,
           buildId: buildId,
           quantity,
           unitPriceSnapshot: product.price,
         });
         console.log("DEBUG ADD ITEM TO CART RES:", addRes);
 
-        await loadCart();
+        // Optimistic update — inject item directly into state
+        // instead of relying on GET /api/Carts/{id} to return updated data
+        if (addRes) {
+          const existingIndex = items.findIndex(
+            (i) => i.product.id === product.id
+          );
+          if (existingIndex >= 0) {
+            setItems((prev) =>
+              prev.map((i, idx) =>
+                idx === existingIndex
+                  ? { ...i, quantity: i.quantity + quantity }
+                  : i
+              )
+            );
+          } else {
+            setItems((prev) => [
+              ...prev,
+              { cartItemId: addRes.cartItemId, product: { ...product, href: product.href || `/products/${product.id}` }, quantity },
+            ]);
+          }
+        }
+
         setIsOpen(true);
       } catch (err) {
-        alert("Lỗi thêm vào giỏ hàng: " + (err instanceof Error ? err.message : ""));
+        throw err; // Rethrow — the UI layer will show the toast
       }
     },
     [loadCart, createCart, addItemToCart]
   );
 
-  // Temporary local updates for UI responsiveness if no API is available for modifying items
-  const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((i) => i.product.id !== productId));
-  }, []);
-
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    if (quantity <= 0) {
+  const removeItem = useCallback(
+    async (productId: string) => {
+      // Find the item to get its cartItemId
+      const itemToDelete = items.find((i) => i.product.id === productId);
+      
+      // Optimistic update
       setItems((prev) => prev.filter((i) => i.product.id !== productId));
-      return;
-    }
-    setItems((prev) =>
-      prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i))
-    );
-  }, []);
+      
+      if (itemToDelete?.cartItemId) {
+        try {
+          await removeCartItem(itemToDelete.cartItemId);
+        } catch (err) {
+          console.error("Failed to remove item from cart", err);
+          // Re-fetch cart on failure to sync state
+          loadCart();
+        }
+      }
+    },
+    [items, removeCartItem, loadCart]
+  );
 
-  const clearCart = useCallback(() => {
-    setItems([]);
-    localStorage.removeItem(STORAGE_KEYS.CART_ID);
-  }, []);
+  const updateQuantity = useCallback(
+    async (productId: string, quantity: number) => {
+      const itemToUpdate = items.find((i) => i.product.id === productId);
+
+      if (quantity <= 0) {
+        removeItem(productId);
+        return;
+      }
+      
+      // Optimistic update
+      setItems((prev) =>
+        prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i))
+      );
+      
+      if (itemToUpdate?.cartItemId) {
+        try {
+          await updateItemQuantity(itemToUpdate.cartItemId, quantity);
+        } catch (err) {
+          console.error("Failed to update cart item quantity", err);
+          loadCart(); // Sync on fail
+        }
+      }
+    },
+    [items, updateItemQuantity, removeItem, loadCart]
+  );
+
+  const clearCart = useCallback(async () => {
+    setItems([]); // Optimistic
+    
+    const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
+    if (cartId && items.length > 0) {
+      try {
+        await clearCartItems(cartId);
+      } catch (err) {
+        console.error("Failed to clear cart", err);
+        loadCart();
+      }
+    }
+  }, [items.length, clearCartItems, loadCart]);
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce(

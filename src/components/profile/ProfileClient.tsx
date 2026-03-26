@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import gsap from "gsap";
 import { useAuth } from "@/contexts/AuthContext";
 import { ROLE_CFG } from "@/data/profile";
+import { userService } from "@/services/user.service";
+import { addressService } from "@/services/address.service";
 import ProfileHero from "./ProfileHero";
 import ProfileStats from "./ProfileStats";
 import ProfileInfoCard from "./ProfileInfoCard";
@@ -19,8 +21,8 @@ export default function ProfileClient() {
   const [tab, setTab] = useState(initialTab);
   const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState(user?.name ?? "");
-  const [phone, setPhone] = useState("0901 234 567");
-  const [address, setAddress] = useState("123 Nguyễn Huệ, Quận 1, TP.HCM");
+  const [phone, setPhone] = useState("Đang cập nhật");
+  const [address, setAddress] = useState("Đang cập nhật");
 
   const heroRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
@@ -41,6 +43,66 @@ export default function ProfileClient() {
       ease: "power3.out",
     });
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    let isMounted = true;
+
+    const loadProfileData = async () => {
+      const [profileResult, addressResult] = await Promise.allSettled([
+        userService.getProfile(),
+        addressService.getMyAddresses(),
+      ]);
+
+      if (!isMounted) return;
+
+      if (
+        profileResult.status === "fulfilled" &&
+        profileResult.value.isSuccess
+      ) {
+        const profile = profileResult.value.value;
+        if (profile?.fullName) {
+          setName(profile.fullName);
+        }
+      }
+
+      if (
+        addressResult.status === "fulfilled" &&
+        addressResult.value.isSuccess
+      ) {
+        const addresses = addressResult.value.value ?? [];
+        const selectedAddress =
+          addresses.find((a) => a.isDefaultShipping) ?? addresses[0];
+
+        if (selectedAddress) {
+          if (selectedAddress.phoneNumber) {
+            setPhone(selectedAddress.phoneNumber);
+          }
+
+          const mergedAddress = [
+            selectedAddress.line1,
+            selectedAddress.line2,
+            selectedAddress.state,
+            selectedAddress.city,
+          ]
+            .filter(Boolean)
+            .join(", ");
+
+          setAddress(mergedAddress || "Chưa có địa chỉ");
+        } else {
+          setPhone("Chưa có số điện thoại");
+          setAddress("Chưa có địa chỉ");
+        }
+      }
+    };
+
+    loadProfileData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
 
   const switchTab = (key: string) => {
     if (key === tab) return;
@@ -94,8 +156,8 @@ export default function ProfileClient() {
 
       <ProfileStats />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-8 pb-16 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 flex flex-col gap-5">
+      <div className="max-w-screen-2xl mx-auto px-8 md:px-16 pb-20 grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="xl:col-span-1 flex flex-col gap-6">
           <ProfileInfoCard
             user={user}
             editMode={editMode}

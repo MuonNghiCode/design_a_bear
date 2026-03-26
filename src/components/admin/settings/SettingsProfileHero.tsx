@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { MdEdit, MdCheck, MdClose, MdCameraAlt } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
+import CustomDropdown from "@/components/shared/CustomDropdown";
 
 const STAT_PILLS = [
   { label: "Đơn đã duyệt", value: "1,284" },
@@ -106,19 +107,18 @@ export default function SettingsProfileHero() {
                 className="bg-white/15 text-white font-black text-2xl placeholder:text-white/40 rounded-xl px-4 py-2 outline-none border border-white/20 focus:border-white/60 w-full max-w-xs transition-colors"
                 placeholder="Tên hiển thị..."
               />
-              <select
-                value={draft.role}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, role: e.target.value }))
-                }
-                className="bg-white/15 text-white font-bold text-sm rounded-xl px-4 py-2 outline-none border border-white/20 focus:border-white/60 w-48 transition-colors"
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r} className="text-[#17409A] bg-white">
-                    {r}
-                  </option>
-                ))}
-              </select>
+              <div className="w-48">
+                <CustomDropdown
+                  options={ROLES.map((r) => ({ label: r, value: r }))}
+                  value={draft.role}
+                  onChange={(nextRole) =>
+                    setDraft((d) => ({ ...d, role: nextRole }))
+                  }
+                  buttonClassName="w-full bg-white/15 text-white font-bold text-sm rounded-xl px-4 py-2 outline-none border border-white/20 focus:border-white/60 transition-colors flex items-center justify-between"
+                  chevronClassName="text-sm text-white/80 transition-transform"
+                  menuClassName="absolute z-30 mt-2 w-full rounded-xl border border-white/20 bg-white shadow-xl py-1"
+                />
+              </div>
               <div className="flex gap-2 mt-0.5">
                 <button
                   onClick={save}

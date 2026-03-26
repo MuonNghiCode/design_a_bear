@@ -33,6 +33,28 @@ class CartService extends BaseApiService {
             { withCredentials: false },
         );
     }
+
+    async updateItemQuantity(itemId: string, quantity: number): Promise<AddToCartResponse> {
+        return this.put<CartItem>(
+            `${API_ENDPOINTS.CARTS.ITEM}/${itemId}`,
+            { quantity },
+            { withCredentials: false }
+        );
+    }
+
+    async removeItem(itemId: string): Promise<GetCartResponse> {
+        return this.delete<Cart>(
+            `${API_ENDPOINTS.CARTS.ITEM}/${itemId}`,
+            { withCredentials: false }
+        );
+    }
+
+    async clearCart(cartId: string): Promise<GetCartResponse> {
+        return this.delete<Cart>(
+            `${API_ENDPOINTS.CARTS.CLEAR}/${cartId}/clear`,
+            { withCredentials: false }
+        );
+    }
 }
 
 export const cartService = new CartService();

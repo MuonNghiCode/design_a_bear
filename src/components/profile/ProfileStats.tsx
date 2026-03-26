@@ -20,26 +20,26 @@ const STAT_ICONS = {
 
 export default function ProfileStats() {
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-8 mt-12 mb-8">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="max-w-screen-2xl mx-auto px-8 md:px-16 mt-12 mb-10">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {PROFILE_STATS.map(({ label, value, color }) => {
           const Icon = STAT_ICONS[label];
           return (
             <div
               key={label}
-              className="ac bg-white rounded-2xl p-4 shadow-lg shadow-[#17409A]/8 flex items-center gap-3"
+              className="ac bg-white rounded-2xl p-5 shadow-lg shadow-[#17409A]/8 flex items-center gap-4"
             >
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
                 style={{ backgroundColor: color + "18" }}
               >
-                {Icon && <Icon className="text-xl" style={{ color }} />}
+                {Icon && <Icon className="text-2xl" style={{ color }} />}
               </div>
               <div>
-                <p className="text-[#1A1A2E] font-black text-xl leading-none">
+                <p className="text-[#1A1A2E] font-black text-2xl leading-none">
                   {value}
                 </p>
-                <p className="text-[#9CA3AF] text-[10px] font-semibold mt-0.5">
+                <p className="text-[#9CA3AF] text-xs font-semibold mt-1">
                   {label}
                 </p>
               </div>

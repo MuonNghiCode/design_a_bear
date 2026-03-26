@@ -61,6 +61,51 @@ export function useCartApi() {
         }
     }, []);
 
+    const updateItemQuantity = useCallback(async (itemId: string, quantity: number): Promise<CartItem> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await cartService.updateItemQuantity(itemId, quantity);
+            return unwrapValue(response);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Cập nhật số lượng thất bại";
+            setError(message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const removeCartItem = useCallback(async (itemId: string): Promise<Cart> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await cartService.removeItem(itemId);
+            return unwrapValue(response);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Xoá sản phẩm thất bại";
+            setError(message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const clearCartItems = useCallback(async (cartId: string): Promise<Cart> => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await cartService.clearCart(cartId);
+            return unwrapValue(response);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "Xoá giỏ hàng thất bại";
+            setError(message);
+            throw err;
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     const handleAddToCart = useCallback(
         async (variantId: string, quantity: number, unitPrice: number, buildId: string | null = null): Promise<CartItem> => {
             let cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
@@ -100,5 +145,5 @@ export function useCartApi() {
         [getCart, createCart, addItemToCart]
     );
 
-    return { loading, error, getCart, createCart, addItemToCart, handleAddToCart };
+    return { loading, error, getCart, createCart, addItemToCart, updateItemQuantity, removeCartItem, clearCartItems, handleAddToCart };
 }

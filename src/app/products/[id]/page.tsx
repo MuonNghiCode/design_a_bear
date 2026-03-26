@@ -47,7 +47,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const productPath = `/products/${product.slug || id}`;
-  const imageUrl = product.media?.[0]?.url || product.variants?.[0]?.imageUrl || DEFAULT_OG_IMAGE;
+  const imageUrl =
+    product.media?.[0]?.url ||
+    product.variants?.[0]?.imageUrl ||
+    DEFAULT_OG_IMAGE;
   const pageTitle = `${product.name} - ${SITE_NAME}`;
   const pageDescription =
     product.description?.slice(0, 155) ||
@@ -78,7 +81,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductDetailPage({ params }: Props) {
   const { id } = await params;
-  
+
   try {
     const product = await getProductByParam(id);
 
@@ -90,7 +93,9 @@ export default async function ProductDetailPage({ params }: Props) {
     let rules: PersonalizationRule[] = [];
     try {
       if (product.productId) {
-        const rulesResponse = await productService.getPersonalizationRules(product.productId);
+        const rulesResponse = await productService.getPersonalizationRules(
+          product.productId,
+        );
         if (!rulesResponse.isFailure && rulesResponse.value) {
           rules = rulesResponse.value;
         }
@@ -107,16 +112,24 @@ export default async function ProductDetailPage({ params }: Props) {
         related = allRes.value.items
           .filter((p) => p.productId !== product.productId)
           .slice(0, 4)
-          .map(p => ({
-             id: p.productId,
-             name: p.name,
-             description: p.name,
-             price: p.price,
-             image: p.imageUrl || "/teddy_bear.png",
-             category: p.productType === "ACCESSORY" ? "accessory" : p.productType === "BASE_BEAR" ? "bear" : "complete",
-             badgeColor: "#17409A",
-             slug: p.slug
-          } as ProductItem));
+          .map(
+            (p) =>
+              ({
+                id: p.productId,
+                name: p.name,
+                description: p.name,
+                price: p.price,
+                image: p.imageUrl || "/teddy_bear.png",
+                category:
+                  p.productType === "ACCESSORY"
+                    ? "accessory"
+                    : p.productType === "BASE_BEAR"
+                      ? "bear"
+                      : "complete",
+                badgeColor: "#17409A",
+                slug: p.slug,
+              }) as ProductItem,
+          );
       }
     } catch (e) {
       console.error("Failed to fetch related products", e);
@@ -159,7 +172,11 @@ export default async function ProductDetailPage({ params }: Props) {
         />
         <Header />
         <div className="pt-25">
-          <ProductDetailClient product={product} related={related} personalizationRules={rules} />
+          <ProductDetailClient
+            product={product}
+            related={related}
+            personalizationRules={rules}
+          />
         </div>
         <Footer />
       </main>
@@ -169,4 +186,3 @@ export default async function ProductDetailPage({ params }: Props) {
     notFound();
   }
 }
-

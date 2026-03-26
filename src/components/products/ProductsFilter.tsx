@@ -1,12 +1,9 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import {
-  IoSearchOutline,
-  IoHeartOutline,
-  IoChevronDown,
-} from "react-icons/io5";
+import { IoSearchOutline, IoHeartOutline } from "react-icons/io5";
 import gsap from "gsap";
+import CustomDropdown from "@/components/shared/CustomDropdown";
 
 export const CATEGORIES = [
   { id: "all", label: "Tất cả" },
@@ -97,19 +94,18 @@ export default function ProductsFilter({
             </div>
 
             {/* Sort dropdown */}
-            <div className="relative hidden md:block">
-              <select
+            <div className="hidden md:block min-w-48">
+              <CustomDropdown
+                options={SORT_OPTIONS.map((opt) => ({
+                  label: opt.label,
+                  value: opt.id,
+                }))}
                 value={sortBy}
-                onChange={(e) => onSortChange(e.target.value)}
-                className="appearance-none pl-4 pr-9 py-2.5 rounded-2xl bg-white border border-[#E5E7EB] text-sm text-[#1A1A2E] font-semibold focus:outline-none focus:border-[#17409A] cursor-pointer transition-all"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <IoChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-3.5 h-3.5 pointer-events-none" />
+                onChange={onSortChange}
+                buttonClassName="w-full pl-4 pr-3 py-2.5 rounded-2xl bg-white border border-[#E5E7EB] text-sm text-[#1A1A2E] font-semibold focus:outline-none focus:border-[#17409A] transition-all flex items-center justify-between"
+                chevronClassName="text-[#9CA3AF] w-3.5 h-3.5 transition-transform"
+                menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-[#E5E7EB] bg-white shadow-xl py-1"
+              />
             </div>
 
             {/* Wishlist icon */}

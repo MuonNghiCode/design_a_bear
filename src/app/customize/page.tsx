@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import ProductCustomize from "@/components/customize/ProductCustomize";
+import { PRIVATE_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Tạo gấu của bé — Design A Bear",
+  title: "Tao gau cho be",
   description:
-    "Tự thiết kế người bạn gấu bông độc nhất: chọn ngoại hình, chủ đề, nội dung học và giọng nói. AI gợi ý lộ trình phù hợp theo độ tuổi bé.",
+    "Trang nay da duoc chuyen huong sang danh sach san pham de toi uu trai nghiem mua sam.",
+  alternates: {
+    canonical: "/products",
+  },
+  robots: PRIVATE_ROBOTS,
 };
 
 import { redirect } from "next/navigation";

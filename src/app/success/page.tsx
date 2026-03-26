@@ -2,10 +2,16 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import PaymentSuccessClient from "@/components/success/PaymentSuccessClient";
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { PRIVATE_ROBOTS } from "@/constants/seo";
 
-export const metadata = {
-  title: "Thanh toán thành công | Design A Bear",
-  description: "Kết quả thanh toán đơn hàng Design A Bear",
+export const metadata: Metadata = {
+  title: "Thanh toan thanh cong",
+  description: "Trang ket qua sau khi thanh toan don hang.",
+  robots: PRIVATE_ROBOTS,
+  alternates: {
+    canonical: "/success",
+  },
 };
 
 export default function SuccessPage() {

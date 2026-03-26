@@ -2,10 +2,16 @@ import CheckoutClient from "@/components/checkout/CheckoutClient";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Suspense } from "react";
+import type { Metadata } from "next";
+import { PRIVATE_ROBOTS } from "@/constants/seo";
 
-export const metadata = {
-  title: "Thanh toán | Design A Bear",
-  description: "Hoàn tất đơn hàng và thanh toán gấu bông của bạn.",
+export const metadata: Metadata = {
+  title: "Thanh toan",
+  description: "Hoan tat don hang va thanh toan.",
+  robots: PRIVATE_ROBOTS,
+  alternates: {
+    canonical: "/checkout",
+  },
 };
 
 export default function CheckoutPage() {

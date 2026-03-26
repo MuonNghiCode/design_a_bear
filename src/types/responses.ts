@@ -174,19 +174,8 @@ export interface PersonalizationRule {
     isRequired: boolean;
     maxQuantity: number;
     ruleType: "OPTIONAL" | "REQUIRED";
-    addonProduct: ProductDetail; // Same structure as ProductDetail
+    addonProduct: ProductDetail; 
 }
-
-export type ProfileResponse = ApiResponse<ProfileResponseData>;
-export type RegisterResponse = ApiResponse<string>;
-export type VerifyEmailResponse = ApiResponse<VerifyEmailResponseData>;
-export type GoogleLoginResponse = ApiResponse<GoogleLoginResponseData>;
-export type GoogleCompleteProfileResponse = ApiResponse<GoogleCompleteProfileResponseData>;
-export type GetProductsResponse = ApiResponse<GetProductsResponseData>;
-export type GetProductDetailResponse = ApiResponse<ProductDetail>;
-export type GetCartResponse = ApiResponse<Cart>;
-export type AddToCartResponse = ApiResponse<CartItem>;
-export type GetPersonalizationRulesResponse = ApiResponse<PersonalizationRule[]>;
 
 export interface BuildComponent {
     buildComponentId: string;
@@ -273,18 +262,9 @@ export interface Order {
     orderItems: OrderItem[];
 }
 
-export type GetAddressesResponse = ApiResponse<Address[]>;
-export type CreateOrderResponse = ApiResponse<Order>;
-export type GetOrdersByUserResponse = ApiResponse<Order[]>;
-export type GetOrderDetailResponse = ApiResponse<Order>;
-
-/* ── Promotion & Payment Responses ── */
-
 export interface PromotionResponseData {
     // value is empty array as per backend spec
 }
-
-export type PromotionResponse = ApiResponse<PromotionResponseData>;
 
 export interface CreatePaymentResponseData {
     checkoutUrl?: string;
@@ -294,8 +274,6 @@ export interface CreatePaymentResponseData {
     message?: string;
 }
 
-export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
-
 export interface ConfirmPaymentResponseData {
     paymentCode: string;
     status: string;
@@ -303,4 +281,20 @@ export interface ConfirmPaymentResponseData {
     message?: string;
 }
 
+export type ProfileResponse = ApiResponse<ProfileResponseData>;
+export type RegisterResponse = ApiResponse<string>;
+export type VerifyEmailResponse = ApiResponse<VerifyEmailResponseData>;
+export type GoogleLoginResponse = ApiResponse<GoogleLoginResponseData>;
+export type GoogleCompleteProfileResponse = ApiResponse<GoogleCompleteProfileResponseData>;
+export type GetProductsResponse = ApiResponse<GetProductsResponseData>;
+export type GetProductDetailResponse = ApiResponse<ProductDetail>;
+export type GetCartResponse = ApiResponse<Cart>;
+export type AddToCartResponse = ApiResponse<CartItem>;
+export type GetPersonalizationRulesResponse = ApiResponse<PersonalizationRule[]>;
+export type GetAddressesResponse = ApiResponse<Address[]>;
+export type CreateOrderResponse = ApiResponse<Order>;
+export type GetOrdersByUserResponse = ApiResponse<Order[]>;
+export type GetOrderDetailResponse = ApiResponse<Order>;
+export type PromotionResponse = ApiResponse<PromotionResponseData>;
+export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
 export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;

@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import type { GoogleCompleteProfileRequest, RegisterRequest } from "@/types";
+import CustomDropdown from "@/components/shared/CustomDropdown";
 import { z } from "zod";
 
 interface RegisterFormProps {
@@ -87,6 +88,14 @@ type GoogleProfilePayload = Omit<
 >;
 type GoogleProfileErrors = Partial<Record<keyof GoogleProfilePayload, string>>;
 
+const GENDER_OPTIONS = [
+  { label: "Nam", value: "M" },
+  { label: "Nữ", value: "F" },
+];
+
+const MATCHED_INPUT_CLASS =
+  "w-full pl-5 pr-4 py-4 rounded-2xl border border-[#E5E7EB] bg-white/50 text-[#1A1A2E] text-sm focus:outline-none focus:border-[#17409A] focus:bg-white/80 transition-all duration-200";
+
 export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
   const router = useRouter();
   const {
@@ -137,9 +146,7 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
       gender: "M",
     });
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -174,7 +181,7 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
   };
 
   const handleGoogleProfileChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const { name, value } = e.target;
     setGoogleProfileData((prev) => ({
@@ -531,7 +538,11 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
               name="dateOfBirth"
               value={googleProfileData.dateOfBirth}
               onChange={handleGoogleProfileChange}
-              className="w-full px-4 py-3.5 rounded-2xl border border-[#E5E7EB] focus:border-[#17409A] focus:outline-none transition-colors"
+              className={MATCHED_INPUT_CLASS}
+              style={{
+                fontFamily: "'Nunito', sans-serif",
+                fontSize: "0.95rem",
+              }}
             />
             {googleProfileErrors.dateOfBirth && (
               <p className="mt-1 text-xs text-red-500">
@@ -544,15 +555,15 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
             <label className="block text-xs font-medium text-[#6B7280] mb-1">
               Giới tính
             </label>
-            <select
-              name="gender"
+            <CustomDropdown
+              options={GENDER_OPTIONS}
               value={googleProfileData.gender}
-              onChange={handleGoogleProfileChange}
-              className="w-full px-4 py-3.5 rounded-2xl border border-[#E5E7EB] focus:border-[#17409A] focus:outline-none transition-colors"
-            >
-              <option value="M">Nam</option>
-              <option value="F">Nữ</option>
-            </select>
+              onChange={setGoogleProfileField("gender")}
+              buttonClassName={`${MATCHED_INPUT_CLASS} flex items-center justify-between`}
+              chevronClassName="text-[#9CA3AF] text-xl transition-transform"
+              menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-[#E5E7EB] bg-white shadow-xl py-1"
+              ariaLabel="Giới tính"
+            />
             {googleProfileErrors.gender && (
               <p className="mt-1 text-xs text-red-500">
                 {googleProfileErrors.gender}
@@ -803,7 +814,8 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
             name="dateOfBirth"
             value={formData.dateOfBirth}
             onChange={handleInputChange}
-            className="w-full px-4 py-3.5 rounded-2xl border border-[#E5E7EB] focus:border-[#17409A] focus:outline-none transition-colors"
+            className={MATCHED_INPUT_CLASS}
+            style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.95rem" }}
           />
           {fieldErrors.dateOfBirth && (
             <p className="mt-1 text-xs text-red-500">
@@ -816,15 +828,15 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
           <label className="block text-xs font-medium text-[#6B7280] mb-1">
             Giới tính
           </label>
-          <select
-            name="gender"
+          <CustomDropdown
+            options={GENDER_OPTIONS}
             value={formData.gender}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3.5 rounded-2xl border border-[#E5E7EB] focus:border-[#17409A] focus:outline-none transition-colors"
-          >
-            <option value="M">Nam</option>
-            <option value="F">Nữ</option>
-          </select>
+            onChange={handleInputFieldChange("gender")}
+            buttonClassName={`${MATCHED_INPUT_CLASS} flex items-center justify-between`}
+            chevronClassName="text-[#9CA3AF] text-xl transition-transform"
+            menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-[#E5E7EB] bg-white shadow-xl py-1"
+            ariaLabel="Giới tính"
+          />
           {fieldErrors.gender && (
             <p className="mt-1 text-xs text-red-500">{fieldErrors.gender}</p>
           )}

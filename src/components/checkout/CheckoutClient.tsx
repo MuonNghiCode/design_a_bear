@@ -66,6 +66,7 @@ export default function CheckoutClient() {
   const toast = useToast();
 
   const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
+  // const SHIPPING_FEE = 0;
   const DISCOUNT = couponApplied ? 50_000 : 0;
   const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
 

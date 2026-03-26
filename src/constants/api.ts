@@ -1,7 +1,7 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:7002";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:7002";
 
 export const API_ENDPOINTS = {
-
   AUTH: {
     LOGIN: "/api/Auth/login",
     LOGOUT: "/api/Auth/logout",
@@ -13,16 +13,21 @@ export const API_ENDPOINTS = {
     GOOGLE_COMPLETE_PROFILE: "/api/Auth/google-complete-profile",
   },
   USERS: {
-    PROFILE: "/api/Users/profile", 
+    PROFILE: "/api/Users/profile",
+    GET_ALL: "/api/Users",
+    GET_BY_ID: "/api/Users",
   },
   ADDRESSES: {
-    MY_ADDRESSES: "/api/Addresses/my-addresses", 
-    CREATE: "/api/Addresses", 
+    MY_ADDRESSES: "/api/Addresses/my-addresses",
+    CREATE: "/api/Addresses",
+    GET_BY_ID: "/api/Addresses",
   },
   ORDERS: {
-    FROM_CART: "/api/Orders/from-cart/{cartId}", 
-    GET_BY_USER: "/api/Orders/user/{userId}", 
-    GET_BY_ID: "/api/Orders/{id}", 
+    FROM_CART: "/api/Orders/from-cart/{cartId}",
+    GET_BY_USER: "/api/Orders/user/{userId}",
+    GET_BY_ID: "/api/Orders/{orderId}",
+    UPDATE_STATUS: "/api/Orders/{orderId}/status",
+    GET_ALL: "/api/Orders",
   },
   PRODUCTS: {
     GET_ALL: "/api/Products",

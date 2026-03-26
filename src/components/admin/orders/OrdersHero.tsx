@@ -7,21 +7,22 @@ import {
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { ORDERS_LAST_7 } from "@/data/admin";
+import { formatPrice } from "@/utils/currency";
 
 const DAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 const HERO_STATS = [
   {
     label: "Doanh thu hôm nay",
-    value: "4.32M",
-    unit: "VND",
+    value: formatPrice(4320000),
+    unit: "",
     color: "#FFD93D",
     Icon: MdAttachMoney,
   },
   {
     label: "Giá trị đơn TB",
-    value: "418K",
-    unit: "VND",
+    value: formatPrice(418000),
+    unit: "",
     color: "#4ECDC4",
     Icon: MdCheckCircle,
   },

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { formatPrice } from "@/utils/currency";
+import { useDebounce } from "@/hooks";
 import Image from "next/image";
 import {
   MdSearch,
@@ -22,7 +24,7 @@ import { type GetProductsRequest } from "@/types";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
 import type { ProductListItem } from "@/types";
-import { useEffect } from "react";
+
 import CreateProductModal from "./CreateProductModal";
 import EditProductModal from "./EditProductModal";
 
@@ -145,10 +147,7 @@ function ProductCard({
 
         {/* Price */}
         <p className="text-[#17409A] font-black text-lg leading-none mb-3">
-          {(p.price / 1000).toFixed(0)}K
-          <span className="text-[#9CA3AF] font-semibold text-[10px] ml-0.5">
-            đ
-          </span>
+          {formatPrice(p.price)}
         </p>
 
         {/* Stats row */}
@@ -296,10 +295,7 @@ function ProductRow({
       {/* Price */}
       <td className="py-3 pr-4 whitespace-nowrap">
         <span className="text-[#17409A] font-black text-sm">
-          {(p.price / 1000).toFixed(0)}K
-        </span>
-        <span className="text-[#9CA3AF] font-semibold text-[10px] ml-0.5">
-          đ
+          {formatPrice(p.price)}
         </span>
       </td>
 
@@ -419,6 +415,7 @@ export default function ProductsGrid() {
   const [catFilter, setCatFilter] = useState<CategoryFilter>("all");
   const [statusFilter, setStatus] = useState<ProductAdminStatus | "all">("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 350);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selected, setSelected] = useState<ProductAdmin | null>(null);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
@@ -477,8 +474,8 @@ export default function ProductsGrid() {
       mappedData.filter((p: ProductAdmin) => {
         if (catFilter !== "all" && p.category !== catFilter) return false;
         if (statusFilter !== "all" && p.status !== statusFilter) return false;
-        if (search) {
-          const q = search.toLowerCase();
+        if (debouncedSearch) {
+          const q = debouncedSearch.toLowerCase();
           return (
             p.name.toLowerCase().includes(q) ||
             (p.badge ?? "").toLowerCase().includes(q)
@@ -486,7 +483,7 @@ export default function ProductsGrid() {
         }
         return true;
       }),
-    [mappedData, catFilter, statusFilter, search],
+    [mappedData, catFilter, statusFilter, debouncedSearch],
   );
 
   const STATUS_FILTERS: { key: ProductAdminStatus | "all"; label: string }[] = [
@@ -771,10 +768,7 @@ export default function ProductsGrid() {
                 {selected.name}
               </p>
               <p className="text-[#17409A] font-black text-2xl mb-4">
-                {(selected.price / 1000).toFixed(0)}K
-                <span className="text-[#9CA3AF] font-semibold text-sm ml-1">
-                  đ
-                </span>
+                {formatPrice(selected.price)}
               </p>
 
               <div className="grid grid-cols-3 gap-3 mb-4">

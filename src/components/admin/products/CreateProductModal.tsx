@@ -16,35 +16,44 @@ export default function CreateProductModal({
 }: Props) {
   const [formData, setFormData] = useState({
     name: "",
-    slug: "",
     productType: "COMPLETE_BEAR",
     description: "",
     model3DUrl: "",
     isPersonalizable: false,
     isActive: true,
     price: "",
-    sku: "",
+    variantName: "Mặc định",
     imageUrl: "",
   });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    const target = e.target;
+    const { name, value, type } = e.target;
+
+    if (name === "price") {
+      // Remove non-digit characters to get raw number
+      const rawValue = value.replace(/\D/g, "");
+      setFormData((prev) => ({ ...prev, [name]: rawValue }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [target.name]:
-        target.type === "checkbox"
-          ? (target as HTMLInputElement).checked
-          : target.value,
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const autoSku = `SKU-${Date.now()}`;
     const payload: CreateProductRequest = {
       name: formData.name,
-      slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, "-"),
+      slug: formData.name
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, ""),
       productType: formData.productType,
       description: formData.description,
       model3DUrl: formData.model3DUrl,
@@ -54,8 +63,8 @@ export default function CreateProductModal({
       characterIds: [],
       variants: [
         {
-          sku: formData.sku || "SKU-DEFAULT",
-          variantName: "Mặc định",
+          sku: autoSku,
+          variantName: formData.variantName || "Mặc định",
           price: Number(formData.price) || 0,
           currency: "VND",
           imageUrl: formData.imageUrl,
@@ -123,18 +132,6 @@ export default function CreateProductModal({
                   className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                  Alias (Slug)
-                </label>
-                <input
-                  name="slug"
-                  value={formData.slug}
-                  onChange={handleChange}
-                  placeholder="Tuỳ chọn (tự động tạo từ tên)"
-                  className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
-                />
-              </div>
 
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
@@ -165,26 +162,28 @@ export default function CreateProductModal({
                 </label>
                 <input
                   required
-                  type="number"
-                  min="0"
-                  step="1000"
+                  type="text"
                   name="price"
-                  value={formData.price}
+                  value={
+                    formData.price
+                      ? Number(formData.price).toLocaleString("vi-VN")
+                      : ""
+                  }
                   onChange={handleChange}
-                  placeholder="Vd: 450000"
+                  placeholder="Vd: 450.000"
                   className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                  Mã SKU
+                  Tên phiên bản
                 </label>
                 <input
-                  name="sku"
-                  value={formData.sku}
+                  name="variantName"
+                  value={formData.variantName}
                   onChange={handleChange}
-                  placeholder="Vd: BEAR-001"
+                  placeholder="Vd: Mặc định, Phiên bản đặc biệt..."
                   className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
                 />
               </div>

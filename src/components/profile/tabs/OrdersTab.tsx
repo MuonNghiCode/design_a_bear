@@ -284,7 +284,7 @@ export default function OrdersTab() {
                                 </span>
                                 <span>
                                   Line total:{" "}
-                                  {formatMoney(item.lineTotal, detail.currency)}
+                                  {formatMoney(item.lineTotal ?? 0, detail.currency)}
                                 </span>
                               </div>
                             </div>

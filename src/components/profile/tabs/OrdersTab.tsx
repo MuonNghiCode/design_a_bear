@@ -5,15 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrderApi } from "@/hooks/useOrderApi";
 import type { Order } from "@/types";
+import { formatShortOrderCode } from "@/utils/order";
 
 const STATUS_STYLE: Record<
   string,
   { label: string; color: string; bg: string }
 > = {
   PAID: { label: "Đã thanh toán", color: "#4ECDC4", bg: "#4ECDC418" },
+  DONE: { label: "Hoàn tất", color: "#4ECDC4", bg: "#4ECDC418" },
   PENDING: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
   CANCELLED: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
   PROCESSING: { label: "Đang xử lý", color: "#17409A", bg: "#17409A18" },
+  SHIPPING: { label: "Đang giao", color: "#7C5CFC", bg: "#7C5CFC18" },
   SHIPPED: { label: "Đang giao", color: "#7C5CFC", bg: "#7C5CFC18" },
   DELIVERED: { label: "Đã giao", color: "#4ECDC4", bg: "#4ECDC418" },
 };
@@ -72,7 +75,7 @@ export default function OrdersTab() {
   const totalSpent = useMemo(
     () =>
       orders
-        .filter((o) => o.status === "PAID")
+        .filter((o) => o.status === "PAID" || o.status === "DONE")
         .reduce((sum, o) => sum + o.grandTotal, 0),
     [orders],
   );
@@ -156,6 +159,12 @@ export default function OrdersTab() {
           color: "#17409A",
           bg: "#17409A18",
         };
+        const firstItem = order.orderItems[0];
+        const firstItemName =
+          firstItem?.productName ||
+          firstItem?.productNameSnapshot ||
+          "Sản phẩm không có tên";
+        const firstItemImage = firstItem?.productImageUrl || null;
 
         const detail = orderDetailsMap[order.orderId];
         const isExpanded = expandedOrderId === order.orderId;
@@ -169,18 +178,32 @@ export default function OrdersTab() {
               className="flex items-center gap-4 cursor-pointer"
               onClick={() => handleToggleDetail(order)}
             >
-              <div className="w-16 h-16 rounded-xl bg-[#17409A]/8 flex items-center justify-center shrink-0">
-                <span
-                  className="text-sm font-black"
-                  style={{ color: "#17409A" }}
-                >
-                  #{orders.findIndex((o) => o.orderId === order.orderId) + 1}
-                </span>
+              <div className="w-16 h-16 rounded-xl bg-[#17409A]/8 flex items-center justify-center shrink-0 overflow-hidden">
+                {firstItemImage ? (
+                  <img
+                    src={firstItemImage}
+                    alt={firstItemName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span
+                    className="text-sm font-black"
+                    style={{ color: "#17409A" }}
+                  >
+                    #{orders.findIndex((o) => o.orderId === order.orderId) + 1}
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 min-w-0">
                 <p className="text-[#1A1A2E] font-bold text-base truncate">
-                  {order.orderNumber}
+                  {formatShortOrderCode(order.orderNumber)}
+                </p>
+                <p className="text-[#4B5563] text-xs font-semibold mt-0.5 truncate">
+                  {firstItemName}
+                  {order.orderItems.length > 1
+                    ? ` +${order.orderItems.length - 1} sản phẩm khác`
+                    : ""}
                 </p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-[#9CA3AF] text-xs font-semibold">
@@ -223,7 +246,9 @@ export default function OrdersTab() {
                         <span className="font-bold text-[#1A1A2E]">
                           Mã đơn:
                         </span>{" "}
-                        {detail.orderId}
+                        {formatShortOrderCode(
+                          detail.orderNumber || detail.orderId,
+                        )}
                       </p>
                       <p className="text-[#6B7280]">
                         <span className="font-bold text-[#1A1A2E]">
@@ -270,22 +295,43 @@ export default function OrdersTab() {
                           {detail.orderItems.map((item) => (
                             <div
                               key={item.orderItemId}
-                              className="rounded-xl bg-white p-3 border border-[#E5E7EB]"
+                              className="rounded-xl bg-white p-3 border border-[#E5E7EB] flex items-start gap-3"
                             >
-                              <p className="text-xs font-bold text-[#1A1A2E]">
-                                {item.productNameSnapshot ||
-                                  "Sản phẩm không có tên snapshot"}
-                              </p>
-                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#6B7280]">
-                                <span>SL: {item.quantity}</span>
-                                <span>
-                                  Đơn giá:{" "}
-                                  {formatMoney(item.unitPrice, detail.currency)}
-                                </span>
-                                <span>
-                                  Line total:{" "}
-                                  {formatMoney(item.lineTotal ?? 0, detail.currency)}
-                                </span>
+                              {item.productImageUrl ? (
+                                <img
+                                  src={item.productImageUrl}
+                                  alt={
+                                    item.productName ||
+                                    item.productNameSnapshot ||
+                                    "Sản phẩm"
+                                  }
+                                  className="h-14 w-14 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
+                                />
+                              ) : (
+                                <div className="h-14 w-14 rounded-lg bg-[#F3F4F6] border border-[#E5E7EB] shrink-0" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-[#1A1A2E] truncate">
+                                  {item.productName ||
+                                    item.productNameSnapshot ||
+                                    "Sản phẩm không có tên"}
+                                </p>
+                                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#6B7280]">
+                                  <span>SL: {item.quantity}</span>
+                                  <span>
+                                    Đơn giá:{" "}
+                                    {formatMoney(item.unitPrice, detail.currency)}
+                                  </span>
+                                  <span>
+                                    Line total:{" "}
+                                    {formatMoney(
+                                      item.lineTotal ??
+                                        item.totalPrice ??
+                                        item.unitPrice * item.quantity,
+                                      detail.currency,
+                                    )}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           ))}

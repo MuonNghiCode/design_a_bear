@@ -2,6 +2,7 @@ import BaseApiService from "@/api/base";
 import { API_ENDPOINTS } from "@/constants";
 import type {
   ProfileResponse,
+  ProfileResponseData,
   GetUserResponse,
   GetUsersResponse,
   UserDetail,
@@ -10,7 +11,7 @@ import type {
 
 class UserService extends BaseApiService {
   async getProfile(): Promise<ProfileResponse> {
-    return this.get<ProfileResponse>(API_ENDPOINTS.USERS.PROFILE, undefined, {
+    return this.get<ProfileResponseData>(API_ENDPOINTS.USERS.PROFILE, undefined, {
       withCredentials: false,
     });
   }

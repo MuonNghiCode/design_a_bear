@@ -835,7 +835,7 @@ export default function ProductsGrid() {
           onSubmit={async (payload) => {
             const response = await createProduct(payload);
             if (response) {
-              success("Thêm mới sản phẩm thành công! 🎉");
+              success("Thêm mới sản phẩm thành công!");
               fetchProducts({ pageIndex: 1, pageSize: 50 });
             } else {
               error("Lỗi khi thêm mới sản phẩm.");
@@ -854,7 +854,7 @@ export default function ProductsGrid() {
           onSubmit={async (payload) => {
             const ok = await updateProduct(editingProductId, payload);
             if (ok) {
-              success("Cập nhật sản phẩm thành công! ✨");
+              success("Cập nhật sản phẩm thành công!");
               fetchProducts({ pageIndex: 1, pageSize: 50 });
             } else {
               error("Lỗi khi cập nhật sản phẩm.");

@@ -14,6 +14,7 @@ import {
 import { paymentService } from "@/services/payment.service";
 import { useCart } from "@/contexts/CartContext";
 import { STORAGE_KEYS } from "@/constants";
+import { formatShortOrderCode } from "@/utils/order";
 
 type PendingPaymentData = {
   orderDetails?: {
@@ -176,7 +177,8 @@ export default function PaymentSuccessClient() {
               className="text-lg font-black break-all"
               style={{ color: "#1A1A2E" }}
             >
-              {orderNumber || orderCode || "Đang cập nhật"}
+              {formatShortOrderCode(orderNumber || orderCode) ||
+                "Đang cập nhật"}
             </p>
           </div>
 

@@ -13,14 +13,15 @@ export interface ApiResponse<T> {
 export interface OrderItem {
   orderItemId: string;
   orderId: string;
-  productId: string;
+  productId?: string;
   variantId?: string | null;
-  productName: string;
+  productName?: string;
+  productImageUrl?: string | null;
   variantName?: string | null;
-  sku: string;
+  sku?: string;
   unitPrice: number;
   quantity: number;
-  totalPrice: number;
+  totalPrice?: number;
   notes?: string | null;
   buildId?: string | null;
   lineTotal?: number;
@@ -85,27 +86,16 @@ export interface GetOrdersResponseData {
   items: OrderListItem[];
 }
 
-export type GetOrdersResponse = ApiResponse<GetOrdersResponseData>;
-export type GetOrderByIdResponse = ApiResponse<OrderListItem>;
-export type GetOrdersByUserResponse = ApiResponse<Order[]>;
-export type GetOrderDetailResponse = ApiResponse<Order>;
-export type CreateOrderResponse = ApiResponse<Order>;
-
-/* ── Auth API Responses ── */
-
 export interface LoginResponseData {
   token: string;
   message: string;
 }
-
-export type LoginResponse = ApiResponse<LoginResponseData>;
 
 export interface LogoutResponseData {
   loggedOut: boolean;
   message?: string;
 }
 
-export type LogoutResponse = ApiResponse<LogoutResponseData>;
 
 export interface ProfileResponseData {
   userId: string;
@@ -291,10 +281,6 @@ export interface Build {
   buildComponents: BuildComponent[];
 }
 
-export type CreateBuildResponse = ApiResponse<Build>;
-
-/* ── Address API Responses ── */
-
 export interface Address {
   addressId: string;
   userId: string;
@@ -331,12 +317,6 @@ export interface AddressDetail {
   createdAt: string;
 }
 
-export type GetAddressByIdResponse = ApiResponse<AddressDetail>;
-export type GetAddressesResponse = ApiResponse<Address[]>;
-
-/* ── Payment API Responses ── */
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface PromotionResponseData {
   // value is empty array as per backend spec
 }
@@ -391,3 +371,13 @@ export type GetPersonalizationRulesResponse = ApiResponse<
 export type PromotionResponse = ApiResponse<PromotionResponseData>;
 export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
 export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;
+export type GetAddressByIdResponse = ApiResponse<AddressDetail>;
+export type GetAddressesResponse = ApiResponse<Address[]>;
+export type CreateBuildResponse = ApiResponse<Build>;
+export type GetOrdersResponse = ApiResponse<GetOrdersResponseData>;
+export type GetOrderByIdResponse = ApiResponse<OrderListItem>;
+export type GetOrdersByUserResponse = ApiResponse<Order[]>;
+export type GetOrderDetailResponse = ApiResponse<Order>;
+export type CreateOrderResponse = ApiResponse<Order>;
+export type LogoutResponse = ApiResponse<LogoutResponseData>;
+export type LoginResponse = ApiResponse<LoginResponseData>;

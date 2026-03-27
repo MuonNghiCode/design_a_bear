@@ -16,6 +16,8 @@ export const API_ENDPOINTS = {
     PROFILE: "/api/Users/profile",
     GET_ALL: "/api/Users",
     GET_BY_ID: "/api/Users",
+    BLOCK: "/api/Users/{userId}/block",
+    UNBLOCK: "/api/Users/{userId}/unblock",
   },
   ADDRESSES: {
     MY_ADDRESSES: "/api/Addresses/my-addresses",

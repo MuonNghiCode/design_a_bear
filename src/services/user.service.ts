@@ -5,6 +5,7 @@ import type {
   GetUserResponse,
   GetUsersResponse,
   UserDetail,
+  ApiResponse,
 } from "@/types";
 
 class UserService extends BaseApiService {
@@ -26,6 +27,16 @@ class UserService extends BaseApiService {
       undefined,
       { withCredentials: false },
     );
+  }
+
+  async blockUser(id: string): Promise<ApiResponse<string>> {
+    const url = API_ENDPOINTS.USERS.BLOCK.replace("{userId}", id);
+    return this.put<string>(url, undefined, { withCredentials: false });
+  }
+
+  async unblockUser(id: string): Promise<ApiResponse<string>> {
+    const url = API_ENDPOINTS.USERS.UNBLOCK.replace("{userId}", id);
+    return this.put<string>(url, undefined, { withCredentials: false });
   }
 }
 

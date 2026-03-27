@@ -14,7 +14,9 @@ import {
   MdShield,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
+import { MdBlock, MdCheckCircle } from "react-icons/md";
 import { userService } from "@/services/user.service";
+import { useToast } from "@/contexts/ToastContext";
 import { useDebounce } from "@/hooks";
 import type { UserDetail } from "@/types";
 
@@ -69,6 +71,9 @@ export default function CustomersTable() {
   const [users, setUsers] = useState<UserDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<UserDetail | null>(null);
+  const { success, error: toastError } = useToast();
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -130,6 +135,52 @@ export default function CustomersTable() {
       month: "2-digit",
       year: "numeric",
     });
+  };
+
+  const handleBlockToggle = async (user: UserDetail) => {
+    try {
+      setProcessingId(user.userId);
+      const isBlocked = user.status === "Banned";
+      const res = isBlocked
+        ? await userService.unblockUser(user.userId)
+        : await userService.blockUser(user.userId);
+
+      if (res.isSuccess) {
+        const nextStatus = isBlocked ? "Active" : "Banned";
+        success(
+          isBlocked
+            ? "Đã mở khóa người dùng thành công!"
+            : "Đã khóa người dùng thành công!",
+        );
+
+        // Update local state immediately for instant feedback
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.userId === user.userId ? { ...u, status: nextStatus } : u,
+          ),
+        );
+
+        if (selected?.userId === user.userId) {
+          setSelected((prev) =>
+            prev ? { ...prev, status: nextStatus } : null,
+          );
+        }
+      } else {
+        toastError(res.error?.description || "Thao tác thất bại");
+      }
+    } catch (e) {
+      console.error(e);
+      toastError("Lỗi khi thực hiện thao tác");
+    } finally {
+      setProcessingId(null);
+      setConfirmTarget(null);
+    }
+  };
+
+  const openDetail = (u: UserDetail) => {
+    // Find the latest version of this user from our list to ensure correct status
+    const latest = users.find((user) => user.userId === u.userId) || u;
+    setSelected(latest);
   };
 
   return (
@@ -341,13 +392,15 @@ export default function CustomersTable() {
 
                       {/* Action */}
                       <td className="px-6 py-3.5 last:pr-6">
-                        <button
-                          className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/8 transition-all duration-150"
-                          title="Xem chi tiết"
-                          onClick={() => setSelected(u)}
-                        >
-                          <MdRemoveRedEye className="text-base" />
-                        </button>
+                        <div className="flex items-center gap-1 transition-opacity">
+                          <button
+                            className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/8 transition-all duration-150"
+                            title="Xem chi tiết"
+                            onClick={() => openDetail(u)}
+                          >
+                            <MdRemoveRedEye className="text-base" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -526,11 +579,90 @@ export default function CustomersTable() {
                       {selected.userId}
                     </p>
                   </div>
+
+                  {/* Actions in Modal */}
+                  <div className="pt-2 border-t border-[#F4F7FF] flex gap-3">
+                    <button
+                      disabled={processingId === selected.userId}
+                      onClick={() => setConfirmTarget(selected)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl text-xs font-black transition-all ${
+                        selected.status === "Banned"
+                          ? "bg-[#4ECDC4] text-white hover:bg-[#3dbbb2] shadow-lg shadow-[#4ECDC4]/20"
+                          : "bg-[#FF6B9D] text-white hover:bg-[#ff528a] shadow-lg shadow-[#FF6B9D]/20"
+                      } disabled:opacity-50`}
+                    >
+                      {processingId === selected.userId ? (
+                        <MdAutorenew className="text-base animate-spin" />
+                      ) : selected.status === "Banned" ? (
+                        <>
+                          <MdCheckCircle className="text-base" />
+                          Mở khóa người dùng
+                        </>
+                      ) : (
+                        <>
+                          <MdBlock className="text-base" />
+                          Khóa người dùng
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           );
         })()}
+
+      {/* ── Confirmation Dialog ── */}
+      {confirmTarget && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-6 text-center animate-in zoom-in duration-300">
+            <div
+              className={`w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4 ${
+                confirmTarget.status === "Banned"
+                  ? "bg-[#4ECDC4]/15 text-[#4ECDC4]"
+                  : "bg-[#FF6B9D]/15 text-[#FF6B9D]"
+              }`}
+            >
+              {confirmTarget.status === "Banned" ? (
+                <MdCheckCircle size={32} />
+              ) : (
+                <MdBlock size={32} />
+              )}
+            </div>
+            <h3 className="text-xl font-black text-[#1A1A2E] mb-2">
+              {confirmTarget.status === "Banned"
+                ? "Mở khóa người dùng?"
+                : "Khóa người dùng?"}
+            </h3>
+            <p className="text-sm font-semibold text-[#6B7280] mb-6">
+              {confirmTarget.status === "Banned"
+                ? `Bạn có chắc chắn muốn mở khóa cho tài khoản ${confirmTarget.fullName}?`
+                : `Người dùng ${confirmTarget.fullName} sẽ không thể truy cập hệ thống sau khi bị khóa.`}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmTarget(null)}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E5E7EB] transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => handleBlockToggle(confirmTarget)}
+                disabled={processingId === confirmTarget.userId}
+                className={`flex-1 py-3 rounded-2xl text-sm font-bold text-white transition-all ${
+                  confirmTarget.status === "Banned"
+                    ? "bg-[#4ECDC4] hover:bg-[#3dbbb2]"
+                    : "bg-[#FF6B9D] hover:bg-[#ff528a]"
+                } disabled:opacity-50`}
+              >
+                {confirmTarget.status === "Banned"
+                  ? "Mở khóa ngay"
+                  : "Khóa ngay"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

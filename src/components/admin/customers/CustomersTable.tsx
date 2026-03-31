@@ -288,7 +288,7 @@ export default function CustomersTable() {
           </div>
         ) : (
           <div className="overflow-x-auto -mx-6">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-175">
               <thead>
                 <tr>
                   {COL_HEADS.map((h) => (
@@ -340,7 +340,7 @@ export default function CustomersTable() {
                             <p className="text-[#1A1A2E] font-bold text-sm truncate">
                               {u.fullName || "Chưa cập nhật"}
                             </p>
-                            <p className="text-[#9CA3AF] text-[10px] font-semibold truncate max-w-[180px]">
+                            <p className="text-[#9CA3AF] text-[10px] font-semibold truncate max-w-45">
                               {u.userId.slice(0, 8)}...
                             </p>
                           </div>
@@ -351,7 +351,7 @@ export default function CustomersTable() {
                       <td className="px-6 py-3.5">
                         <div className="flex items-center gap-1.5 text-[#9CA3AF]">
                           <MdEmail className="text-xs shrink-0" />
-                          <span className="text-[11px] font-semibold truncate max-w-[160px]">
+                          <span className="text-[11px] font-semibold truncate max-w-40">
                             {u.email}
                           </span>
                         </div>

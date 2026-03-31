@@ -1,23 +1,59 @@
 import { MdInventory2, MdWarning } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
-import { PRODUCTS_ADMIN, PRODUCT_CATEGORY_STATS } from "@/data/admin";
+import type { StaffProductView } from "./StaffProductsGrid";
 
-const activeCount = PRODUCTS_ADMIN.filter((p) => p.status === "active").length;
-const outOfStock = PRODUCTS_ADMIN.filter((p) => p.stock === 0).length;
-const lowStockCount = PRODUCTS_ADMIN.filter(
-  (p) => p.status === "active" && p.stock > 0 && p.stock <= 10,
-).length;
-const totalStock = PRODUCTS_ADMIN.reduce((s, p) => s + p.stock, 0);
-const MAX_SOLD = Math.max(...PRODUCT_CATEGORY_STATS.map((c) => c.sold));
+interface StaffProductsHeroProps {
+  products: StaffProductView[];
+  loading?: boolean;
+}
 
-const PILLS = [
-  { label: "Đang bán", value: String(activeCount), color: "#4ECDC4" },
-  { label: "Tồn kho thấp", value: String(lowStockCount), color: "#FF8C42" },
-  { label: "Hết hàng", value: String(outOfStock), color: "#FF6B9D" },
-  { label: "Tổng tồn kho", value: String(totalStock), color: "#FFD93D" },
-];
+export default function StaffProductsHero({
+  products,
+  loading = false,
+}: StaffProductsHeroProps) {
+  const activeCount = products.filter((p) => p.status === "active").length;
+  const outOfStock = products.filter((p) => p.stock === 0).length;
+  const lowStockCount = products.filter(
+    (p) => p.status === "active" && p.stock > 0 && p.stock <= 10,
+  ).length;
+  const totalStock = products.reduce((s, p) => s + p.stock, 0);
 
-export default function StaffProductsHero() {
+  const categoryStats = [
+    {
+      key: "complete",
+      label: "Gấu hoàn chỉnh",
+      color: "#17409A",
+      sold: products
+        .filter((p) => p.category === "complete")
+        .reduce((sum, p) => sum + p.sold, 0),
+    },
+    {
+      key: "bear",
+      label: "Thân gấu",
+      color: "#7C5CFC",
+      sold: products
+        .filter((p) => p.category === "bear")
+        .reduce((sum, p) => sum + p.sold, 0),
+    },
+    {
+      key: "accessory",
+      label: "Phụ kiện",
+      color: "#4ECDC4",
+      sold: products
+        .filter((p) => p.category === "accessory")
+        .reduce((sum, p) => sum + p.sold, 0),
+    },
+  ];
+
+  const maxSold = Math.max(1, ...categoryStats.map((c) => c.sold));
+
+  const pills = [
+    { label: "Đang bán", value: String(activeCount), color: "#4ECDC4" },
+    { label: "Tồn kho thấp", value: String(lowStockCount), color: "#FF8C42" },
+    { label: "Hết hàng", value: String(outOfStock), color: "#FF6B9D" },
+    { label: "Tổng tồn kho", value: String(totalStock), color: "#FFD93D" },
+  ];
+
   return (
     <div className="relative bg-[#17409A] rounded-3xl overflow-hidden p-6 sm:p-8 h-full flex flex-col justify-between min-h-64">
       <GiPawPrint
@@ -39,22 +75,23 @@ export default function StaffProductsHero() {
             className="text-white font-black leading-none"
             style={{ fontSize: "clamp(3.5rem, 6.5vw, 6rem)", lineHeight: 1 }}
           >
-            {PRODUCTS_ADMIN.length}
+            {loading ? "..." : products.length}
           </span>
           <div className="flex flex-col mb-1.5">
             <span className="text-white/50 text-xs font-semibold leading-tight">
               sản phẩm
             </span>
             <span className="text-[#FF8C42] font-black text-xs leading-tight flex items-center gap-1">
-              <MdWarning /> {lowStockCount + outOfStock} cần bổ sung kho
+              <MdWarning /> {loading ? "..." : lowStockCount + outOfStock} cần
+              bổ sung kho
             </span>
           </div>
         </div>
 
         {/* Category stock bars */}
         <div className="flex flex-col gap-2.5 mb-6">
-          {PRODUCT_CATEGORY_STATS.map((cat) => {
-            const pct = Math.round((cat.sold / MAX_SOLD) * 100);
+          {categoryStats.map((cat) => {
+            const pct = Math.round((cat.sold / maxSold) * 100);
             const barColor = cat.color === "#17409A" ? "#FFFFFF" : cat.color;
             return (
               <div key={cat.key} className="flex items-center gap-3">
@@ -80,7 +117,7 @@ export default function StaffProductsHero() {
 
         {/* Stat pills */}
         <div className="grid grid-cols-2 gap-2">
-          {PILLS.map(({ label, value, color }) => (
+          {pills.map(({ label, value, color }) => (
             <div
               key={label}
               className="flex items-center gap-2 bg-white/8 rounded-2xl px-3 py-1.5"
@@ -88,7 +125,7 @@ export default function StaffProductsHero() {
               <MdInventory2 style={{ color, fontSize: 14 }} />
               <div>
                 <span className="text-white font-black text-sm leading-none">
-                  {value}
+                  {loading ? "..." : value}
                 </span>
                 <span className="text-white/40 text-[9px] font-semibold block leading-tight">
                   {label}

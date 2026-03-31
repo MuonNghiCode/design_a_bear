@@ -5,7 +5,8 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { type Review } from "@/types/review";
 import { type ProductReview, type ReviewReply } from "@/types";
-import { useReviewApi } from "@/hooks";
+import { useOrderApi, useReviewApi } from "@/hooks";
+import { useAuth } from "@/contexts/AuthContext";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -367,30 +368,91 @@ export default function ProductReviews({
   const [filterStar, setFilterStar] = useState<number>(0);
   const [apiReviews, setApiReviews] = useState<ProductReview[]>(reviews);
   const [canReview, setCanReview] = useState(false);
-  const { getProductReviews, canReviewProduct } = useReviewApi();
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [orderItemIdForReview, setOrderItemIdForReview] = useState<
+    string | null
+  >(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const { getOrdersByUserId } = useOrderApi();
+  const {
+    getProductReviews,
+    canReviewProduct,
+    getProductAverageRating,
+    createReview,
+    updateReview,
+    deleteReview,
+  } = useReviewApi();
+
+  const myReview =
+    user?.id != null
+      ? (apiReviews.find((r) => r.userId === user.id) ?? null)
+      : null;
+
+  const refreshReviews = useCallback(async () => {
+    const data = await getProductReviews(productId, {
+      pageIndex: 1,
+      pageSize: 10,
+    });
+    setApiReviews(data.items ?? []);
+  }, [productId, getProductReviews]);
 
   useEffect(() => {
     let active = true;
 
-    getProductReviews(productId, { pageIndex: 1, pageSize: 10 })
-      .then((data) => {
-        if (!active) return;
-        setApiReviews(data.items ?? []);
-      })
-      .catch(() => {
-        if (!active) return;
-        setApiReviews(reviews);
-      });
+    refreshReviews().catch(() => {
+      if (!active) return;
+      setApiReviews(reviews);
+    });
 
     canReviewProduct(productId).then((allowed) => {
       if (!active) return;
       setCanReview(allowed === true);
     });
 
+    getProductAverageRating(productId).then((avg) => {
+      if (!active) return;
+      setAverageRating(avg);
+    });
+
+    if (user?.id) {
+      getOrdersByUserId(user.id)
+        .then((orders) => {
+          if (!active) return;
+
+          let matchedOrderItemId: string | null = null;
+          for (const order of orders) {
+            for (const item of order.orderItems) {
+              if (item.productId === productId && item.orderItemId) {
+                matchedOrderItemId = item.orderItemId;
+                break;
+              }
+            }
+            if (matchedOrderItemId) break;
+          }
+
+          setOrderItemIdForReview(matchedOrderItemId);
+        })
+        .catch(() => {
+          if (!active) return;
+          setOrderItemIdForReview(null);
+        });
+    } else {
+      setOrderItemIdForReview(null);
+    }
+
     return () => {
       active = false;
     };
-  }, [productId, getProductReviews, canReviewProduct, reviews]);
+  }, [
+    productId,
+    getProductAverageRating,
+    canReviewProduct,
+    getOrdersByUserId,
+    refreshReviews,
+    reviews,
+    user?.id,
+  ]);
 
   const rawReviews = apiReviews.map(mapApiReviewToView);
 
@@ -400,13 +462,12 @@ export default function ProductReviews({
       : rawReviews.filter((r) => r.rating === filterStar);
 
   // Calculate average rating dynamically based on provided reviews
-  const avgRating =
+  const fallbackAverage =
     rawReviews.length > 0
-      ? (
-          rawReviews.reduce((acc, curr) => acc + curr.rating, 0) /
-          rawReviews.length
-        ).toFixed(1)
-      : "5.0";
+      ? rawReviews.reduce((acc, curr) => acc + curr.rating, 0) /
+        rawReviews.length
+      : 0;
+  const avgRating = (averageRating || fallbackAverage).toFixed(1);
   const numReviews = rawReviews.length;
   // Estimate satisfaction
   const satisfaction =
@@ -548,7 +609,53 @@ export default function ProductReviews({
         <ReviewCarousel reviews={filtered} accentColor={accentColor} />
 
         {/* ── Write a comment form ── */}
-        {canReview && <WriteReviewForm accentColor={accentColor} />}
+        {canReview && user?.id && orderItemIdForReview && (
+          <WriteReviewForm
+            accentColor={accentColor}
+            existingReview={myReview}
+            submitting={isSubmitting}
+            onCreate={async ({ rating, title, body }) => {
+              setIsSubmitting(true);
+              try {
+                await createReview({
+                  productId,
+                  userId: user.id,
+                  orderItemId: orderItemIdForReview,
+                  rating,
+                  title,
+                  body,
+                });
+                await refreshReviews();
+                const avg = await getProductAverageRating(productId);
+                setAverageRating(avg);
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+            onUpdate={async (reviewId, { rating, title, body }) => {
+              setIsSubmitting(true);
+              try {
+                await updateReview(reviewId, { rating, title, body });
+                await refreshReviews();
+                const avg = await getProductAverageRating(productId);
+                setAverageRating(avg);
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+            onDelete={async (reviewId) => {
+              setIsSubmitting(true);
+              try {
+                await deleteReview(reviewId);
+                await refreshReviews();
+                const avg = await getProductAverageRating(productId);
+                setAverageRating(avg);
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+          />
+        )}
       </div>
     </section>
   );
@@ -602,16 +709,64 @@ function StarSelector({
   );
 }
 
-function WriteReviewForm({ accentColor }: { accentColor: string }) {
-  const [name, setName] = useState("");
+function WriteReviewForm({
+  accentColor,
+  existingReview,
+  submitting,
+  onCreate,
+  onUpdate,
+  onDelete,
+}: {
+  accentColor: string;
+  existingReview: ProductReview | null;
+  submitting: boolean;
+  onCreate: (payload: {
+    rating: number;
+    title: string;
+    body: string;
+  }) => Promise<void>;
+  onUpdate: (
+    reviewId: string,
+    payload: { rating: number; title: string; body: string },
+  ) => Promise<void>;
+  onDelete: (reviewId: string) => Promise<void>;
+}) {
+  const [title, setTitle] = useState("");
   const [rating, setRating] = useState(0);
   const [text, setText] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!existingReview) {
+      setTitle("");
+      setRating(0);
+      setText("");
+      return;
+    }
+
+    setTitle(existingReview.title ?? "");
+    setRating(existingReview.rating);
+    setText(existingReview.body ?? "");
+  }, [existingReview]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || rating === 0 || !text.trim()) return;
-    // TODO: send to API
+    if (!title.trim() || rating === 0 || !text.trim()) return;
+
+    if (existingReview) {
+      await onUpdate(existingReview.reviewId, {
+        rating,
+        title: title.trim(),
+        body: text.trim(),
+      });
+    } else {
+      await onCreate({
+        rating,
+        title: title.trim(),
+        body: text.trim(),
+      });
+    }
+
     setSubmitted(true);
   };
 
@@ -656,7 +811,7 @@ function WriteReviewForm({ accentColor }: { accentColor: string }) {
           <button
             type="button"
             onClick={() => {
-              setName("");
+              setTitle("");
               setRating(0);
               setText("");
               setSubmitted(false);
@@ -676,17 +831,17 @@ function WriteReviewForm({ accentColor }: { accentColor: string }) {
             {/* Name */}
             <div className="flex flex-col gap-2">
               <label
-                htmlFor="review-name"
+                htmlFor="review-title"
                 className="text-xs font-black tracking-widest uppercase text-[#1A1A2E]"
               >
-                Tên của bạn
+                Tiêu đề đánh giá
               </label>
               <input
-                id="review-name"
+                id="review-title"
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ví dụ: Nguyễn Thị Mai"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ví dụ: Sản phẩm rất tốt"
                 maxLength={60}
                 required
                 className="w-full px-5 py-3.5 rounded-2xl border-2 border-[#E5E7EB] bg-white text-[#1A1A2E] text-sm font-medium placeholder:text-[#9CA3AF] outline-none transition-all duration-200 focus:border-current"
@@ -749,12 +904,24 @@ function WriteReviewForm({ accentColor }: { accentColor: string }) {
             </p>
             <button
               type="submit"
-              disabled={!name.trim() || rating === 0 || !text.trim()}
+              disabled={
+                submitting || !title.trim() || rating === 0 || !text.trim()
+              }
               className="px-8 py-3.5 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 cursor-pointer"
               style={{ backgroundColor: accentColor }}
             >
-              Gửi đánh giá
+              {existingReview ? "Cập nhật đánh giá" : "Gửi đánh giá"}
             </button>
+            {existingReview && (
+              <button
+                type="button"
+                onClick={() => void onDelete(existingReview.reviewId)}
+                disabled={submitting}
+                className="px-6 py-3.5 rounded-2xl border-2 border-[#FCA5A5] text-[#DC2626] font-black text-sm transition-all duration-200 hover:bg-[#FEF2F2] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Xóa đánh giá
+              </button>
+            )}
           </div>
         </form>
       )}

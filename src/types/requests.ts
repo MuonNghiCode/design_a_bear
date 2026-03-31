@@ -47,6 +47,21 @@ export interface GetProductReviewsRequest {
   pageSize?: number;
 }
 
+export interface CreateReviewRequest {
+  productId: string;
+  userId: string;
+  orderItemId: string;
+  rating: number;
+  title: string;
+  body: string;
+}
+
+export interface UpdateReviewRequest {
+  rating: number;
+  title: string;
+  body: string;
+}
+
 export interface CreateProductVariantRequest {
   sku: string;
   variantName: string;

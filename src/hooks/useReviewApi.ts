@@ -2,7 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { reviewService } from "@/services/review.service";
-import type { GetProductReviewsRequest, ProductReview } from "@/types";
+import type {
+  CreateReviewRequest,
+  GetProductReviewsRequest,
+  ProductReview,
+  UpdateReviewRequest,
+} from "@/types";
 
 function unwrapValue<T>(response: {
   value: T;
@@ -49,6 +54,22 @@ export function useReviewApi() {
     [],
   );
 
+  const getUserReviews = useCallback(async (userId: string): Promise<ProductReview[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await reviewService.getUserReviews(userId);
+      return unwrapValue(response);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Không thể tải đánh giá của người dùng";
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const canReviewProduct = useCallback(async (productId: string): Promise<boolean> => {
     setError(null);
     try {
@@ -60,5 +81,84 @@ export function useReviewApi() {
     }
   }, []);
 
-  return { loading, error, getProductReviews, canReviewProduct };
+  const getProductAverageRating = useCallback(
+    async (productId: string): Promise<number> => {
+      try {
+        const response = await reviewService.getProductAverageRating(productId);
+        return unwrapValue(response);
+      } catch {
+        return 0;
+      }
+    },
+    [],
+  );
+
+  const createReview = useCallback(
+    async (payload: CreateReviewRequest): Promise<ProductReview> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await reviewService.createReview(payload);
+        return unwrapValue(response);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Không thể tạo đánh giá";
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const updateReview = useCallback(
+    async (reviewId: string, payload: UpdateReviewRequest): Promise<void> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await reviewService.updateReview(reviewId, payload);
+        if (response.isFailure) {
+          throw new Error(response.error?.description || "Không thể cập nhật đánh giá");
+        }
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Không thể cập nhật đánh giá";
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const deleteReview = useCallback(async (reviewId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await reviewService.deleteReview(reviewId);
+      if (response.isFailure) {
+        throw new Error(response.error?.description || "Không thể xóa đánh giá");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Không thể xóa đánh giá";
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    loading,
+    error,
+    getProductReviews,
+    getUserReviews,
+    canReviewProduct,
+    getProductAverageRating,
+    createReview,
+    updateReview,
+    deleteReview,
+  };
 }

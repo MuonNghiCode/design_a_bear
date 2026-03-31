@@ -196,7 +196,25 @@ export interface ProductReview {
   body: string;
   status: string;
   createdAt: string;
-  reviewReplies: unknown[];
+  reviewReplies: ReviewReply[];
+}
+
+export interface ReviewReply {
+  replyId: string;
+  reviewId: string;
+  staffUserId: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface GetProductReviewsResponseData {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: ProductReview[];
 }
 
 export interface ProductDetail {
@@ -363,6 +381,8 @@ export type GoogleCompleteProfileResponse =
   ApiResponse<GoogleCompleteProfileResponseData>;
 export type GetProductsResponse = ApiResponse<GetProductsResponseData>;
 export type GetProductDetailResponse = ApiResponse<ProductDetail>;
+export type GetProductReviewsResponse = ApiResponse<GetProductReviewsResponseData>;
+export type CanReviewProductResponse = ApiResponse<boolean>;
 export type GetCartResponse = ApiResponse<Cart>;
 export type AddToCartResponse = ApiResponse<CartItem>;
 export type GetPersonalizationRulesResponse = ApiResponse<

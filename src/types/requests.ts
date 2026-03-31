@@ -42,6 +42,11 @@ export interface GetProductsRequest {
   sortBy?: string;
 }
 
+export interface GetProductReviewsRequest {
+  pageIndex?: number;
+  pageSize?: number;
+}
+
 export interface CreateProductVariantRequest {
   sku: string;
   variantName: string;

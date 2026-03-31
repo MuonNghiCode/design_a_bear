@@ -4,8 +4,8 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { type Review } from "@/types/review";
-import { type ProductReview } from "@/types";
-import { MOCK_REVIEWS } from "@/data/reviews";
+import { type ProductReview, type ReviewReply } from "@/types";
+import { useReviewApi } from "@/hooks";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -94,7 +94,7 @@ function ReviewCard({
   review,
   accentColor,
 }: {
-  review: Review;
+  review: ReviewView;
   accentColor: string;
 }) {
   return (
@@ -132,6 +132,24 @@ function ReviewCard({
         {review.text}
       </p>
 
+      {review.replies.length > 0 && (
+        <div className="mb-5 space-y-2">
+          {review.replies.map((reply) => (
+            <div
+              key={reply.replyId}
+              className="rounded-2xl bg-[#F4F7FF] px-4 py-3 border border-[#E5E7EB]"
+            >
+              <p className="text-xs font-black text-[#17409A] mb-1">
+                Phản hồi từ nhân viên
+              </p>
+              <p className="text-sm text-[#1A1A2E] leading-relaxed">
+                {reply.content}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Author */}
       <div className="flex items-center gap-3">
         <div
@@ -158,7 +176,7 @@ function ReviewCarousel({
   reviews,
   accentColor,
 }: {
-  reviews: Review[];
+  reviews: ReviewView[];
   accentColor: string;
 }) {
   const [page, setPage] = useState(0);
@@ -292,6 +310,7 @@ function ReviewCarousel({
    Main section
    ──────────────────────────────────────────── */
 interface Props {
+  productId: string;
   accentColor: string;
   reviews?: ProductReview[];
 }
@@ -306,29 +325,74 @@ const STAR_LABELS: Record<number, string> = {
   1: "1 ★",
 };
 
-/* ── Map API Review to UI Review ── */
-function mapApiReviewToUI(r: ProductReview): Review {
+interface ReviewView extends Review {
+  replies: ReviewReply[];
+}
+
+function toShortUserLabel(userId: string): { name: string; avatar: string } {
+  const suffix = userId.slice(-4).toUpperCase();
+  return {
+    name: `Khách hàng #${suffix}`,
+    avatar: suffix.slice(0, 2),
+  };
+}
+
+function mapApiReviewToView(r: ProductReview): ReviewView {
   const date = new Date(r.createdAt);
-  const formattedDate = `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
-  
+  const formattedDate = `${date.getDate().toString().padStart(2, "0")}/${(
+    date.getMonth() + 1
+  )
+    .toString()
+    .padStart(2, "0")}/${date.getFullYear()}`;
+  const userMeta = toShortUserLabel(r.userId);
+
   return {
     id: r.reviewId,
-    name: "Khách hàng", // API doesn't return user name yet, using fallback
-    avatar: "K",
+    name: userMeta.name,
+    avatar: userMeta.avatar,
     rating: r.rating,
     date: formattedDate,
     text: r.body || r.title,
     verified: true,
+    replies: r.reviewReplies ?? [],
   };
 }
 
-export default function ProductReviews({ accentColor, reviews = [] }: Props) {
+export default function ProductReviews({
+  productId,
+  accentColor,
+  reviews = [],
+}: Props) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [filterStar, setFilterStar] = useState<number>(0);
+  const [apiReviews, setApiReviews] = useState<ProductReview[]>(reviews);
+  const [canReview, setCanReview] = useState(false);
+  const { getProductReviews, canReviewProduct } = useReviewApi();
 
-  // Use API reviews if available and not empty, otherwise fallback to mock for testing
-  // In production, you might want to remove the fallback and just show empty state
-  const rawReviews = reviews.length > 0 ? reviews.map(mapApiReviewToUI) : MOCK_REVIEWS;
+  useEffect(() => {
+    let active = true;
+
+    getProductReviews(productId, { pageIndex: 1, pageSize: 10 })
+      .then((data) => {
+        if (!active) return;
+        setApiReviews(data.items ?? []);
+      })
+      .catch(() => {
+        if (!active) return;
+        setApiReviews(reviews);
+      });
+
+    canReviewProduct(productId).then((allowed) => {
+      if (!active) return;
+      setCanReview(allowed === true);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [productId, getProductReviews, canReviewProduct, reviews]);
+
+  const rawReviews = apiReviews.map(mapApiReviewToView);
 
   const filtered =
     filterStar === 0
@@ -336,14 +400,22 @@ export default function ProductReviews({ accentColor, reviews = [] }: Props) {
       : rawReviews.filter((r) => r.rating === filterStar);
 
   // Calculate average rating dynamically based on provided reviews
-  const avgRating = rawReviews.length > 0 
-    ? (rawReviews.reduce((acc, curr) => acc + curr.rating, 0) / rawReviews.length).toFixed(1)
-    : "5.0";
+  const avgRating =
+    rawReviews.length > 0
+      ? (
+          rawReviews.reduce((acc, curr) => acc + curr.rating, 0) /
+          rawReviews.length
+        ).toFixed(1)
+      : "5.0";
   const numReviews = rawReviews.length;
   // Estimate satisfaction
-  const satisfaction = rawReviews.length > 0 
-    ? Math.round((rawReviews.filter(r => r.rating >= 4).length / rawReviews.length) * 100)
-    : 100;
+  const satisfaction =
+    rawReviews.length > 0
+      ? Math.round(
+          (rawReviews.filter((r) => r.rating >= 4).length / rawReviews.length) *
+            100,
+        )
+      : 100;
 
   useEffect(() => {
     if (!sectionRef.current) return;
@@ -412,7 +484,9 @@ export default function ProductReviews({ accentColor, reviews = [] }: Props) {
             <div className="w-px h-16 bg-[#E5E7EB]" />
             <div className="text-center">
               <p className="text-5xl font-black text-[#1A1A2E] leading-none">
-                {numReviews >= 1000 ? (numReviews/1000).toFixed(1) + 'k' : numReviews}
+                {numReviews >= 1000
+                  ? (numReviews / 1000).toFixed(1) + "k"
+                  : numReviews}
               </p>
               <p className="text-xs text-[#6B7280] mt-2">Đánh giá</p>
             </div>
@@ -474,7 +548,7 @@ export default function ProductReviews({ accentColor, reviews = [] }: Props) {
         <ReviewCarousel reviews={filtered} accentColor={accentColor} />
 
         {/* ── Write a comment form ── */}
-        <WriteReviewForm accentColor={accentColor} />
+        {canReview && <WriteReviewForm accentColor={accentColor} />}
       </div>
     </section>
   );

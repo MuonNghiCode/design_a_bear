@@ -39,6 +39,10 @@ export const API_ENDPOINTS = {
     UPDATE: "/api/Products",
     DELETE: "/api/Products",
   },
+  REVIEWS: {
+    GET_BY_PRODUCT: "/api/Reviews/product/{productId}",
+    CAN_REVIEW: "/api/Reviews/product/{productId}/can-review",
+  },
   CARTS: {
     BASE: "/api/Carts",
     ITEMS: "/api/Carts/items",

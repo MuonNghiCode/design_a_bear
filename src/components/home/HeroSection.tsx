@@ -208,28 +208,80 @@ export default function HeroSection() {
     const section = sectionRef.current;
     if (!video || !section) return;
 
-    // Force browser to buffer the video for reliable seeking
-    video.load();
+    let rafId: number | null = null;
+    let pendingTime = 0;
+    let runtimeDuration = VIDEO_DURATION;
+
+    const handleLoadedMetadata = () => {
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        runtimeDuration = video.duration;
+      }
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    handleLoadedMetadata();
+
+    const seekTo = (nextTime: number) => {
+      const clamped = Math.max(0, Math.min(runtimeDuration, nextTime));
+      const diff = Math.abs(video.currentTime - clamped);
+
+      // Ignore tiny differences to avoid unnecessary decoder work.
+      if (diff < 1 / 60) return;
+
+      const maybeFastSeek = video as HTMLVideoElement & {
+        fastSeek?: (time: number) => void;
+      };
+
+      // Large jumps on scroll spikes are smoother with fastSeek when available.
+      if (maybeFastSeek.fastSeek && diff > 0.2) {
+        maybeFastSeek.fastSeek(clamped);
+        return;
+      }
+
+      video.currentTime = clamped;
+    };
+
+    const flushSeek = () => {
+      rafId = null;
+      if (video.readyState < 1) return;
+      seekTo(pendingTime);
+    };
+
+    const scheduleSeek = (time: number) => {
+      pendingTime = time;
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(flushSeek);
+    };
 
     const st = ScrollTrigger.create({
       trigger: section,
       start: "top top",
       end: "bottom bottom",
-      scrub: 0.8,
+      scrub: 0.15,
       onUpdate: (self) => {
         const progress = self.progress;
-        const currentTime = progress * VIDEO_DURATION;
+        const currentTime = progress * runtimeDuration;
+        const ACTIVE_PHASE_PADDING = 0.9;
 
-        // readyState >= 1 (HAVE_METADATA) is enough to seek
-        if (video.readyState >= 1) {
-          video.currentTime = currentTime;
-        }
+        // Simple mapping: scroll down = forward, scroll up = backward.
+        scheduleSeek(currentTime);
 
         PHASES.forEach((phase, pi) => {
           const el = phaseRefs.current[pi];
           if (!el) return;
 
+          // Skip expensive text-shadow and annotation writes for off-screen phases.
+          const isNearActive =
+            currentTime >= phase.start - ACTIVE_PHASE_PADDING &&
+            currentTime <= phase.end + ACTIVE_PHASE_PADDING;
+
           const isCTA = pi === CTA_PHASE_INDEX;
+          if (!isNearActive && !isCTA) {
+            el.style.opacity = "0";
+            el.style.transform = "translateY(0px)";
+            return;
+          }
+
           const phaseCenter = (phase.start + phase.end) / 2;
           const phaseDuration = phase.end - phase.start;
           const slideDuration = phaseDuration * 1.8;
@@ -326,9 +378,12 @@ export default function HeroSection() {
 
     return () => {
       st.kill();
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
     };
   }, []);
-
 
   return (
     <section

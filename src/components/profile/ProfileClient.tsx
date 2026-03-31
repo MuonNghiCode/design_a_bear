@@ -22,7 +22,8 @@ import ProfileMembershipCard from "./ProfileMembershipCard";
 import ProfileTabs from "./ProfileTabs";
 
 export default function ProfileClient() {
-  const { user, logout, isAuthenticated, loading, updateCurrentUser } = useAuth();
+  const { user, logout, isAuthenticated, loading, updateCurrentUser } =
+    useAuth();
   const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,7 +41,9 @@ export default function ProfileClient() {
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [savingProfile, setSavingProfile] = useState(false);
-  const [saveProfileMessage, setSaveProfileMessage] = useState<string | null>(null);
+  const [saveProfileMessage, setSaveProfileMessage] = useState<string | null>(
+    null,
+  );
   const [saveProfileError, setSaveProfileError] = useState<string | null>(null);
 
   const heroRef = useRef<HTMLDivElement>(null);
@@ -159,7 +162,9 @@ export default function ProfileClient() {
     }
 
     if (!isValidVietnamPhoneNumber(normalizedPhone)) {
-      setSaveProfileError("Số điện thoại không hợp lệ. Vui lòng nhập đúng định dạng.");
+      setSaveProfileError(
+        "Số điện thoại không hợp lệ. Vui lòng nhập đúng định dạng.",
+      );
       toast.error("Số điện thoại không hợp lệ.");
       return;
     }

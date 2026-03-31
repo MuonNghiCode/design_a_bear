@@ -237,8 +237,16 @@ export default function CheckoutClient() {
           const normalizedPhone = normalizePhoneNumber(form.phone);
           const parsedAddress = parseAddressTextDetailed(form.address);
 
-          const city = (form.provinceName || form.province || parsedAddress.city).trim();
-          const state = (form.districtName || form.district || parsedAddress.state).trim();
+          const city = (
+            form.provinceName ||
+            form.province ||
+            parsedAddress.city
+          ).trim();
+          const state = (
+            form.districtName ||
+            form.district ||
+            parsedAddress.state
+          ).trim();
 
           const normalizedCurrent = {
             fullName: form.name.trim().toLowerCase(),
@@ -253,11 +261,15 @@ export default function CheckoutClient() {
           let addressId =
             addresses.find((a) => {
               return (
-                a.fullName.trim().toLowerCase() === normalizedCurrent.fullName &&
-                normalizePhoneNumber(a.phoneNumber) === normalizedCurrent.phoneNumber &&
-                (a.email || "").trim().toLowerCase() === normalizedCurrent.email &&
+                a.fullName.trim().toLowerCase() ===
+                  normalizedCurrent.fullName &&
+                normalizePhoneNumber(a.phoneNumber) ===
+                  normalizedCurrent.phoneNumber &&
+                (a.email || "").trim().toLowerCase() ===
+                  normalizedCurrent.email &&
                 a.line1.trim().toLowerCase() === normalizedCurrent.line1 &&
-                (a.line2 || "").trim().toLowerCase() === normalizedCurrent.line2 &&
+                (a.line2 || "").trim().toLowerCase() ===
+                  normalizedCurrent.line2 &&
                 a.city.trim().toLowerCase() === normalizedCurrent.city &&
                 a.state.trim().toLowerCase() === normalizedCurrent.state
               );

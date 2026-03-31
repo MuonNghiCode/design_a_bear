@@ -12,7 +12,11 @@ import {
 } from "react-icons/io5";
 import type { DeliveryForm } from "./checkout.types";
 import { deliverySchema } from "./checkout.config";
-import { FormField, SelectField, SearchableSelectField } from "./checkout.fields";
+import {
+  FormField,
+  SelectField,
+  SearchableSelectField,
+} from "./checkout.fields";
 
 function normalizeLocationName(value: string): string {
   return value

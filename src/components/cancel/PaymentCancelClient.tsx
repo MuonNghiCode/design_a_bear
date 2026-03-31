@@ -24,10 +24,16 @@ function CancelInfoRow({ label, value }: CancelInfoRowProps) {
       className="rounded-xl p-4"
       style={{ backgroundColor: "#F8FAFF", border: "1px solid #E5E7EB" }}
     >
-      <p className="text-xs font-extrabold uppercase" style={{ color: "#6B7280" }}>
+      <p
+        className="text-xs font-extrabold uppercase"
+        style={{ color: "#6B7280" }}
+      >
         {label}
       </p>
-      <p className="mt-1 text-base font-black break-all" style={{ color: "#1A1A2E" }}>
+      <p
+        className="mt-1 text-base font-black break-all"
+        style={{ color: "#1A1A2E" }}
+      >
         {value}
       </p>
     </div>
@@ -67,7 +73,10 @@ export default function PaymentCancelClient() {
       >
         <div
           className="pointer-events-none absolute -top-16 -right-14 w-52 h-52 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(255,107,157,0.20) 0%, rgba(255,107,157,0) 72%)" }}
+          style={{
+            background:
+              "radial-gradient(circle, rgba(255,107,157,0.20) 0%, rgba(255,107,157,0) 72%)",
+          }}
         />
 
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -78,10 +87,16 @@ export default function PaymentCancelClient() {
             <IoAlertCircle className="text-3xl" style={{ color: "#FF6B9D" }} />
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl sm:text-3xl font-black" style={{ color: "#1A1A2E" }}>
+            <h1
+              className="text-2xl sm:text-3xl font-black"
+              style={{ color: "#1A1A2E" }}
+            >
               {heading}
             </h1>
-            <p className="text-sm sm:text-base mt-2" style={{ color: "#6B7280" }}>
+            <p
+              className="text-sm sm:text-base mt-2"
+              style={{ color: "#6B7280" }}
+            >
               {subText}
             </p>
           </div>
@@ -107,14 +122,17 @@ export default function PaymentCancelClient() {
           className="rounded-2xl p-4 sm:p-5 mt-7 flex items-start gap-3"
           style={{ backgroundColor: "#FFF4F8", border: "1px solid #FFD4E3" }}
         >
-          <IoShieldCheckmarkOutline className="text-xl mt-0.5" style={{ color: "#E11D48" }} />
+          <IoShieldCheckmarkOutline
+            className="text-xl mt-0.5"
+            style={{ color: "#E11D48" }}
+          />
           <div>
             <p className="text-sm font-black" style={{ color: "#BE123C" }}>
               Thông tin an toàn giao dịch
             </p>
             <p className="text-sm mt-1" style={{ color: "#9F1239" }}>
-              Nếu tài khoản ngân hàng bị trừ tiền nhưng đơn hàng vẫn ở trạng thái hủy,
-              vui lòng liên hệ hỗ trợ để được xử lý nhanh.
+              Nếu tài khoản ngân hàng bị trừ tiền nhưng đơn hàng vẫn ở trạng
+              thái hủy, vui lòng liên hệ hỗ trợ để được xử lý nhanh.
             </p>
           </div>
         </div>
@@ -131,7 +149,11 @@ export default function PaymentCancelClient() {
           <Link
             href="/products"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm"
-            style={{ border: "2px solid #17409A", color: "#17409A", backgroundColor: "#FFFFFF" }}
+            style={{
+              border: "2px solid #17409A",
+              color: "#17409A",
+              backgroundColor: "#FFFFFF",
+            }}
           >
             <IoBagHandleOutline />
             Tiếp tục mua sắm
@@ -139,7 +161,11 @@ export default function PaymentCancelClient() {
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm"
-            style={{ border: "2px solid #CBD5E1", color: "#334155", backgroundColor: "#FFFFFF" }}
+            style={{
+              border: "2px solid #CBD5E1",
+              color: "#334155",
+              backgroundColor: "#FFFFFF",
+            }}
           >
             <IoHomeOutline />
             Về trang chủ
@@ -147,9 +173,13 @@ export default function PaymentCancelClient() {
         </div>
 
         <div className="mt-6 pt-5 border-t" style={{ borderColor: "#E5E7EB" }}>
-          <p className="text-xs sm:text-sm flex items-center gap-2" style={{ color: "#6B7280" }}>
+          <p
+            className="text-xs sm:text-sm flex items-center gap-2"
+            style={{ color: "#6B7280" }}
+          >
             <IoReceiptOutline />
-            Bạn có thể xem lại trạng thái đơn trong trang cá nhân sau khi đặt hàng lại.
+            Bạn có thể xem lại trạng thái đơn trong trang cá nhân sau khi đặt
+            hàng lại.
           </p>
         </div>
       </div>

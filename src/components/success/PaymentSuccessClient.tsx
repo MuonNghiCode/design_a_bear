@@ -178,10 +178,16 @@ export default function PaymentSuccessClient() {
               <PawPrint size={14} />
               {paymentStatusLabel}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black mt-3" style={{ color: "#1A1A2E" }}>
+            <h1
+              className="text-2xl sm:text-3xl font-black mt-3"
+              style={{ color: "#1A1A2E" }}
+            >
               {title}
             </h1>
-            <p className="text-sm sm:text-base mt-2" style={{ color: "#6B7280" }}>
+            <p
+              className="text-sm sm:text-base mt-2"
+              style={{ color: "#6B7280" }}
+            >
               {loading
                 ? "Hệ thống đang kiểm tra giao dịch từ cổng thanh toán..."
                 : isPaid

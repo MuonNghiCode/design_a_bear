@@ -7,11 +7,18 @@ import type {
   GetUsersResponse,
   UserDetail,
   ApiResponse,
+  UpdateProfileRequest,
 } from "@/types";
 
 class UserService extends BaseApiService {
   async getProfile(): Promise<ProfileResponse> {
     return this.get<ProfileResponseData>(API_ENDPOINTS.USERS.PROFILE, undefined, {
+      withCredentials: false,
+    });
+  }
+
+  async updateProfile(payload: UpdateProfileRequest): Promise<ProfileResponse> {
+    return this.put<ProfileResponseData>(API_ENDPOINTS.USERS.PROFILE, payload, {
       withCredentials: false,
     });
   }

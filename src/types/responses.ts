@@ -101,6 +101,11 @@ export interface ProfileResponseData {
   userId: string;
   email: string;
   fullName: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  language?: string;
+  timezone?: string;
   avatarUrl: string | null;
   provider: string;
   status: string;

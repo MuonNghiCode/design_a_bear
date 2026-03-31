@@ -5,6 +5,8 @@ import type {
   ApiResponse,
   GetAddressByIdResponse,
   AddressDetail,
+  CreateAddressRequest,
+  UpdateAddressRequest,
 } from "@/types";
 
 class AddressService extends BaseApiService {
@@ -17,7 +19,7 @@ class AddressService extends BaseApiService {
   }
 
   async createAddress(
-    addressData: Partial<Address>,
+    addressData: CreateAddressRequest,
   ): Promise<ApiResponse<{ addressId: string }>> {
     return this.post<{ addressId: string }>(
       API_ENDPOINTS.ADDRESSES.CREATE,
@@ -27,11 +29,25 @@ class AddressService extends BaseApiService {
   }
 
   async getAddressById(id: string): Promise<GetAddressByIdResponse> {
+    const endpoint = API_ENDPOINTS.ADDRESSES.GET_BY_ID.replace("{id}", id);
     return this.get<AddressDetail>(
-      `${API_ENDPOINTS.ADDRESSES.GET_BY_ID}/${id}`,
+      endpoint,
       undefined,
       { withCredentials: false },
     );
+  }
+
+  async updateAddress(
+    id: string,
+    data: UpdateAddressRequest,
+  ): Promise<ApiResponse<AddressDetail>> {
+    const endpoint = API_ENDPOINTS.ADDRESSES.UPDATE.replace("{id}", id);
+    return this.put<AddressDetail>(endpoint, data, { withCredentials: false });
+  }
+
+  async deleteAddress(id: string): Promise<ApiResponse<null>> {
+    const endpoint = API_ENDPOINTS.ADDRESSES.DELETE.replace("{id}", id);
+    return this.delete<null>(endpoint, { withCredentials: false });
   }
 }
 

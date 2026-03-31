@@ -22,7 +22,9 @@ export const API_ENDPOINTS = {
   ADDRESSES: {
     MY_ADDRESSES: "/api/Addresses/my-addresses",
     CREATE: "/api/Addresses",
-    GET_BY_ID: "/api/Addresses",
+    GET_BY_ID: "/api/Addresses/{id}",
+    UPDATE: "/api/Addresses/{id}",
+    DELETE: "/api/Addresses/{id}",
   },
   ORDERS: {
     FROM_CART: "/api/Orders/from-cart/{cartId}",

@@ -4,9 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import gsap from "gsap";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
 import { ROLE_CFG } from "@/data/profile";
 import { userService } from "@/services/user.service";
 import { addressService } from "@/services/address.service";
+import type { Address } from "@/types";
+import {
+  composeAddressText,
+  isValidVietnamPhoneNumber,
+  normalizePhoneNumber,
+  parseAddressTextDetailed,
+} from "@/utils/address";
 import ProfileHero from "./ProfileHero";
 import ProfileStats from "./ProfileStats";
 import ProfileInfoCard from "./ProfileInfoCard";
@@ -14,7 +22,8 @@ import ProfileMembershipCard from "./ProfileMembershipCard";
 import ProfileTabs from "./ProfileTabs";
 
 export default function ProfileClient() {
-  const { user, logout, isAuthenticated, loading } = useAuth();
+  const { user, logout, isAuthenticated, loading, updateCurrentUser } = useAuth();
+  const toast = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") ?? "orders";
@@ -23,6 +32,16 @@ export default function ProfileClient() {
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState("Đang cập nhật");
   const [address, setAddress] = useState("Đang cập nhật");
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [dateOfBirth, setDateOfBirth] = useState<string | undefined>(undefined);
+  const [gender, setGender] = useState<string | undefined>(undefined);
+  const [language, setLanguage] = useState<string | undefined>(undefined);
+  const [timezone, setTimezone] = useState<string | undefined>(undefined);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const [status, setStatus] = useState<string | undefined>(undefined);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [saveProfileMessage, setSaveProfileMessage] = useState<string | null>(null);
+  const [saveProfileError, setSaveProfileError] = useState<string | null>(null);
 
   const heroRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
@@ -65,6 +84,15 @@ export default function ProfileClient() {
         if (profile?.fullName) {
           setName(profile.fullName);
         }
+        if (profile?.phoneNumber) {
+          setPhone(profile.phoneNumber);
+        }
+        setDateOfBirth(profile?.dateOfBirth);
+        setGender(profile?.gender);
+        setLanguage(profile?.language);
+        setTimezone(profile?.timezone);
+        setAvatarUrl(profile?.avatarUrl ?? undefined);
+        setStatus(profile?.status);
       }
 
       if (
@@ -72,6 +100,7 @@ export default function ProfileClient() {
         addressResult.value.isSuccess
       ) {
         const addresses = addressResult.value.value ?? [];
+        setAddresses(addresses);
         const selectedAddress =
           addresses.find((a) => a.isDefaultShipping) ?? addresses[0];
 
@@ -80,14 +109,7 @@ export default function ProfileClient() {
             setPhone(selectedAddress.phoneNumber);
           }
 
-          const mergedAddress = [
-            selectedAddress.line1,
-            selectedAddress.line2,
-            selectedAddress.state,
-            selectedAddress.city,
-          ]
-            .filter(Boolean)
-            .join(", ");
+          const mergedAddress = composeAddressText(selectedAddress);
 
           setAddress(mergedAddress || "Chưa có địa chỉ");
         } else {
@@ -127,6 +149,101 @@ export default function ProfileClient() {
     router.push("/auth");
   };
 
+  const handleSaveProfile = async () => {
+    const normalizedPhone = normalizePhoneNumber(phone);
+
+    if (!name.trim() || !normalizedPhone) {
+      setSaveProfileError("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
+      toast.error("Vui lòng nhập đầy đủ họ tên và số điện thoại.");
+      return;
+    }
+
+    if (!isValidVietnamPhoneNumber(normalizedPhone)) {
+      setSaveProfileError("Số điện thoại không hợp lệ. Vui lòng nhập đúng định dạng.");
+      toast.error("Số điện thoại không hợp lệ.");
+      return;
+    }
+
+    setSavingProfile(true);
+    setSaveProfileMessage(null);
+    setSaveProfileError(null);
+
+    try {
+      const response = await userService.updateProfile({
+        fullName: name.trim(),
+        phoneNumber: normalizedPhone,
+        dateOfBirth,
+        gender,
+        language,
+        timezone,
+        avatarUrl,
+        status,
+      });
+
+      if (response.isFailure) {
+        throw new Error(
+          response.error?.description || "Không thể cập nhật thông tin cá nhân",
+        );
+      }
+
+      // Replace address set: create new current address then remove older ones.
+      if (user?.id && address.trim()) {
+        const parsedAddress = parseAddressTextDetailed(address);
+        const createAddressRes = await addressService.createAddress({
+          userId: user.id,
+          label: null,
+          fullName: name.trim(),
+          phoneNumber: normalizedPhone,
+          email: user.email,
+          line1: parsedAddress.line1,
+          line2: parsedAddress.line2,
+          city: parsedAddress.city,
+          state: parsedAddress.state,
+          postalCode: null,
+          country: null,
+          isDefaultShipping: true,
+          isDefaultBilling: true,
+        });
+
+        if (!createAddressRes.isFailure) {
+          const newAddressId = createAddressRes.value?.addressId;
+
+          await Promise.allSettled(
+            addresses
+              .filter((a) => a.addressId !== newAddressId)
+              .map((a) => addressService.deleteAddress(a.addressId)),
+          );
+
+          const refreshedAddresses = await addressService.getMyAddresses();
+          if (!refreshedAddresses.isFailure) {
+            const next = refreshedAddresses.value ?? [];
+            setAddresses(next);
+            const selected = next.find((a) => a.isDefaultShipping) ?? next[0];
+            if (selected) {
+              const mergedAddress = composeAddressText(selected);
+              setAddress(mergedAddress || address);
+            }
+          }
+        }
+      }
+
+      updateCurrentUser({ name: name.trim() });
+
+      setSaveProfileMessage("Đã cập nhật thông tin cá nhân thành công.");
+      toast.success("Cập nhật thông tin cá nhân thành công.");
+      setEditMode(false);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Không thể cập nhật thông tin cá nhân";
+      setSaveProfileError(message);
+      toast.error(message);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   if (loading) return null;
   if (!user) return null;
 
@@ -164,10 +281,17 @@ export default function ProfileClient() {
             name={name}
             phone={phone}
             address={address}
+            saving={savingProfile}
+            saveMessage={saveProfileMessage}
+            saveError={saveProfileError}
             setName={setName}
-            setPhone={setPhone}
+            setPhone={(v) => {
+              setSaveProfileError(null);
+              setSaveProfileMessage(null);
+              setPhone(v);
+            }}
             setAddress={setAddress}
-            onSave={() => setEditMode(false)}
+            onSave={() => void handleSaveProfile()}
           />
           <ProfileMembershipCard />
         </div>

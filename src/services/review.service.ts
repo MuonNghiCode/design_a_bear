@@ -1,20 +1,59 @@
 import BaseApiService from "@/api/base";
 import { API_ENDPOINTS } from "@/constants";
 import type {
+  ApproveReviewResponse,
   CanReviewProductResponse,
   CreateReviewRequest,
   CreateReviewResponse,
   DeleteReviewResponse,
+  GetAllReviewsRequest,
+  GetAllReviewsResponse,
   GetProductAverageRatingResponse,
   GetProductReviewsRequest,
   GetProductReviewsResponse,
   GetProductReviewsResponseData,
+  GetReviewRepliesResponse,
   GetUserReviewsResponse,
+  RejectReviewResponse,
+  ReviewReply,
+  ReplyReviewResponse,
+  StaffReplyReviewRequest,
   UpdateReviewRequest,
   UpdateReviewResponse,
 } from "@/types";
 
 class ReviewService extends BaseApiService {
+  async getAllReviews(params?: GetAllReviewsRequest): Promise<GetAllReviewsResponse> {
+    return this.get<GetProductReviewsResponseData>(
+      API_ENDPOINTS.REVIEWS.GET_ALL,
+      params as Record<string, unknown>,
+      { withCredentials: false },
+    );
+  }
+
+  async approveReview(reviewId: string): Promise<ApproveReviewResponse> {
+    const endpoint = API_ENDPOINTS.REVIEWS.APPROVE.replace("{id}", reviewId);
+    return this.put<null>(endpoint, undefined, { withCredentials: false });
+  }
+
+  async rejectReview(reviewId: string): Promise<RejectReviewResponse> {
+    const endpoint = API_ENDPOINTS.REVIEWS.REJECT.replace("{id}", reviewId);
+    return this.put<null>(endpoint, undefined, { withCredentials: false });
+  }
+
+  async replyReview(
+    reviewId: string,
+    payload: StaffReplyReviewRequest,
+  ): Promise<ReplyReviewResponse> {
+    const endpoint = API_ENDPOINTS.REVIEWS.REPLY.replace("{id}", reviewId);
+    return this.post<ReviewReply>(endpoint, payload, { withCredentials: false });
+  }
+
+  async getReviewReplies(reviewId: string): Promise<GetReviewRepliesResponse> {
+    const endpoint = API_ENDPOINTS.REVIEWS.GET_REPLIES.replace("{id}", reviewId);
+    return this.get<ReviewReply[]>(endpoint, undefined, { withCredentials: false });
+  }
+
   async getUserReviews(userId: string): Promise<GetUserReviewsResponse> {
     const endpoint = API_ENDPOINTS.REVIEWS.GET_BY_USER.replace(
       "{userId}",

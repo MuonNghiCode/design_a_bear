@@ -4,8 +4,11 @@ import { useCallback, useState } from "react";
 import { reviewService } from "@/services/review.service";
 import type {
   CreateReviewRequest,
+  GetAllReviewsRequest,
   GetProductReviewsRequest,
   ProductReview,
+  ReviewReply,
+  StaffReplyReviewRequest,
   UpdateReviewRequest,
 } from "@/types";
 
@@ -69,6 +72,50 @@ export function useReviewApi() {
       setLoading(false);
     }
   }, []);
+
+  const getAllReviews = useCallback(
+    async (
+      params?: GetAllReviewsRequest,
+    ): Promise<{
+      items: ProductReview[];
+      pageIndex: number;
+      pageSize: number;
+      totalCount: number;
+      totalPages: number;
+      hasPreviousPage: boolean;
+      hasNextPage: boolean;
+    }> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await reviewService.getAllReviews(params);
+        return unwrapValue(response);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Không thể tải danh sách đánh giá";
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const getReviewReplies = useCallback(
+    async (reviewId: string): Promise<ReviewReply[]> => {
+      try {
+        const response = await reviewService.getReviewReplies(reviewId);
+        return unwrapValue(response);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Không thể tải phản hồi đánh giá";
+        setError(message);
+        throw err;
+      }
+    },
+    [],
+  );
 
   const canReviewProduct = useCallback(async (productId: string): Promise<boolean> => {
     setError(null);
@@ -150,9 +197,68 @@ export function useReviewApi() {
     }
   }, []);
 
+  const approveReview = useCallback(async (reviewId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await reviewService.approveReview(reviewId);
+      if (response.isFailure) {
+        throw new Error(response.error?.description || "Không thể duyệt đánh giá");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Không thể duyệt đánh giá";
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const rejectReview = useCallback(async (reviewId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await reviewService.rejectReview(reviewId);
+      if (response.isFailure) {
+        throw new Error(response.error?.description || "Không thể từ chối đánh giá");
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Không thể từ chối đánh giá";
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const replyReview = useCallback(
+    async (
+      reviewId: string,
+      payload: StaffReplyReviewRequest,
+    ): Promise<ReviewReply> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await reviewService.replyReview(reviewId, payload);
+        return unwrapValue(response);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Không thể phản hồi đánh giá";
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   return {
     loading,
     error,
+    getAllReviews,
+    getReviewReplies,
     getProductReviews,
     getUserReviews,
     canReviewProduct,
@@ -160,5 +266,8 @@ export function useReviewApi() {
     createReview,
     updateReview,
     deleteReview,
+    approveReview,
+    rejectReview,
+    replyReview,
   };
 }

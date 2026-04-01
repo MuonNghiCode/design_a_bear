@@ -91,6 +91,18 @@ export interface UpdateReviewRequest {
   body: string;
 }
 
+export interface GetAllReviewsRequest {
+  pageIndex?: number;
+  pageSize?: number;
+  status?: string;
+}
+
+export interface StaffReplyReviewRequest {
+  staffUserId: string;
+  reviewId: string;
+  content: string;
+}
+
 export interface CreateProductVariantRequest {
   sku: string;
   variantName: string;

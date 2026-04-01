@@ -1,15 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import ProductCustomize from "./ProductCustomize";
 
 export default function CustomizePageClient() {
   const router = useRouter();
+  
+  useEffect(() => {
+    router.replace("/products");
+  }, [router]);
 
-  return (
-    <main>
-      {/* ── Customize section ── */}
-      <ProductCustomize accentColor="#17409A" />
-    </main>
-  );
+  return null;
 }

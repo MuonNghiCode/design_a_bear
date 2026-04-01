@@ -1,59 +1,30 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { IoArrowForward } from "react-icons/io5";
 import ProductCard, { type ProductCardProps } from "../shared/ProductCard";
+import ProductCardSkeleton from "../shared/ProductCardSkeleton";
+import { useProductApi } from "@/hooks/useProductApi";
+import type { ProductListItem } from "@/types";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ────────────────────────────────────────────
-   Sample product data
-   ──────────────────────────────────────────── */
-const PRODUCTS: ProductCardProps[] = [
-  {
-    id: "bear-brown-happy",
-    name: "Gấu Nâu Brownie Hạnh Phúc",
-    description:
-      "Chú gấu với nụ cười thân thiện, chất liệu bông tơ tằm siêu nhẹ.",
-    price: 450000,
-    image: "/teddy_bear.png",
-    badge: "Toán",
-    badgeColor: "#17409A",
-  },
-  {
-    id: "bear-pink-melody",
-    name: "Gấu Hồng Melody Âm Nhạc",
-    description:
-      "Dạy bé yêu âm nhạc qua hàng trăm bài hát và giai điệu vui nhộn.",
-    price: 520000,
-    image: "/teddy_bear.png",
-    badge: "Âm nhạc",
-    badgeColor: "#FF6B9D",
-  },
-  {
-    id: "bear-blue-einstein",
-    name: "Gấu Xanh Einstein Khám Phá",
-    description:
-      "Trả lời hàng nghìn câu hỏi khoa học, kích thích trí tò mò của bé.",
-    price: 580000,
-    image: "/teddy_bear.png",
-    badge: "Khoa học",
-    badgeColor: "#4ECDC4",
-  },
-  {
-    id: "bear-cream-story",
-    name: "Gấu Kem Storyteller Kể Chuyện",
-    description:
-      "Kể chuyện cổ tích tương tác, giọng kể ấm áp theo cảm xúc của bé.",
-    price: 490000,
-    image: "/teddy_bear.png",
-    badge: "Ngôn ngữ",
-    badgeColor: "#7C5CFC",
-  },
-];
+const FALLBACK_IMAGE = "/teddy_bear.png";
+
+function mapToCardProps(item: ProductListItem): ProductCardProps {
+  return {
+    id: item.productId,
+    name: item.name,
+    description: item.shortDescription || "Gấu bông thông minh tích hợp AI & IoT",
+    price: item.minPrice || item.price,
+    image: item.imageUrl || item.media[0]?.url || FALLBACK_IMAGE,
+    href: `/products/${item.slug}`,
+  };
+}
+
 
 /* ────────────────────────────────────────────
    Component
@@ -63,72 +34,85 @@ export default function FeaturedProducts() {
   const headingRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
+  const triggersRef = useRef<ReturnType<typeof ScrollTrigger.create>[]>([]);
+
+  const { getProducts, loading } = useProductApi();
+  const [products, setProducts] = useState<ProductCardProps[]>([]);
+
+  // Fetch 4 sản phẩm mới nhất
+  useEffect(() => {
+    getProducts({ pageIndex: 1, pageSize: 4, sortBy: "newest" })
+      .then((data) => {
+        setProducts(data.items.map(mapToCardProps));
+      })
+      .catch(() => {
+        // Giữ mảng rỗng nếu lỗi, không crash trang
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!sectionRef.current) return;
+    // Kill only our own previous triggers
+    triggersRef.current.forEach((t) => t.kill());
+    triggersRef.current = [];
 
     // Heading animation
     if (headingRef.current) {
-      gsap.fromTo(
-        headingRef.current,
-        { y: 25, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: headingRef.current,
-            start: "top 85%",
-            once: true,
-          },
+      const t = ScrollTrigger.create({
+        trigger: headingRef.current,
+        start: "top 85%",
+        once: true,
+        onEnter: () => {
+          gsap.fromTo(
+            headingRef.current,
+            { y: 25, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" },
+          );
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
     // Cards stagger
-    if (gridRef.current) {
-      gsap.fromTo(
-        gridRef.current.children,
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          stagger: 0.1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: gridRef.current,
-            start: "top 80%",
-            once: true,
-          },
+    if (gridRef.current && products.length > 0) {
+      const t = ScrollTrigger.create({
+        trigger: gridRef.current,
+        start: "top 80%",
+        once: true,
+        onEnter: () => {
+          gsap.fromTo(
+            gridRef.current!.children,
+            { y: 30, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: "power2.out" },
+          );
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
     // CTA animation
     if (ctaRef.current) {
-      gsap.fromTo(
-        ctaRef.current,
-        { y: 15, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: ctaRef.current,
-            start: "top 90%",
-            once: true,
-          },
+      const t = ScrollTrigger.create({
+        trigger: ctaRef.current,
+        start: "top 90%",
+        once: true,
+        onEnter: () => {
+          gsap.fromTo(
+            ctaRef.current,
+            { y: 15, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
+          );
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
     return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
+      triggersRef.current.forEach((t) => t.kill());
+      triggersRef.current = [];
     };
-  }, []);
+  }, [products]);
 
   return (
     <section
@@ -206,7 +190,7 @@ export default function FeaturedProducts() {
       </div>
 
       <div className="max-w-screen-2xl mx-auto px-8 md:px-16 relative z-10">
-        {/* ── Heading with decorative accent ── */}
+        {/* ── Heading ── */}
         <div ref={headingRef} className="text-center mb-20 md:mb-24">
           <div className="flex items-center justify-center gap-4 mb-5">
             <div className="w-12 h-px bg-[#17409A]/20"></div>
@@ -228,17 +212,19 @@ export default function FeaturedProducts() {
           </p>
         </div>
 
-        {/* ── Premium Product Grid ── */}
+        {/* ── Product Grid ── */}
         <div
           ref={gridRef}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 mb-16"
         >
-          {PRODUCTS.map((product) => (
-            <ProductCard key={product.id} {...product} />
-          ))}
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
+            : products.map((product) => (
+                <ProductCard key={product.id} {...product} />
+              ))}
         </div>
 
-        {/* ── View all CTA với decorative elements ── */}
+        {/* ── View all CTA ── */}
         <div ref={ctaRef} className="text-center">
           <div className="inline-flex flex-col items-center gap-8">
             <Link

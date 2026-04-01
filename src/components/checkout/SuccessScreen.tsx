@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { IoCheckmarkCircle, IoArrowBack, IoHomeOutline } from "react-icons/io5";
+import { formatShortOrderCode } from "@/utils/order";
 
 export function SuccessScreen({ orderId }: { orderId: string }) {
   const confRef = useRef<HTMLDivElement>(null);
@@ -112,7 +113,7 @@ export function SuccessScreen({ orderId }: { orderId: string }) {
       <p className="text-sm leading-relaxed mb-2" style={{ color: "#6B7280" }}>
         Đơn hàng{" "}
         <span className="font-bold" style={{ color: "#17409A" }}>
-          #{orderId}
+          {formatShortOrderCode(orderId)}
         </span>{" "}
         đã được xác nhận.
       </p>

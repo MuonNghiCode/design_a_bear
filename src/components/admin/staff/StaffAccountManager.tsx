@@ -2,32 +2,60 @@
 
 import { useState } from "react";
 import {
-  MdAdd, MdClose, MdEdit, MdDelete, MdCheck, MdPhone, MdEmail,
-  MdBadge, MdKey, MdVisibility, MdVisibilityOff,
+  MdAdd,
+  MdClose,
+  MdEdit,
+  MdDelete,
+  MdCheck,
+  MdPhone,
+  MdEmail,
+  MdBadge,
+  MdKey,
+  MdVisibility,
+  MdVisibilityOff,
 } from "react-icons/md";
-import { STAFF_MEMBERS, SHIFT_CFG, type StaffMember, type ShiftType, type StaffRole } from "@/data/staff";
+import {
+  STAFF_MEMBERS,
+  SHIFT_CFG,
+  type StaffMember,
+  type ShiftType,
+  type StaffRole,
+} from "@/data/staff";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const AVATAR_COLORS = ["#7C5CFC", "#4ECDC4", "#FF6B9D", "#FF8C42", "#FFD93D", "#17409A"];
+const AVATAR_COLORS = [
+  "#7C5CFC",
+  "#4ECDC4",
+  "#FF6B9D",
+  "#FF8C42",
+  "#FFD93D",
+  "#17409A",
+];
 const ALL_SHIFTS: ShiftType[] = ["morning", "afternoon", "evening"];
 
 // ── Empty form ────────────────────────────────────────────────────────────────
 function emptyForm() {
   return {
-    name:            "",
-    email:           "",
-    phone:           "",
-    password:        "",
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
     confirmPassword: "",
-    role:            "full_time" as StaffRole,
+    role: "full_time" as StaffRole,
     preferredShifts: [] as ShiftType[],
-    color:           "#7C5CFC",
-    joinedDate:      new Date().toLocaleDateString("vi-VN"),
+    color: "#7C5CFC",
+    joinedDate: new Date().toLocaleDateString("vi-VN"),
   };
 }
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
-function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  on,
+  onChange,
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <button
       onClick={() => onChange(!on)}
@@ -49,18 +77,22 @@ function StaffFormModal({
   onClose,
   onSave,
 }: {
-  mode:    "create" | "edit";
+  mode: "create" | "edit";
   initial?: Partial<ReturnType<typeof emptyForm>>;
   onClose: () => void;
-  onSave:  (data: ReturnType<typeof emptyForm>) => void;
+  onSave: (data: ReturnType<typeof emptyForm>) => void;
 }) {
-  const [form, setForm]       = useState({ ...emptyForm(), ...initial });
-  const [showPw, setShowPw]   = useState(false);
-  const [errors, setErrors]   = useState<Record<string, string>>({});
+  const [form, setForm] = useState({ ...emptyForm(), ...initial });
+  const [showPw, setShowPw] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  function setField<K extends keyof typeof form>(k: K, v: typeof form[K]) {
+  function setField<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
-    setErrors((e) => { const ne = { ...e }; delete ne[k]; return ne; });
+    setErrors((e) => {
+      const ne = { ...e };
+      delete ne[k];
+      return ne;
+    });
   }
 
   function toggleShift(s: ShiftType) {
@@ -74,36 +106,47 @@ function StaffFormModal({
 
   function autoInitial(name: string) {
     const parts = name.trim().split(/\s+/);
-    return parts.length >= 2 ? parts[parts.length - 1][0]?.toUpperCase() ?? "" : name[0]?.toUpperCase() ?? "";
+    return parts.length >= 2
+      ? (parts[parts.length - 1][0]?.toUpperCase() ?? "")
+      : (name[0]?.toUpperCase() ?? "");
   }
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!form.name.trim())  e.name  = "Vui lòng nhập họ tên";
+    if (!form.name.trim()) e.name = "Vui lòng nhập họ tên";
     if (!form.email.trim()) e.email = "Vui lòng nhập email";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Email không hợp lệ";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      e.email = "Email không hợp lệ";
     if (!form.phone.trim()) e.phone = "Vui lòng nhập số điện thoại";
     if (mode === "create") {
-      if (!form.password)  e.password = "Vui lòng nhập mật khẩu";
-      else if (form.password.length < 6) e.password = "Mật khẩu tối thiểu 6 ký tự";
-      if (form.password !== form.confirmPassword) e.confirmPassword = "Mật khẩu không khớp";
+      if (!form.password) e.password = "Vui lòng nhập mật khẩu";
+      else if (form.password.length < 6)
+        e.password = "Mật khẩu tối thiểu 6 ký tự";
+      if (form.password !== form.confirmPassword)
+        e.confirmPassword = "Mật khẩu không khớp";
     }
-    if (form.preferredShifts.length === 0) e.preferredShifts = "Chọn ít nhất 1 ca";
+    if (form.preferredShifts.length === 0)
+      e.preferredShifts = "Chọn ít nhất 1 ca";
     return e;
   }
 
   function handleSubmit() {
     const e = validate();
-    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    if (Object.keys(e).length > 0) {
+      setErrors(e);
+      return;
+    }
     onSave(form);
     onClose();
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-
         {/* Header */}
         <div className="px-6 py-5 border-b border-[#F4F7FF] flex items-center justify-between shrink-0">
           <div>
@@ -111,17 +154,21 @@ function StaffFormModal({
               {mode === "create" ? "Tạo tài khoản mới" : "Chỉnh sửa tài khoản"}
             </p>
             <p className="text-[#9CA3AF] text-xs mt-0.5">
-              {mode === "create" ? "Điền thông tin để tạo tài khoản nhân viên" : "Cập nhật thông tin nhân viên"}
+              {mode === "create"
+                ? "Điền thông tin để tạo tài khoản nhân viên"
+                : "Cập nhật thông tin nhân viên"}
             </p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-[#F4F7FF] hover:bg-[#EEF1FF] flex items-center justify-center text-[#9CA3AF] cursor-pointer transition-colors">
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-xl bg-[#F4F7FF] hover:bg-[#EEF1FF] flex items-center justify-center text-[#9CA3AF] cursor-pointer transition-colors"
+          >
             <MdClose className="text-lg" />
           </button>
         </div>
 
         {/* Body */}
         <div className="overflow-y-auto flex-1 p-6 flex flex-col gap-5">
-
           {/* Avatar preview + color picker */}
           <div className="flex items-center gap-5">
             <div
@@ -131,7 +178,9 @@ function StaffFormModal({
               {autoInitial(form.name) || "?"}
             </div>
             <div>
-              <p className="text-[#1A1A2E] text-xs font-bold mb-2">Màu avatar</p>
+              <p className="text-[#1A1A2E] text-xs font-bold mb-2">
+                Màu avatar
+              </p>
               <div className="flex gap-2">
                 {AVATAR_COLORS.map((c) => (
                   <button
@@ -151,7 +200,9 @@ function StaffFormModal({
 
           {/* Name */}
           <div>
-            <label className="text-sm font-bold text-[#1A1A2E] block mb-1.5">Họ và tên *</label>
+            <label className="text-sm font-bold text-[#1A1A2E] block mb-1.5">
+              Họ và tên *
+            </label>
             <input
               type="text"
               value={form.name}
@@ -159,14 +210,17 @@ function StaffFormModal({
               placeholder="VD: Nguyễn Thị Lan"
               className="w-full bg-[#F4F7FF] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/30 transition"
             />
-            {errors.name && <p className="text-[#FF6B9D] text-xs mt-1">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-[#FF6B9D] text-xs mt-1">{errors.name}</p>
+            )}
           </div>
 
           {/* Email + Phone */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-bold text-[#1A1A2E] block mb-1.5">
-                <MdEmail className="inline mr-1 text-[#9CA3AF]" />Email *
+                <MdEmail className="inline mr-1 text-[#9CA3AF]" />
+                Email *
               </label>
               <input
                 type="email"
@@ -175,11 +229,14 @@ function StaffFormModal({
                 placeholder="nhan.vien@email.com"
                 className="w-full bg-[#F4F7FF] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/30 transition"
               />
-              {errors.email && <p className="text-[#FF6B9D] text-xs mt-1">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-[#FF6B9D] text-xs mt-1">{errors.email}</p>
+              )}
             </div>
             <div>
               <label className="text-sm font-bold text-[#1A1A2E] block mb-1.5">
-                <MdPhone className="inline mr-1 text-[#9CA3AF]" />Điện thoại *
+                <MdPhone className="inline mr-1 text-[#9CA3AF]" />
+                Điện thoại *
               </label>
               <input
                 type="text"
@@ -188,7 +245,9 @@ function StaffFormModal({
                 placeholder="0901 234 567"
                 className="w-full bg-[#F4F7FF] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/30 transition"
               />
-              {errors.phone && <p className="text-[#FF6B9D] text-xs mt-1">{errors.phone}</p>}
+              {errors.phone && (
+                <p className="text-[#FF6B9D] text-xs mt-1">{errors.phone}</p>
+              )}
             </div>
           </div>
 
@@ -197,7 +256,8 @@ function StaffFormModal({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-sm font-bold text-[#1A1A2E] block mb-1.5">
-                  <MdKey className="inline mr-1 text-[#9CA3AF]" />Mật khẩu *
+                  <MdKey className="inline mr-1 text-[#9CA3AF]" />
+                  Mật khẩu *
                 </label>
                 <div className="relative">
                   <input
@@ -215,10 +275,16 @@ function StaffFormModal({
                     {showPw ? <MdVisibilityOff /> : <MdVisibility />}
                   </button>
                 </div>
-                {errors.password && <p className="text-[#FF6B9D] text-xs mt-1">{errors.password}</p>}
+                {errors.password && (
+                  <p className="text-[#FF6B9D] text-xs mt-1">
+                    {errors.password}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="text-sm font-bold text-[#1A1A2E] block mb-1.5">Xác nhận mật khẩu *</label>
+                <label className="text-sm font-bold text-[#1A1A2E] block mb-1.5">
+                  Xác nhận mật khẩu *
+                </label>
                 <input
                   type={showPw ? "text" : "password"}
                   value={form.confirmPassword}
@@ -226,7 +292,11 @@ function StaffFormModal({
                   placeholder="••••••"
                   className="w-full bg-[#F4F7FF] rounded-2xl px-4 py-3 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/30 transition"
                 />
-                {errors.confirmPassword && <p className="text-[#FF6B9D] text-xs mt-1">{errors.confirmPassword}</p>}
+                {errors.confirmPassword && (
+                  <p className="text-[#FF6B9D] text-xs mt-1">
+                    {errors.confirmPassword}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -234,7 +304,8 @@ function StaffFormModal({
           {/* Role */}
           <div>
             <label className="text-sm font-bold text-[#1A1A2E] block mb-2">
-              <MdBadge className="inline mr-1 text-[#9CA3AF]" />Loại hợp đồng *
+              <MdBadge className="inline mr-1 text-[#9CA3AF]" />
+              Loại hợp đồng *
             </label>
             <div className="grid grid-cols-2 gap-2">
               {(["full_time", "part_time"] as StaffRole[]).map((r) => (
@@ -255,10 +326,12 @@ function StaffFormModal({
 
           {/* Preferred shifts */}
           <div>
-            <label className="text-sm font-bold text-[#1A1A2E] block mb-2">Ca làm ưa thích *</label>
+            <label className="text-sm font-bold text-[#1A1A2E] block mb-2">
+              Ca làm ưa thích *
+            </label>
             <div className="flex gap-2">
               {ALL_SHIFTS.map((s) => {
-                const cfg    = SHIFT_CFG[s];
+                const cfg = SHIFT_CFG[s];
                 const active = form.preferredShifts.includes(s);
                 return (
                   <button
@@ -266,19 +339,25 @@ function StaffFormModal({
                     onClick={() => toggleShift(s)}
                     className="flex-1 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer border-2"
                     style={{
-                      borderColor:     active ? cfg.color : "#F4F7FF",
+                      borderColor: active ? cfg.color : "#F4F7FF",
                       backgroundColor: active ? cfg.color + "18" : "#F4F7FF",
-                      color:           active ? cfg.color : "#9CA3AF",
+                      color: active ? cfg.color : "#9CA3AF",
                     }}
                   >
                     {cfg.label}
                     <br />
-                    <span className="font-normal text-[9px] opacity-70">{cfg.time}</span>
+                    <span className="font-normal text-[9px] opacity-70">
+                      {cfg.time}
+                    </span>
                   </button>
                 );
               })}
             </div>
-            {errors.preferredShifts && <p className="text-[#FF6B9D] text-xs mt-1">{errors.preferredShifts}</p>}
+            {errors.preferredShifts && (
+              <p className="text-[#FF6B9D] text-xs mt-1">
+                {errors.preferredShifts}
+              </p>
+            )}
           </div>
         </div>
 
@@ -309,9 +388,9 @@ function StaffCard({
   onToggleActive,
   onDeleteRequest,
 }: {
-  member:          StaffMember;
-  onEdit:          (m: StaffMember) => void;
-  onToggleActive:  (id: string) => void;
+  member: StaffMember;
+  onEdit: (m: StaffMember) => void;
+  onToggleActive: (id: string) => void;
   onDeleteRequest: (id: string) => void;
 }) {
   return (
@@ -329,13 +408,16 @@ function StaffCard({
             {member.initial}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-black text-[#1A1A2E] text-base leading-tight">{member.name}</p>
+            <p className="font-black text-[#1A1A2E] text-base leading-tight">
+              {member.name}
+            </p>
             <p className="text-[#9CA3AF] text-xs mt-0.5">{member.id}</p>
             <span
               className="inline-block mt-1.5 rounded-xl px-2.5 py-0.5 text-[10px] font-bold"
               style={{
-                backgroundColor: member.role === "full_time" ? "#17409A18" : "#7C5CFC18",
-                color:           member.role === "full_time" ? "#17409A"   : "#7C5CFC",
+                backgroundColor:
+                  member.role === "full_time" ? "#17409A18" : "#7C5CFC18",
+                color: member.role === "full_time" ? "#17409A" : "#7C5CFC",
               }}
             >
               {member.role === "full_time" ? "Toàn thời gian" : "Bán thời gian"}
@@ -343,8 +425,14 @@ function StaffCard({
           </div>
           {/* Active toggle */}
           <div className="flex flex-col items-center gap-1 shrink-0">
-            <Toggle on={member.active} onChange={() => onToggleActive(member.id)} />
-            <span className="text-[9px] font-semibold" style={{ color: member.active ? "#22C55E" : "#9CA3AF" }}>
+            <Toggle
+              on={member.active}
+              onChange={() => onToggleActive(member.id)}
+            />
+            <span
+              className="text-[9px] font-semibold"
+              style={{ color: member.active ? "#22C55E" : "#9CA3AF" }}
+            >
               {member.active ? "Hoạt động" : "Tạm nghỉ"}
             </span>
           </div>
@@ -364,7 +452,9 @@ function StaffCard({
 
         {/* Preferred shifts */}
         <div>
-          <p className="text-[9px] font-black text-[#C4CAD4] uppercase tracking-widest mb-1.5">Ca ưa thích</p>
+          <p className="text-[9px] font-black text-[#C4CAD4] uppercase tracking-widest mb-1.5">
+            Ca ưa thích
+          </p>
           <div className="flex gap-1.5 flex-wrap">
             {member.preferredShifts.map((s) => {
               const cfg = SHIFT_CFG[s];
@@ -372,7 +462,10 @@ function StaffCard({
                 <span
                   key={s}
                   className="rounded-xl px-2.5 py-1 text-[10px] font-bold"
-                  style={{ backgroundColor: cfg.color + "20", color: cfg.color }}
+                  style={{
+                    backgroundColor: cfg.color + "20",
+                    color: cfg.color,
+                  }}
                 >
                   {cfg.label}
                 </span>
@@ -383,7 +476,10 @@ function StaffCard({
 
         {/* Joined date */}
         <p className="text-[10px] text-[#9CA3AF]">
-          Tham gia: <span className="font-semibold text-[#6B7280]">{member.joinedDate}</span>
+          Tham gia:{" "}
+          <span className="font-semibold text-[#6B7280]">
+            {member.joinedDate}
+          </span>
         </p>
       </div>
 
@@ -409,10 +505,21 @@ function StaffCard({
 }
 
 // ── Delete confirm inline ─────────────────────────────────────────────────────
-function DeleteConfirmBanner({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
+function DeleteConfirmBanner({
+  name,
+  onConfirm,
+  onCancel,
+}: {
+  name: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onCancel}
+      />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-5 text-center">
         <div className="w-14 h-14 rounded-2xl bg-[#FF6B9D]/12 flex items-center justify-center">
           <MdDelete className="text-3xl text-[#FF6B9D]" />
@@ -420,8 +527,9 @@ function DeleteConfirmBanner({ name, onConfirm, onCancel }: { name: string; onCo
         <div>
           <p className="font-black text-[#1A1A2E] text-lg">Xoá tài khoản?</p>
           <p className="text-[#9CA3AF] text-sm mt-1">
-            Tài khoản của <span className="font-bold text-[#1A1A2E]">{name}</span> sẽ bị xoá vĩnh viễn.
-            Hành động này không thể hoàn tác.
+            Tài khoản của{" "}
+            <span className="font-bold text-[#1A1A2E]">{name}</span> sẽ bị xoá
+            vĩnh viễn. Hành động này không thể hoàn tác.
           </p>
         </div>
         <div className="flex gap-3 w-full">
@@ -445,35 +553,43 @@ function DeleteConfirmBanner({ name, onConfirm, onCancel }: { name: string; onCo
 
 // ── Main export ───────────────────────────────────────────────────────────────
 export default function StaffAccountManager() {
-  const [members,       setMembers]       = useState<StaffMember[]>(STAFF_MEMBERS);
-  const [showCreate,    setShowCreate]    = useState(false);
+  const [members, setMembers] = useState<StaffMember[]>(STAFF_MEMBERS);
+  const [showCreate, setShowCreate] = useState(false);
   const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
-  const [deleteId,      setDeleteId]      = useState<string | null>(null);
-  const [search,        setSearch]        = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-  const filtered = members.filter((m) =>
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
-    m.email.toLowerCase().includes(search.toLowerCase()),
+  const filtered = members.filter(
+    (m) =>
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.email.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const activeCount   = members.filter((m) => m.active).length;
-  const fullTimeCount = members.filter((m) => m.role === "full_time" && m.active).length;
-  const partTimeCount = members.filter((m) => m.role === "part_time" && m.active).length;
+  const activeCount = members.filter((m) => m.active).length;
+  const fullTimeCount = members.filter(
+    (m) => m.role === "full_time" && m.active,
+  ).length;
+  const partTimeCount = members.filter(
+    (m) => m.role === "part_time" && m.active,
+  ).length;
 
   function handleCreate(form: ReturnType<typeof emptyForm>) {
     const nameParts = form.name.trim().split(/\s+/);
-    const initial   = nameParts.length >= 2 ? nameParts[nameParts.length - 1][0].toUpperCase() : nameParts[0][0].toUpperCase();
+    const initial =
+      nameParts.length >= 2
+        ? nameParts[nameParts.length - 1][0].toUpperCase()
+        : nameParts[0][0].toUpperCase();
     const newMember: StaffMember = {
-      id:             `S-${String(members.length + 1).padStart(3, "0")}`,
-      name:           form.name.trim(),
+      id: `S-${String(members.length + 1).padStart(3, "0")}`,
+      name: form.name.trim(),
       initial,
-      color:          form.color,
-      role:           form.role,
-      email:          form.email.trim(),
-      phone:          form.phone.trim(),
+      color: form.color,
+      role: form.role,
+      email: form.email.trim(),
+      phone: form.phone.trim(),
       preferredShifts: form.preferredShifts,
-      joinedDate:     form.joinedDate,
-      active:         true,
+      joinedDate: form.joinedDate,
+      active: true,
     };
     setMembers((prev) => [...prev, newMember]);
   }
@@ -481,18 +597,21 @@ export default function StaffAccountManager() {
   function handleEdit(form: ReturnType<typeof emptyForm>) {
     if (!editingMember) return;
     const nameParts = form.name.trim().split(/\s+/);
-    const initial   = nameParts.length >= 2 ? nameParts[nameParts.length - 1][0].toUpperCase() : nameParts[0][0].toUpperCase();
+    const initial =
+      nameParts.length >= 2
+        ? nameParts[nameParts.length - 1][0].toUpperCase()
+        : nameParts[0][0].toUpperCase();
     setMembers((prev) =>
       prev.map((m) =>
         m.id === editingMember.id
           ? {
               ...m,
-              name:            form.name.trim(),
+              name: form.name.trim(),
               initial,
-              color:           form.color,
-              role:            form.role,
-              email:           form.email.trim(),
-              phone:           form.phone.trim(),
+              color: form.color,
+              role: form.role,
+              email: form.email.trim(),
+              phone: form.phone.trim(),
               preferredShifts: form.preferredShifts,
             }
           : m,
@@ -502,7 +621,9 @@ export default function StaffAccountManager() {
   }
 
   function handleToggleActive(id: string) {
-    setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, active: !m.active } : m)));
+    setMembers((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, active: !m.active } : m)),
+    );
   }
 
   function handleDelete(id: string) {
@@ -512,14 +633,13 @@ export default function StaffAccountManager() {
 
   return (
     <div className="flex flex-col gap-6">
-
       {/* ── Summary pills ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Tổng tài khoản",  value: members.length,   color: "#17409A" },
-          { label: "Đang hoạt động",  value: activeCount,      color: "#22C55E" },
-          { label: "Toàn thời gian",  value: fullTimeCount,    color: "#7C5CFC" },
-          { label: "Bán thời gian",   value: partTimeCount,    color: "#FF8C42" },
+          { label: "Tổng tài khoản", value: members.length, color: "#17409A" },
+          { label: "Đang hoạt động", value: activeCount, color: "#22C55E" },
+          { label: "Toàn thời gian", value: fullTimeCount, color: "#7C5CFC" },
+          { label: "Bán thời gian", value: partTimeCount, color: "#FF8C42" },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -590,12 +710,12 @@ export default function StaffAccountManager() {
         <StaffFormModal
           mode="edit"
           initial={{
-            name:            editingMember.name,
-            email:           editingMember.email,
-            phone:           editingMember.phone,
-            role:            editingMember.role,
+            name: editingMember.name,
+            email: editingMember.email,
+            phone: editingMember.phone,
+            role: editingMember.role,
             preferredShifts: editingMember.preferredShifts,
-            color:           editingMember.color,
+            color: editingMember.color,
           }}
           onClose={() => setEditingMember(null)}
           onSave={handleEdit}

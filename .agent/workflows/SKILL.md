@@ -1,5 +1,5 @@
 ---
-name: Design a Bear - UI Design System
+name: workflows
 description: Hướng dẫn thiết kế giao diện cho trang thương mại điện tử Design a Bear — bán gấu bông thông minh tích hợp IoT & AI, dạy học cho trẻ em. Phong cách sang trọng, sáng tạo, thân thiện với trẻ em.
 ---
 
@@ -199,6 +199,89 @@ export default function HomePage() {
 // ❌ SAI — mọi thứ gom vào 1 file
 export default function HomePage() {
   return <div>{/* 500+ dòng HTML/JSX ở đây */}</div>;
+}
+```
+
+---
+
+## API Structure Rules (Bắt buộc)
+
+### Mục tiêu
+
+- Tách rõ `request`, `response`, `service`, `hook` để dễ bảo trì và scale.
+- Không gọi `axios` trực tiếp trong component.
+
+### Quy tắc bắt buộc
+
+1. Request types chỉ đặt trong `src/types/requests.ts`.
+2. Response payload types đặt trong `src/types/responses.ts`.
+3. Mọi response public phải đi qua wrapper `ApiResponse<T>`.
+4. Services đặt trong `src/services/*`, kế thừa `BaseApiService`.
+5. Hooks gọi API đặt trong `src/hooks/*`, chỉ expose state + actions cho UI.
+
+### Mẫu chuẩn response
+
+```ts
+export interface ApiResponse<T> {
+  value: T;
+  isSuccess: boolean;
+  isFailure: boolean;
+  error: {
+    code: string;
+    description: string;
+  };
+}
+```
+
+```ts
+export interface LoginResponseData {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
+}
+
+export type LoginResponse = ApiResponse<LoginResponseData>;
+```
+
+### Mẫu chuẩn service
+
+```ts
+import BaseApiService from "@/api/base";
+import { API_ENDPOINTS } from "@/constants";
+import type { LoginRequest, LoginResponse, LoginResponseData } from "@/types";
+
+class AuthService extends BaseApiService {
+  async signin(credentials: LoginRequest): Promise<LoginResponse> {
+    return this.post<LoginResponseData>(API_ENDPOINTS.USER.LOGIN, credentials);
+  }
+}
+
+export const authService = new AuthService();
+```
+
+### Mẫu chuẩn hook
+
+```ts
+"use client";
+
+import { useCallback, useState } from "react";
+import { authService } from "@/services/auth.service";
+import type { LoginRequest, LoginResponseData } from "@/types";
+
+export function useAuthApi() {
+  const [loading, setLoading] = useState(false);
+
+  const signin = useCallback(async (payload: LoginRequest) => {
+    setLoading(true);
+    try {
+      const res = await authService.signin(payload);
+      return res.value as LoginResponseData;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { loading, signin };
 }
 ```
 

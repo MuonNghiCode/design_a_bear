@@ -1,13 +1,62 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import gsap from "gsap";
 import { MdInventory2 } from "react-icons/md";
 import StaffProductsHero from "./StaffProductsHero";
-import StaffProductsGrid from "./StaffProductsGrid";
+import StaffProductsGrid, { type StaffProductView } from "./StaffProductsGrid";
+import { useAdminProductsApi } from "@/hooks";
+import type { ProductListItem } from "@/types";
+
+function mapProductToStaffView(
+  item: ProductListItem,
+  index: number,
+): StaffProductView {
+  const badgeColors = [
+    "#17409A",
+    "#7C5CFC",
+    "#4ECDC4",
+    "#FF8C42",
+    "#FF6B9D",
+    "#FFD93D",
+  ];
+  const color = badgeColors[index % badgeColors.length];
+
+  let category: StaffProductView["category"] = "bear";
+  if (item.productType === "ACCESSORY") category = "accessory";
+  else if (item.productType === "COMPLETE_BEAR") category = "complete";
+
+  return {
+    id: item.productId,
+    name: item.name,
+    imageUrl: item.imageUrl || "/teddy_bear.png",
+    badge: item.productType === "ACCESSORY" ? "Phụ kiện" : "Gấu bông",
+    badgeColor: color,
+    category,
+    price: item.price,
+    // Backend hiện tại chưa có field stock trong list API, tạm hiển thị số ước lượng.
+    stock: item.isActive ? 20 : 0,
+    sold: item.totalSales,
+    rating: item.averageRating,
+    status: item.isActive ? "active" : "archived",
+    popular: item.viewCountIn10Min > 5,
+  };
+}
 
 export default function StaffProductsClient() {
   const ref = useRef<HTMLDivElement>(null);
+  const { data, loading, fetchProducts } = useAdminProductsApi();
+  const [pageIndex, setPageIndex] = useState(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    fetchProducts({ pageIndex, pageSize });
+  }, [fetchProducts, pageIndex]);
+
+  const products = useMemo(
+    () => (data?.items || []).map(mapProductToStaffView),
+    [data?.items],
+  );
 
   useEffect(() => {
     if (!ref.current) return;
@@ -47,7 +96,7 @@ export default function StaffProductsClient() {
       {/* Hero (2/5) + note panel (3/5) */}
       <div className="ac grid grid-cols-1 lg:grid-cols-5 gap-5">
         <div className="lg:col-span-2">
-          <StaffProductsHero />
+          <StaffProductsHero products={products} loading={loading} />
         </div>
         <div className="lg:col-span-3">
           <div className="bg-white rounded-3xl h-full p-6 shadow-sm border border-[#F4F7FF] flex flex-col gap-4">
@@ -102,7 +151,16 @@ export default function StaffProductsClient() {
 
       {/* Products grid / table */}
       <div className="ac">
-        <StaffProductsGrid />
+        <StaffProductsGrid
+          products={products}
+          loading={loading}
+          pageIndex={data?.pageIndex || pageIndex}
+          totalPages={data?.totalPages || 1}
+          totalCount={data?.totalCount || 0}
+          hasPreviousPage={data?.hasPreviousPage || false}
+          hasNextPage={data?.hasNextPage || false}
+          onChangePage={setPageIndex}
+        />
       </div>
     </div>
   );

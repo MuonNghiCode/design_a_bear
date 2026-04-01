@@ -1,15 +1,53 @@
 "use client";
 
-import { IoSparklesOutline, IoCheckmark } from "react-icons/io5";
+import { useState } from "react";
+import { IoSparklesOutline, IoCheckmark, IoLockClosed } from "react-icons/io5";
 import { PAYMENT_OPTIONS } from "./checkout.atoms";
+import { paymentService } from "@/services/payment.service";
 
 export function StepPayment({
   method,
   onChange,
+  coupon,
+  onCouponChange,
+  couponApplied,
+  onCouponApplied,
+  discount,
+  isLoading,
 }: {
   method: string;
   onChange: (m: string) => void;
+  coupon: string;
+  onCouponChange: (c: string) => void;
+  couponApplied: boolean;
+  onCouponApplied: (v: boolean) => void;
+  discount: number;
+  isLoading?: boolean;
 }) {
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  const handleApplyCoupon = async () => {
+    if (!coupon.trim()) {
+      alert("Vui lòng nhập mã khuyến mãi");
+      return;
+    }
+
+    setValidatingCoupon(true);
+    try {
+      const res = await paymentService.validatePromotion({ code: coupon });
+      if (res.isSuccess) {
+        onCouponApplied(true);
+        alert("Áp dụng khuyến mãi thành công!");
+      } else {
+        alert(res.error?.description || "Mã khuyến mãi không hợp lệ");
+      }
+    } catch (error: any) {
+      alert(error.message || "Lỗi xác thực mã khuyến mãi");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
   return (
     <div className="space-y-5 relative">
       {/* Watermark */}
@@ -26,91 +64,193 @@ export function StepPayment({
         02
       </div>
 
-      <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-6">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
-            style={{ backgroundColor: "rgba(23,64,154,0.08)" }}
-          >
-            <IoSparklesOutline
-              className="text-xl"
-              style={{ color: "#17409A" }}
-            />
-          </div>
-          <div>
-            <h2
-              className="text-xl font-black"
-              style={{ color: "#1A1A2E", fontFamily: "'Nunito', sans-serif" }}
+      <div className="relative z-10 space-y-6">
+        {/* SECTION 1: PROMOTION INPUT */}
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ backgroundColor: "rgba(78,205,196,0.08)" }}
             >
-              Thanh toán như thế nào?
-            </h2>
-            <p className="text-xs" style={{ color: "#9CA3AF" }}>
-              Chọn phương thức phù hợp với bạn nhất
-            </p>
+              <span className="text-xl font-black" style={{ color: "#4ECDC4" }}>
+                🎟️
+              </span>
+            </div>
+            <div>
+              <h3
+                className="text-lg font-black"
+                style={{ color: "#1A1A2E", fontFamily: "'Nunito', sans-serif" }}
+              >
+                Mã khuyến mãi
+              </h3>
+              <p className="text-xs" style={{ color: "#9CA3AF" }}>
+                Có mã? Nhập vào để nhận ưu đãi
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={coupon}
+              onChange={(e) => onCouponChange(e.target.value.toUpperCase())}
+              disabled={couponApplied || validatingCoupon || isLoading}
+              placeholder="VD: SUMMER2024"
+              className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none transition-all disabled:opacity-50"
+              style={{
+                border: "1.5px solid #E5E7EB",
+                backgroundColor: couponApplied ? "#F8FAFF" : "#FFFFFF",
+              }}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !couponApplied) {
+                  handleApplyCoupon();
+                }
+              }}
+            />
+            <button
+              onClick={handleApplyCoupon}
+              disabled={couponApplied || validatingCoupon || isLoading}
+              className="px-6 py-3 rounded-2xl font-bold text-sm transition-all disabled:opacity-50"
+              style={{
+                backgroundColor: couponApplied ? "#4ECDC4" : "#17409A",
+                color: "white",
+              }}
+            >
+              {validatingCoupon ? "..." : couponApplied ? "✓" : "Áp dụng"}
+            </button>
+          </div>
+
+          {couponApplied && discount > 0 && (
+            <div
+              className="mt-2 rounded-2xl p-3 flex items-center justify-between"
+              style={{
+                backgroundColor: "rgba(78,205,196,0.08)",
+                border: "1px solid #4ECDC4",
+              }}
+            >
+              <span className="text-xs font-bold" style={{ color: "#4ECDC4" }}>
+                Giảm giá
+              </span>
+              <span className="text-sm font-black" style={{ color: "#4ECDC4" }}>
+                -{discount.toLocaleString("vi-VN")} đ
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* SECTION 2: PAYMENT METHOD */}
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ backgroundColor: "rgba(23,64,154,0.08)" }}
+            >
+              <IoSparklesOutline
+                className="text-xl"
+                style={{ color: "#17409A" }}
+              />
+            </div>
+            <div>
+              <h2
+                className="text-lg font-black"
+                style={{ color: "#1A1A2E", fontFamily: "'Nunito', sans-serif" }}
+              >
+                Thanh toán như thế nào?
+              </h2>
+              <p className="text-xs" style={{ color: "#9CA3AF" }}>
+                Hiện tại chỉ hỗ trợ Chuyển khoản
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {PAYMENT_OPTIONS.map((opt) => {
+              const isLocked = opt.id !== "bank";
+              const selected = method === opt.id;
+
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => !isLocked && onChange(opt.id)}
+                  disabled={isLocked || isLoading}
+                  className="relative text-left rounded-3xl p-5 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: isLocked
+                      ? "#F8FAFF"
+                      : selected
+                        ? opt.bg
+                        : "#F8FAFF",
+                    border: `2px solid ${isLocked ? "#E5E7EB" : selected ? opt.color : "#E5E7EB"}`,
+                    boxShadow: selected
+                      ? `0 0 0 3px ${opt.color}22, 0 8px 24px ${opt.color}18`
+                      : "none",
+                    transform: selected ? "translateY(-2px)" : "none",
+                  }}
+                >
+                  {selected && !isLocked && (
+                    <div
+                      className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: opt.color }}
+                    >
+                      <IoCheckmark className="text-white text-xs" />
+                    </div>
+                  )}
+
+                  {isLocked && (
+                    <div
+                      className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor: "#9CA3AF",
+                      }}
+                    >
+                      <IoLockClosed className="text-white text-xs" />
+                    </div>
+                  )}
+
+                  {/* Icon */}
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+                    style={{
+                      backgroundColor: `${opt.color}${isLocked ? "08" : selected ? "22" : "10"}`,
+                      color: `${opt.color}${
+                        isLocked ? "80" : selected ? "" : "CC"
+                      }`,
+                    }}
+                  >
+                    <opt.Icon size={28} />
+                  </div>
+
+                  <p
+                    className="font-black text-sm mb-1 leading-snug"
+                    style={{
+                      color: isLocked
+                        ? "#9CA3AF"
+                        : selected
+                          ? opt.color
+                          : "#1A1A2E",
+                      fontFamily: "'Nunito', sans-serif",
+                    }}
+                  >
+                    {opt.label}
+                  </p>
+                  <p
+                    className="text-xs leading-snug"
+                    style={{
+                      color: isLocked ? "#B4B8BE" : "#9CA3AF",
+                    }}
+                  >
+                    {isLocked ? "Đang phát triển" : opt.brief}
+                  </p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          {PAYMENT_OPTIONS.map((opt) => {
-            const selected = method === opt.id;
-            return (
-              <button
-                key={opt.id}
-                onClick={() => onChange(opt.id)}
-                className="relative text-left rounded-3xl p-5 transition-all duration-300 hover:scale-[1.02]"
-                style={{
-                  backgroundColor: selected ? opt.bg : "#F8FAFF",
-                  border: `2px solid ${selected ? opt.color : "#E5E7EB"}`,
-                  boxShadow: selected
-                    ? `0 0 0 3px ${opt.color}22, 0 8px 24px ${opt.color}18`
-                    : "none",
-                  transform: selected ? "translateY(-2px)" : "none",
-                }}
-              >
-                {selected && (
-                  <div
-                    className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: opt.color }}
-                  >
-                    <IoCheckmark className="text-white text-xs" />
-                  </div>
-                )}
-
-                {/* Icon — always on brand-tinted background */}
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
-                  style={{
-                    backgroundColor: `${opt.color}${selected ? "22" : "10"}`,
-                    color: `${opt.color}${selected ? "" : "CC"}`,
-                  }}
-                >
-                  <opt.Icon size={28} />
-                </div>
-
-                <p
-                  className="font-black text-sm mb-1 leading-snug"
-                  style={{
-                    color: selected ? opt.color : "#1A1A2E",
-                    fontFamily: "'Nunito', sans-serif",
-                  }}
-                >
-                  {opt.label}
-                </p>
-                <p
-                  className="text-xs leading-snug"
-                  style={{ color: "#9CA3AF" }}
-                >
-                  {opt.brief}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Extra info for bank transfer */}
+        {/* SECTION 3: BANK TRANSFER INFO */}
         {method === "bank" && (
           <div
-            className="mt-4 rounded-3xl p-5"
+            className="rounded-3xl p-5"
             style={{
               backgroundColor: "rgba(23,64,154,0.04)",
               border: "1.5px dashed #17409A40",
@@ -138,121 +278,6 @@ export function StepPayment({
                   </span>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {(method === "momo" || method === "vnpay") && (
-          <div
-            className="mt-4 rounded-3xl p-5 flex items-center gap-4"
-            style={{
-              backgroundColor:
-                method === "momo"
-                  ? "rgba(174,32,112,0.04)"
-                  : "rgba(0,102,204,0.04)",
-              border: `1.5px dashed ${method === "momo" ? "#AE207040" : "#0066CC40"}`,
-            }}
-          >
-            {/* QR placeholder */}
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center shrink-0"
-              style={{
-                backgroundColor: method === "momo" ? "#AE207015" : "#0066CC15",
-              }}
-            >
-              <svg
-                width="48"
-                height="48"
-                viewBox="0 0 48 48"
-                fill="none"
-                aria-hidden
-              >
-                <rect
-                  x="4"
-                  y="4"
-                  width="16"
-                  height="16"
-                  rx="2"
-                  stroke={method === "momo" ? "#AE2070" : "#0066CC"}
-                  strokeWidth="2"
-                />
-                <rect
-                  x="28"
-                  y="4"
-                  width="16"
-                  height="16"
-                  rx="2"
-                  stroke={method === "momo" ? "#AE2070" : "#0066CC"}
-                  strokeWidth="2"
-                />
-                <rect
-                  x="4"
-                  y="28"
-                  width="16"
-                  height="16"
-                  rx="2"
-                  stroke={method === "momo" ? "#AE2070" : "#0066CC"}
-                  strokeWidth="2"
-                />
-                <rect
-                  x="8"
-                  y="8"
-                  width="8"
-                  height="8"
-                  rx="1"
-                  fill={method === "momo" ? "#AE2070" : "#0066CC"}
-                  opacity="0.4"
-                />
-                <rect
-                  x="32"
-                  y="8"
-                  width="8"
-                  height="8"
-                  rx="1"
-                  fill={method === "momo" ? "#AE2070" : "#0066CC"}
-                  opacity="0.4"
-                />
-                <rect
-                  x="8"
-                  y="32"
-                  width="8"
-                  height="8"
-                  rx="1"
-                  fill={method === "momo" ? "#AE2070" : "#0066CC"}
-                  opacity="0.4"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="8"
-                  fill={method === "momo" ? "#AE2070" : "#0066CC"}
-                  opacity="0.3"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="4"
-                  fill={method === "momo" ? "#AE2070" : "#0066CC"}
-                />
-              </svg>
-            </div>
-            <div>
-              <p
-                className="text-xs font-bold mb-1"
-                style={{
-                  color: method === "momo" ? "#AE2070" : "#0066CC",
-                  fontFamily: "'Nunito', sans-serif",
-                }}
-              >
-                Quét mã QR để thanh toán
-              </p>
-              <p
-                className="text-xs leading-relaxed"
-                style={{ color: "#9CA3AF" }}
-              >
-                Mở ứng dụng <b>{method === "momo" ? "MoMo" : "VNPay"}</b>, chọn
-                quét mã QR và hoàn tất thanh toán.
-              </p>
             </div>
           </div>
         )}

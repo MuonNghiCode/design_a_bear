@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { formatPrice } from "@/utils/currency";
+import { useDebounce } from "@/hooks";
 import Image from "next/image";
 import {
   MdSearch,
@@ -14,13 +16,17 @@ import {
   MdWarning,
   MdClose,
   MdRemoveRedEye,
+  MdDelete,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
-import {
-  PRODUCTS_ADMIN,
-  type ProductAdmin,
-  type ProductAdminStatus,
-} from "@/data/admin";
+import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
+import { type GetProductsRequest } from "@/types";
+import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
+import { useToast } from "@/contexts/ToastContext";
+import type { ProductListItem } from "@/types";
+
+import CreateProductModal from "./CreateProductModal";
+import EditProductModal from "./EditProductModal";
 
 type ViewMode = "grid" | "table";
 type CategoryFilter = "all" | "complete" | "bear" | "accessory";
@@ -73,9 +79,15 @@ function StockBadge({ stock }: { stock: number }) {
 function ProductCard({
   p,
   onView,
+  onEdit,
+  onDelete,
+  isDeleting,
 }: {
   p: ProductAdmin;
   onView: (p: ProductAdmin) => void;
+  onEdit: (p: ProductAdmin) => void;
+  onDelete: (p: ProductAdmin) => void;
+  isDeleting: boolean;
 }) {
   const st = STATUS_CFG[p.status];
   return (
@@ -92,7 +104,7 @@ function ProductCard({
         style={{ backgroundColor: p.badgeColor + "0d" }}
       >
         <Image
-          src={p.image}
+          src={p.imageUrl || "/teddy_bear.png"}
           alt={p.name}
           width={96}
           height={96}
@@ -135,10 +147,7 @@ function ProductCard({
 
         {/* Price */}
         <p className="text-[#17409A] font-black text-lg leading-none mb-3">
-          {(p.price / 1000).toFixed(0)}K
-          <span className="text-[#9CA3AF] font-semibold text-[10px] ml-0.5">
-            đ
-          </span>
+          {formatPrice(p.price)}
         </p>
 
         {/* Stats row */}
@@ -173,7 +182,10 @@ function ProductCard({
         {/* Actions */}
         <div className="flex items-center gap-1.5 pt-1 border-t border-[#E9ECEF]">
           <button
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(p);
+            }}
             className="flex-1 flex items-center justify-center gap-1 text-[10px] font-black text-[#17409A] bg-[#17409A]/8 hover:bg-[#17409A]/15 rounded-xl py-2 transition-colors"
           >
             <MdEdit className="text-sm" /> Sửa
@@ -189,10 +201,15 @@ function ProductCard({
             <MdRemoveRedEye className="text-base" />
           </button>
           <button
-            onClick={(e) => e.stopPropagation()}
-            className="w-8 h-8 flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F7FF] rounded-xl transition-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(p);
+            }}
+            disabled={isDeleting}
+            className="w-8 h-8 flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-xl transition-all disabled:opacity-50"
+            title="Xóa sản phẩm"
           >
-            <MdMoreVert className="text-base" />
+            <MdDelete className="text-base" />
           </button>
         </div>
       </div>
@@ -205,10 +222,16 @@ function ProductRow({
   p,
   index,
   onView,
+  onEdit,
+  onDelete,
+  isDeleting,
 }: {
   p: ProductAdmin;
   index: number;
   onView: (p: ProductAdmin) => void;
+  onEdit: (p: ProductAdmin) => void;
+  onDelete: (p: ProductAdmin) => void;
+  isDeleting: boolean;
 }) {
   const st = STATUS_CFG[p.status];
   const AVATAR_COLORS = [
@@ -219,7 +242,6 @@ function ProductRow({
     "#FF6B9D",
     "#FFD93D",
   ];
-  const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length];
 
   const CATEGORY_LABELS: Record<string, string> = {
     complete: "Gấu hoàn chỉnh",
@@ -237,7 +259,7 @@ function ProductRow({
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-200 bg-[#F4F7FF] flex items-center justify-center">
             <Image
-              src={p.image}
+              src={p.imageUrl || "/teddy_bear.png"}
               alt={p.name}
               width={40}
               height={40}
@@ -273,10 +295,7 @@ function ProductRow({
       {/* Price */}
       <td className="py-3 pr-4 whitespace-nowrap">
         <span className="text-[#17409A] font-black text-sm">
-          {(p.price / 1000).toFixed(0)}K
-        </span>
-        <span className="text-[#9CA3AF] font-semibold text-[10px] ml-0.5">
-          đ
+          {formatPrice(p.price)}
         </span>
       </td>
 
@@ -320,11 +339,14 @@ function ProductRow({
 
       {/* Actions */}
       <td className="py-3">
-        <div className="flex items-center gap-1">
+        <div className="flex gap-1.5">
           <button
-            onClick={(e) => e.stopPropagation()}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all"
-            title="Chỉnh sửa"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(p);
+            }}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#F4F7FF] transition-all"
+            title="Sửa"
           >
             <MdEdit className="text-sm" />
           </button>
@@ -339,10 +361,15 @@ function ProductRow({
             <MdRemoveRedEye className="text-sm" />
           </button>
           <button
-            onClick={(e) => e.stopPropagation()}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#4B5563] hover:bg-[#F4F7FF] transition-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(p);
+            }}
+            disabled={isDeleting}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-all disabled:opacity-50"
+            title="Xóa sản phẩm"
           >
-            <MdMoreVert className="text-sm" />
+            <MdDelete className="text-sm" />
           </button>
         </div>
       </td>
@@ -351,28 +378,104 @@ function ProductRow({
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
+const mapProductToAdmin = (p: ProductListItem, index: number): ProductAdmin => {
+  const badgeColors = [
+    "#17409A",
+    "#7C5CFC",
+    "#4ECDC4",
+    "#FF8C42",
+    "#FF6B9D",
+    "#FFD93D",
+  ];
+  const color = badgeColors[index % badgeColors.length];
+
+  let category: "complete" | "bear" | "accessory" = "bear";
+  if (p.productType === "ACCESSORY") category = "accessory";
+  else if (p.productType === "COMPLETE_BEAR") category = "complete";
+
+  const badgeName = p.productType === "ACCESSORY" ? "Phụ kiện" : "Gấu bông";
+
+  return {
+    id: p.productId,
+    name: p.name,
+    imageUrl: p.imageUrl || "/teddy_bear.png",
+    badge: badgeName,
+    badgeColor: color,
+    category,
+    price: p.price,
+    stock: 50, // Mock stock as it's missing from API
+    sold: p.totalSales,
+    rating: p.averageRating,
+    status: p.isActive ? "active" : "draft",
+    popular: p.viewCountIn10Min > 5,
+  };
+};
+
 export default function ProductsGrid() {
   const [catFilter, setCatFilter] = useState<CategoryFilter>("all");
   const [statusFilter, setStatus] = useState<ProductAdminStatus | "all">("all");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 350);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selected, setSelected] = useState<ProductAdmin | null>(null);
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(
+    null,
+  );
+
+  const {
+    data,
+    fetchProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    isCreating,
+    isUpdating,
+    isDeleting,
+  } = useAdminProductsApi();
+  const { success, error } = useToast();
+
+  const handleDelete = (p: ProductAdmin) => {
+    setDeletingProduct(p);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingProduct) return;
+    const ok = await deleteProduct(deletingProduct.id);
+    if (ok) {
+      success("Xóa sản phẩm thành công!");
+      fetchProducts({ pageIndex: 1, pageSize: 50 });
+    } else {
+      error("Có lỗi xảy ra khi xóa sản phẩm.");
+    }
+    setDeletingProduct(null);
+  };
+
+  useEffect(() => {
+    fetchProducts({ pageIndex: 1, pageSize: 50 });
+  }, [fetchProducts]);
+
+  const mappedData = useMemo(() => {
+    if (!data?.items) return [];
+    return data.items.map(mapProductToAdmin);
+  }, [data]);
 
   const catCounts = useMemo(() => {
-    const c: Record<string, number> = { all: PRODUCTS_ADMIN.length };
-    PRODUCTS_ADMIN.forEach((p: ProductAdmin) => {
+    const c: Record<string, number> = { all: mappedData.length };
+    mappedData.forEach((p: ProductAdmin) => {
       c[p.category] = (c[p.category] ?? 0) + 1;
     });
     return c;
-  }, []);
+  }, [mappedData]);
 
   const filtered = useMemo(
     () =>
-      PRODUCTS_ADMIN.filter((p: ProductAdmin) => {
+      mappedData.filter((p: ProductAdmin) => {
         if (catFilter !== "all" && p.category !== catFilter) return false;
         if (statusFilter !== "all" && p.status !== statusFilter) return false;
-        if (search) {
-          const q = search.toLowerCase();
+        if (debouncedSearch) {
+          const q = debouncedSearch.toLowerCase();
           return (
             p.name.toLowerCase().includes(q) ||
             (p.badge ?? "").toLowerCase().includes(q)
@@ -380,7 +483,7 @@ export default function ProductsGrid() {
         }
         return true;
       }),
-    [catFilter, statusFilter, search],
+    [mappedData, catFilter, statusFilter, debouncedSearch],
   );
 
   const STATUS_FILTERS: { key: ProductAdminStatus | "all"; label: string }[] = [
@@ -443,7 +546,10 @@ export default function ProductsGrid() {
             </button>
 
             {/* Add new */}
-            <button className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap">
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap"
+            >
               <MdAdd className="text-base" /> Thêm mới
             </button>
           </div>
@@ -521,7 +627,14 @@ export default function ProductsGrid() {
             {filtered.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filtered.map((p: ProductAdmin) => (
-                  <ProductCard key={p.id} p={p} onView={setSelected} />
+                  <ProductCard
+                    key={p.id}
+                    p={p}
+                    onView={setSelected}
+                    onEdit={(p) => setEditingProductId(p.id)}
+                    onDelete={handleDelete}
+                    isDeleting={isDeleting && deletingProduct?.id === p.id}
+                  />
                 ))}
               </div>
             ) : (
@@ -548,7 +661,15 @@ export default function ProductsGrid() {
               </thead>
               <tbody>
                 {filtered.map((p: ProductAdmin, i: number) => (
-                  <ProductRow key={p.id} p={p} index={i} onView={setSelected} />
+                  <ProductRow
+                    key={p.id}
+                    p={p}
+                    index={i}
+                    onView={setSelected}
+                    onEdit={(p) => setEditingProductId(p.id)}
+                    onDelete={handleDelete}
+                    isDeleting={isDeleting && deletingProduct?.id === p.id}
+                  />
                 ))}
               </tbody>
             </table>
@@ -564,7 +685,7 @@ export default function ProductsGrid() {
               <span className="text-[#1A1A2E] font-black">
                 {filtered.length}
               </span>{" "}
-              / {PRODUCTS_ADMIN.length} sản phẩm
+              / {mappedData.length} sản phẩm
             </p>
             <div className="flex items-center gap-0.5">
               {[1, 2].map((p) => (
@@ -602,7 +723,7 @@ export default function ProductsGrid() {
                 style={{ backgroundColor: selected.badgeColor }}
               />
               <Image
-                src={selected.image}
+                src={selected.imageUrl}
                 alt={selected.name}
                 width={120}
                 height={120}
@@ -647,10 +768,7 @@ export default function ProductsGrid() {
                 {selected.name}
               </p>
               <p className="text-[#17409A] font-black text-2xl mb-4">
-                {(selected.price / 1000).toFixed(0)}K
-                <span className="text-[#9CA3AF] font-semibold text-sm ml-1">
-                  đ
-                </span>
+                {formatPrice(selected.price)}
               </p>
 
               <div className="grid grid-cols-3 gap-3 mb-4">
@@ -705,6 +823,88 @@ export default function ProductsGrid() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Product Modal */}
+      {isCreateModalOpen && (
+        <CreateProductModal
+          onClose={() => setCreateModalOpen(false)}
+          onSubmit={async (payload) => {
+            const response = await createProduct(payload);
+            if (response) {
+              success("Thêm mới sản phẩm thành công!");
+              fetchProducts({ pageIndex: 1, pageSize: 50 });
+            } else {
+              error("Lỗi khi thêm mới sản phẩm.");
+            }
+            return response;
+          }}
+          isSubmitting={isCreating}
+        />
+      )}
+
+      {/* Edit Product Modal */}
+      {editingProductId && (
+        <EditProductModal
+          productId={editingProductId}
+          onClose={() => setEditingProductId(null)}
+          onSubmit={async (payload) => {
+            const ok = await updateProduct(editingProductId, payload);
+            if (ok) {
+              success("Cập nhật sản phẩm thành công!");
+              fetchProducts({ pageIndex: 1, pageSize: 50 });
+            } else {
+              error("Lỗi khi cập nhật sản phẩm.");
+            }
+            return ok;
+          }}
+          isSubmitting={isUpdating}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingProduct && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={() => !isDeleting && setDeletingProduct(null)}
+          />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-[#EF4444]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MdDelete className="text-3xl text-[#EF4444]" />
+              </div>
+              <h3 className="text-xl font-black text-[#1A1A2E] mb-2">
+                Xóa sản phẩm này?
+              </h3>
+              <p className="text-sm font-semibold text-[#6B7280]">
+                Bạn đang chuẩn bị xóa sản phẩm{" "}
+                <span className="text-[#1A1A2E] font-black">
+                  &quot;{deletingProduct.name}&quot;
+                </span>
+                . Hành động này không thể hoàn tác.
+              </p>
+            </div>
+            <div className="px-6 py-4 bg-[#F8F9FF] flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingProduct(null)}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-[#6B7280] bg-white border border-[#E5E7EB] hover:bg-[#F4F7FF] hover:text-[#1A1A2E] transition-colors disabled:opacity-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-[#EF4444] hover:bg-[#DC2626] shadow-lg hover:shadow-xl shadow-[#EF4444]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? "Đang xóa..." : "Xóa vĩnh viễn"}
+              </button>
             </div>
           </div>
         </div>

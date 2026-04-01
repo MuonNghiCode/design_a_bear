@@ -16,6 +16,8 @@ export default function CustomScrollbar() {
     if (!thumb || !track) return;
 
     const THUMB_MIN_HEIGHT = 40; // px
+    let rafId: number | null = null;
+    let thumbVisible = false;
 
     const updateThumb = () => {
       const scrollTop = window.scrollY;
@@ -35,23 +37,35 @@ export default function CustomScrollbar() {
 
       gsap.set(thumb, { height: thumbH, y: thumbTop });
 
-      // Hide scrollbar when at the very top and not scrollable
+      // Toggle track visibility only when needed.
       if (scrollHeight <= clientHeight) {
-        gsap.to(track, { opacity: 0, duration: 0.3 });
+        track.style.opacity = "0";
       } else {
-        gsap.to(track, { opacity: 1, duration: 0.3 });
+        track.style.opacity = "1";
       }
+    };
+
+    const scheduleUpdateThumb = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        updateThumb();
+      });
     };
 
     // Fade in/out on scroll activity
     let fadeTimer: ReturnType<typeof setTimeout>;
     const onScroll = () => {
-      updateThumb();
-      gsap.to(thumb, { opacity: 1, duration: 0.15 });
+      scheduleUpdateThumb();
+      if (!thumbVisible) {
+        thumbVisible = true;
+        gsap.to(thumb, { opacity: 1, duration: 0.15, overwrite: "auto" });
+      }
       clearTimeout(fadeTimer);
       fadeTimer = setTimeout(() => {
         if (!isDragging.current) {
-          gsap.to(thumb, { opacity: 0.45, duration: 0.6 });
+          thumbVisible = false;
+          gsap.to(thumb, { opacity: 0.45, duration: 0.6, overwrite: "auto" });
         }
       }, 1200);
     };
@@ -127,6 +141,9 @@ export default function CustomScrollbar() {
 
     return () => {
       clearTimeout(fadeTimer);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", updateThumb);
       thumb.removeEventListener("mousedown", onMouseDown);

@@ -5,81 +5,191 @@ import {
   useCallback,
   useContext,
   useState,
+  useEffect,
   type ReactNode,
 } from "react";
 import { type ProductCardProps } from "@/components/shared/ProductCard";
-import { type CartContextType, type CartItem } from "@/types/cart";
+import { type CartContextType, type CartItem as UICartItem } from "@/types/cart";
+import { useCartApi } from "@/hooks/useCartApi";
+import { STORAGE_KEYS } from "@/constants";
+import type { CartItem as ApiCartItem } from "@/types/responses";
 
 const CartContext = createContext<CartContextType | null>(null);
 
-const MOCK_ITEMS: CartItem[] = [
-  {
+function mapApiToUI(apiItem: ApiCartItem): UICartItem {
+  return {
+    cartItemId: apiItem.cartItemId,
     product: {
-      id: "bear-brown-happy",
-      name: "Gấu Nâu Brownie Hạnh Phúc",
-      description:
-        "Chú gấu với chip AI dạy Toán, chất liệu bông tơ tằm siêu nhẹ, an toàn cho bé.",
-      price: 450000,
+      id: apiItem.variantId,
+      name: `${apiItem.productName} (${apiItem.variantName})`,
+      description: `Mã SP: ${apiItem.sku}`,
+      price: apiItem.unitPriceSnapshot || apiItem.variantPrice,
       image: "/teddy_bear.png",
-      badge: "Toán",
+      badge: apiItem.productType === "BASE_BEAR" ? "Gấu bông" : "Sản phẩm",
       badgeColor: "#17409A",
+      href: `/products/${apiItem.productSlug}`,
     },
-    quantity: 2,
-  },
-  {
-    product: {
-      id: "bear-pink-melody",
-      name: "Gấu Hồng Melody Âm Nhạc",
-      description:
-        "Dạy bé yêu âm nhạc qua hàng trăm bài hát và giai điệu vui nhộn.",
-      price: 520000,
-      image: "/teddy_bear.png",
-      badge: "Âm nhạc",
-      badgeColor: "#FF6B9D",
-    },
-    quantity: 1,
-  },
-];
+    quantity: apiItem.quantity,
+  };
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(MOCK_ITEMS);
+  const [items, setItems] = useState<UICartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const { getCart, createCart, addItemToCart, updateItemQuantity, removeCartItem, clearCartItems } = useCartApi();
 
-  const addItem = useCallback((product: ProductCardProps, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.product.id === product.id
-            ? { ...i, quantity: i.quantity + quantity }
-            : i,
-        );
+  const loadCart = useCallback(async () => {
+    try {
+      let cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
+      if (cartId) {
+        const cart = await getCart(cartId);
+        console.log("DEBUG LOAD CART:", cart);
+        if (cart && cart.cartItems) {
+          setItems(cart.cartItems.map(mapApiToUI));
+          return cartId;
+        }
       }
-      return [...prev, { product, quantity }];
-    });
-    setIsOpen(true);
-  }, []);
-
-  const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((i) => i.product.id !== productId));
-  }, []);
-
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setItems((prev) => prev.filter((i) => i.product.id !== productId));
-      return;
+    } catch {
+      // Cart invalid, remove it
+      localStorage.removeItem(STORAGE_KEYS.CART_ID);
     }
-    setItems((prev) =>
-      prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i)),
-    );
-  }, []);
+    return null;
+  }, [getCart]);
 
-  const clearCart = useCallback(() => setItems([]), []);
+  // Load cart on mount
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
+
+  const addItem = useCallback(
+    async (product: ProductCardProps, quantity = 1, buildId: string | null = null) => {
+      try {
+        let cartId = await loadCart();
+        if (!cartId) {
+          const userObj = localStorage.getItem(STORAGE_KEYS.USER);
+          let customerId = null;
+          if (userObj) {
+            try {
+              const user = JSON.parse(userObj);
+              customerId = user.id || null;
+            } catch {}
+          }
+          const newCart = await createCart({ customerId, currency: "VND" });
+          cartId = newCart.cartId;
+          localStorage.setItem(STORAGE_KEYS.CART_ID, cartId);
+        }
+
+        console.log("DEBUG ADD ITEM TO CART REQ:", {
+          cartId,
+          variantId: product.id,
+          buildId,
+          quantity,
+          unitPriceSnapshot: product.price,
+        });
+        const addRes = await addItemToCart({
+          cartId,
+          variantId: product.id,
+          buildId: buildId,
+          quantity,
+          unitPriceSnapshot: product.price,
+        });
+        console.log("DEBUG ADD ITEM TO CART RES:", addRes);
+
+        // Optimistic update — inject item directly into state
+        // instead of relying on GET /api/Carts/{id} to return updated data
+        if (addRes) {
+          const existingIndex = items.findIndex(
+            (i) => i.product.id === product.id
+          );
+          if (existingIndex >= 0) {
+            setItems((prev) =>
+              prev.map((i, idx) =>
+                idx === existingIndex
+                  ? { ...i, quantity: i.quantity + quantity }
+                  : i
+              )
+            );
+          } else {
+            setItems((prev) => [
+              ...prev,
+              { cartItemId: addRes.cartItemId, product: { ...product, href: product.href || `/products/${product.id}` }, quantity },
+            ]);
+          }
+        }
+
+        setIsOpen(true);
+      } catch (err) {
+        throw err; // Rethrow — the UI layer will show the toast
+      }
+    },
+    [loadCart, createCart, addItemToCart]
+  );
+
+  const removeItem = useCallback(
+    async (productId: string) => {
+      // Find the item to get its cartItemId
+      const itemToDelete = items.find((i) => i.product.id === productId);
+      
+      // Optimistic update
+      setItems((prev) => prev.filter((i) => i.product.id !== productId));
+      
+      if (itemToDelete?.cartItemId) {
+        try {
+          await removeCartItem(itemToDelete.cartItemId);
+        } catch (err) {
+          console.error("Failed to remove item from cart", err);
+          // Re-fetch cart on failure to sync state
+          loadCart();
+        }
+      }
+    },
+    [items, removeCartItem, loadCart]
+  );
+
+  const updateQuantity = useCallback(
+    async (productId: string, quantity: number) => {
+      const itemToUpdate = items.find((i) => i.product.id === productId);
+
+      if (quantity <= 0) {
+        removeItem(productId);
+        return;
+      }
+      
+      // Optimistic update
+      setItems((prev) =>
+        prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i))
+      );
+      
+      if (itemToUpdate?.cartItemId) {
+        try {
+          await updateItemQuantity(itemToUpdate.cartItemId, quantity);
+        } catch (err) {
+          console.error("Failed to update cart item quantity", err);
+          loadCart(); // Sync on fail
+        }
+      }
+    },
+    [items, updateItemQuantity, removeItem, loadCart]
+  );
+
+  const clearCart = useCallback(async () => {
+    setItems([]); // Optimistic
+    
+    const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
+    if (cartId && items.length > 0) {
+      try {
+        await clearCartItems(cartId);
+      } catch (err) {
+        console.error("Failed to clear cart", err);
+        loadCart();
+      }
+    }
+  }, [items.length, clearCartItems, loadCart]);
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce(
     (sum, i) => sum + i.product.price * i.quantity,
-    0,
+    0
   );
 
   return (

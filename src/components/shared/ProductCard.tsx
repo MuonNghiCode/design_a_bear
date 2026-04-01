@@ -1,16 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { IoHeartOutline, IoBagOutline } from "react-icons/io5";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
+import { useToast } from "@/contexts/ToastContext";
+import { productService } from "@/services/product.service";
 
-/* ────────────────────────────────────────────
-   ProductCard — Overlay Style
-   Image fills entire card, info overlays at bottom
-   với background màu tối để highlight text
-   ──────────────────────────────────────────── */
+type CartPayload = {
+  variantId: string;
+  unitPriceSnapshot: number;
+};
 
 export interface ProductCardProps {
   id: string;
@@ -39,17 +42,103 @@ export default function ProductCard({
 }: ProductCardProps) {
   const productLink = href || `/products/${id}`;
   const { isAuthenticated } = useAuth();
+  const { addItem } = useCart();
+  const toast = useToast();
   const router = useRouter();
+  const [imgSrc, setImgSrc] = useState(image || "/teddy_bear.png");
+  const [addingToCart, setAddingToCart] = useState(false);
 
-  const handleBuyNow = (e: React.MouseEvent) => {
+  const resolveCartPayload = async (): Promise<CartPayload> => {
+    const fallbackPrice = price > 0 ? price : 1;
+
+    try {
+      const detailRes = await productService.getProductById(id);
+      if (detailRes.isSuccess && detailRes.value) {
+        const firstAvailableVariant =
+          detailRes.value.variants.find((v) => !v.isSoldOut) ??
+          detailRes.value.variants[0];
+
+        if (firstAvailableVariant?.variantId) {
+          return {
+            variantId: firstAvailableVariant.variantId,
+            unitPriceSnapshot:
+              firstAvailableVariant.price > 0
+                ? firstAvailableVariant.price
+                : detailRes.value.price > 0
+                  ? detailRes.value.price
+                  : fallbackPrice,
+          };
+        }
+
+        return {
+          variantId: detailRes.value.productId,
+          unitPriceSnapshot:
+            detailRes.value.price > 0 ? detailRes.value.price : fallbackPrice,
+        };
+      }
+    } catch {
+      // fallback below
+    }
+
+    return {
+      variantId: id,
+      unitPriceSnapshot: fallbackPrice,
+    };
+  };
+
+  const addProductToCart = async () => {
+    if (!isAuthenticated) {
+      router.push("/auth");
+      return false;
+    }
+
+    try {
+      setAddingToCart(true);
+      const resolved = await resolveCartPayload();
+      await addItem(
+        {
+          id: resolved.variantId,
+          name,
+          description,
+          price: resolved.unitPriceSnapshot,
+          image: imgSrc || "/teddy_bear.png",
+          badge,
+          badgeColor,
+          href: productLink,
+        },
+        1,
+        null,
+      );
+      return true;
+    } catch (err) {
+      toast.error(
+        "Thêm vào giỏ hàng thất bại: " +
+          (err instanceof Error ? err.message : "Vui lòng thử lại"),
+      );
+      return false;
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
+  const handleBuyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!isAuthenticated) {
-      router.push("/auth");
-    } else {
-      // TODO: Add to cart or navigate to checkout
-      router.push(`/products/${id}`);
+    const added = await addProductToCart();
+    if (added) {
+      toast.success(`Đã thêm "${name}" vào giỏ. Đang chuyển đến thanh toán...`);
+      router.push("/checkout");
+    }
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const added = await addProductToCart();
+    if (added) {
+      toast.success(`Đã thêm "${name}" vào giỏ hàng!`);
     }
   };
 
@@ -64,11 +153,13 @@ export default function ProductCard({
       {/* ── Background Image (fills entire card) ── */}
       <div className="relative aspect-3/4 overflow-hidden">
         <Image
-          src={image}
+          src={imgSrc}
           alt={name}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-110"
           priority
+          unoptimized={imgSrc.startsWith("http")}
+          onError={() => setImgSrc("/teddy_bear.png")}
         />
 
         {/* Badge góc trên phải */}
@@ -120,17 +211,15 @@ export default function ProductCard({
               className="flex-1 bg-[#17409A] hover:bg-[#4A90E2] text-white font-bold text-sm text-center py-3 rounded-xl transition-all duration-200 group-hover:shadow-lg cursor-pointer"
               onClick={handleBuyNow}
             >
-              Mua ngay
+              {addingToCart ? "Đang xử lý..." : "Mua ngay"}
             </div>
 
             {/* Icon Buttons */}
             <button
               className="w-11 h-11 rounded-xl bg-white/20 hover:bg-white text-white hover:text-[#17409A] backdrop-blur-sm flex items-center justify-center transition-all duration-200"
               aria-label="Thêm vào giỏ"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
+              onClick={handleAddToCart}
+              disabled={addingToCart}
             >
               <IoBagOutline className="text-xl" />
             </button>

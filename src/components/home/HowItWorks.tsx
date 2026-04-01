@@ -58,51 +58,53 @@ export default function HowItWorks() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
   const stepsRef = useRef<HTMLDivElement>(null);
+  const triggersRef = useRef<ReturnType<typeof ScrollTrigger.create>[]>([]);
 
   useEffect(() => {
     if (!sectionRef.current) return;
 
+    // Set initial hidden state immediately — prevents visible→hidden flash
     if (headingRef.current) {
-      gsap.fromTo(
-        headingRef.current,
-        { y: 20, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: headingRef.current,
-            start: "top 85%",
-            once: true,
-          },
+      gsap.set(headingRef.current, { y: 20, opacity: 0 });
+    }
+    if (stepsRef.current) {
+      gsap.set(stepsRef.current.children, { y: 30, opacity: 0 });
+    }
+
+    if (headingRef.current) {
+      const t = ScrollTrigger.create({
+        trigger: headingRef.current,
+        start: "top 85%",
+        once: true,
+        onEnter: () => {
+          gsap.to(headingRef.current, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" });
         },
-      );
+      });
+      triggersRef.current.push(t);
     }
 
     if (stepsRef.current) {
       const steps = gsap.utils.toArray(stepsRef.current.children);
-      steps.forEach((step) => {
-        gsap.fromTo(
-          step as Element,
-          { y: 30, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.5,
-            ease: "power2.out",
-            scrollTrigger: {
-              trigger: step as Element,
-              start: "top 85%",
-              once: true,
-            },
+      steps.forEach((step, i) => {
+        const t = ScrollTrigger.create({
+          trigger: step as Element,
+          start: "top 88%",
+          once: true,
+          onEnter: () => {
+            gsap.to(step as Element, {
+              y: 0, opacity: 1, duration: 0.5,
+              delay: i * 0.05,
+              ease: "power2.out",
+            });
           },
-        );
+        });
+        triggersRef.current.push(t);
       });
     }
 
     return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
+      triggersRef.current.forEach((t) => t.kill());
+      triggersRef.current = [];
     };
   }, []);
 

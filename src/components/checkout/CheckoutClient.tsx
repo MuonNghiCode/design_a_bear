@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import gsap from "gsap";
 import { useCart } from "@/contexts/CartContext";
 import {
@@ -21,7 +21,19 @@ import { StepConfirm } from "./StepConfirm";
 import { SuccessScreen } from "./SuccessScreen";
 import { OrderSummary } from "./OrderSummary";
 import Image from "next/image";
-
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/contexts/ToastContext";
+import { userService } from "@/services/user.service";
+import { addressService } from "@/services/address.service";
+import { orderService } from "@/services/order.service";
+import { paymentService } from "@/services/payment.service";
+import { STORAGE_KEYS } from "@/constants";
+import type { Address } from "@/types";
+import {
+  composeAddressText,
+  normalizePhoneNumber,
+  parseAddressTextDetailed,
+} from "@/utils/address";
 /*  Main Component */
 export default function CheckoutClient() {
   const [step, setStep] = useState(1);
@@ -48,13 +60,135 @@ export default function CheckoutClient() {
     () => "DAB" + Math.random().toString(36).slice(2, 8).toUpperCase(),
   );
 
+  const [orderDetails, setOrderDetails] = useState<any>(null); // Save response order for SuccessScreen
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+
   const contentRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { totalPrice, clearCart, totalItems } = useCart();
+  const searchParams = useSearchParams();
+  const { totalPrice, clearCart, totalItems, closeCart } = useCart();
+  const { isAuthenticated } = useAuth();
+  const toast = useToast();
 
-  const SHIPPING_FEE = totalPrice >= FREE_SHIP ? 0 : 30_000;
+  const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
+  // const SHIPPING_FEE = 0;
   const DISCOUNT = couponApplied ? 50_000 : 0;
   const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
+
+  // Ensure cart drawer is closed when arriving at checkout.
+  useEffect(() => {
+    closeCart();
+  }, [closeCart]);
+
+  // Handle PayOS redirect callback: /checkout?orderCode=...&status=...
+  useEffect(() => {
+    const orderCodeFromQuery =
+      searchParams.get("orderCode") ||
+      searchParams.get("paymentCode") ||
+      searchParams.get("code");
+
+    if (!orderCodeFromQuery) return;
+
+    const handlePaymentReturn = async () => {
+      try {
+        setSubmitting(true);
+        const confirmRes =
+          await paymentService.confirmPayment(orderCodeFromQuery);
+
+        if (!confirmRes.isSuccess) {
+          throw new Error(
+            confirmRes.error?.description || "Xác nhận thanh toán thất bại",
+          );
+        }
+
+        const pendingOrder = localStorage.getItem(
+          STORAGE_KEYS.PENDING_PAYMENT_ORDER,
+        );
+        if (pendingOrder) {
+          try {
+            const parsed = JSON.parse(pendingOrder);
+            setOrderDetails(parsed.orderDetails ?? null);
+          } catch {}
+          localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
+        }
+
+        setOrderPlaced(true);
+        clearCart();
+        toast.success("Thanh toán thành công!");
+      } catch (error: any) {
+        toast.error(error.message || "Không thể xác nhận thanh toán");
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    handlePaymentReturn();
+  }, [searchParams, clearCart, toast]);
+
+  // Fetch initial profile & address data
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast.info("Vui lòng đăng nhập để thanh toán.");
+      router.push("/auth");
+      return;
+    }
+
+    if (totalItems === 0) {
+      setLoadingInitial(false);
+      return;
+    }
+
+    const loadData = async () => {
+      try {
+        let defaultForm = { ...form };
+
+        // 1. Get Profile
+        try {
+          const profileRes = await userService.getProfile();
+          if (profileRes.isSuccess && profileRes.value) {
+            defaultForm.name = profileRes.value.fullName || "";
+            defaultForm.email = profileRes.value.email || "";
+          }
+        } catch (e) {}
+
+        // 2. Get Addresses
+        try {
+          const addressRes = await addressService.getMyAddresses();
+          if (
+            addressRes.isSuccess &&
+            addressRes.value &&
+            addressRes.value.length > 0
+          ) {
+            const defAddr =
+              addressRes.value.find((a) => a.isDefaultShipping) ||
+              addressRes.value[0];
+            defaultForm.name = defAddr.fullName || defaultForm.name;
+            defaultForm.phone = defAddr.phoneNumber || "";
+            defaultForm.email = defAddr.email || defaultForm.email;
+            defaultForm.address = [defAddr.line1, defAddr.line2]
+              .filter(Boolean)
+              .join(", ");
+            defaultForm.provinceName = defAddr.city || "";
+            defaultForm.districtName = defAddr.state || "";
+            setAddresses(addressRes.value);
+            // province/district mapping is tricky so user might have to re-select,
+            // but we can set city implicitly if we want.
+            // defaultForm.provinceName = defAddr.city;
+            // defaultForm.districtName = defAddr.state;
+          }
+        } catch (e) {}
+
+        setForm(defaultForm);
+      } finally {
+        setLoadingInitial(false);
+      }
+    };
+
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   /*  Step transitions  */
   const transition = useCallback((nextStep: number, direction: 1 | -1) => {
@@ -93,23 +227,240 @@ export default function CheckoutClient() {
     }
     if (step < 3) transition(step + 1, 1);
     else {
-      // Place order
-      gsap.to(contentRef.current, {
-        scale: 0.96,
-        opacity: 0,
-        duration: 0.3,
-        onComplete: () => {
-          setOrderPlaced(true);
-          clearCart();
-          gsap.fromTo(
-            contentRef.current,
-            { scale: 0.96, opacity: 0 },
-            { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.2)" },
+      // Place order via API
+      setSubmitting(true);
+      (async () => {
+        try {
+          // 1. Resolve shipping address (reuse existing address if equivalent)
+          const userObj = localStorage.getItem(STORAGE_KEYS.USER);
+          const userId = userObj ? JSON.parse(userObj).id : null;
+          const normalizedPhone = normalizePhoneNumber(form.phone);
+          const parsedAddress = parseAddressTextDetailed(form.address);
+
+          const city = (
+            form.provinceName ||
+            form.province ||
+            parsedAddress.city
+          ).trim();
+          const state = (
+            form.districtName ||
+            form.district ||
+            parsedAddress.state
+          ).trim();
+
+          const normalizedCurrent = {
+            fullName: form.name.trim().toLowerCase(),
+            phoneNumber: normalizedPhone,
+            email: (form.email || "").trim().toLowerCase(),
+            line1: parsedAddress.line1.trim().toLowerCase(),
+            line2: (parsedAddress.line2 || "").trim().toLowerCase(),
+            city: city.toLowerCase(),
+            state: state.toLowerCase(),
+          };
+
+          let addressId =
+            addresses.find((a) => {
+              return (
+                a.fullName.trim().toLowerCase() ===
+                  normalizedCurrent.fullName &&
+                normalizePhoneNumber(a.phoneNumber) ===
+                  normalizedCurrent.phoneNumber &&
+                (a.email || "").trim().toLowerCase() ===
+                  normalizedCurrent.email &&
+                a.line1.trim().toLowerCase() === normalizedCurrent.line1 &&
+                (a.line2 || "").trim().toLowerCase() ===
+                  normalizedCurrent.line2 &&
+                a.city.trim().toLowerCase() === normalizedCurrent.city &&
+                a.state.trim().toLowerCase() === normalizedCurrent.state
+              );
+            })?.addressId ?? null;
+
+          if (!addressId) {
+            if (!userId) {
+              throw new Error("Không xác định được người dùng để tạo địa chỉ.");
+            }
+
+            const createAddrRes = await addressService.createAddress({
+              userId,
+              fullName: form.name.trim(),
+              phoneNumber: normalizedPhone,
+              email: form.email.trim() || null,
+              city,
+              state,
+              line1: parsedAddress.line1,
+              line2: parsedAddress.line2 || form.note || null,
+              isDefaultShipping: true,
+              isDefaultBilling: true,
+              label: null,
+              postalCode: null,
+              country: null,
+            });
+
+            if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
+              throw new Error(
+                "Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.",
+              );
+            }
+
+            addressId = createAddrRes.value.addressId;
+          }
+
+          // 2. Create Order
+          const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
+
+          if (!cartId) throw new Error("Chưa có giỏ hàng.");
+
+          const orderPayload = {
+            userId,
+            shippingAddressId: addressId,
+            billingAddressId: addressId,
+            currency: "VND",
+            subtotal: totalPrice,
+            discountTotal: DISCOUNT,
+            taxTotal: 0,
+            shippingTotal: SHIPPING_FEE,
+            grandTotal: FINAL_TOTAL,
+            notes: form.note || "Order from NextJS Frontend",
+            promoCode: couponApplied ? coupon : undefined,
+          };
+
+          const orderRes = await orderService.createOrderFromCart(
+            cartId,
+            orderPayload,
           );
-        },
-      });
+
+          if (orderRes.isSuccess && orderRes.value) {
+            const orderId = orderRes.value.orderId;
+            const safeDescription = `DAB ${orderRes.value.orderNumber}`.slice(
+              0,
+              25,
+            );
+
+            // 3. Call create-payment
+            const createPaymentRes = await paymentService.createPayment({
+              orderId,
+              itemName: "Design A Bear",
+              quantity: Math.max(1, totalItems),
+              amount: FINAL_TOTAL,
+              description: safeDescription,
+            });
+
+            if (!createPaymentRes.isSuccess || !createPaymentRes.value) {
+              throw new Error(
+                createPaymentRes.error?.description || "Lỗi tạo thanh toán",
+              );
+            }
+
+            const checkoutUrl =
+              createPaymentRes.value.checkoutUrl ||
+              createPaymentRes.value.paymentUrl;
+
+            if (checkoutUrl) {
+              localStorage.setItem(
+                STORAGE_KEYS.PENDING_PAYMENT_ORDER,
+                JSON.stringify({
+                  orderDetails: orderRes.value,
+                  orderCode:
+                    (
+                      createPaymentRes.value as {
+                        orderCode?: string;
+                        paymentCode?: string;
+                      }
+                    ).orderCode ||
+                    (
+                      createPaymentRes.value as {
+                        orderCode?: string;
+                        paymentCode?: string;
+                      }
+                    ).paymentCode ||
+                    null,
+                  finalTotal: FINAL_TOTAL,
+                  createdAt: new Date().toISOString(),
+                }),
+              );
+
+              window.location.href = checkoutUrl;
+              return;
+            }
+
+            const paymentCode = String(
+              (
+                createPaymentRes.value as {
+                  paymentCode?: string;
+                  orderCode?: string;
+                }
+              ).paymentCode ??
+                (
+                  createPaymentRes.value as {
+                    paymentCode?: string;
+                    orderCode?: string;
+                  }
+                ).orderCode ??
+                "",
+            );
+
+            if (!paymentCode) {
+              throw new Error("Thiếu paymentCode/orderCode từ create-payment");
+            }
+
+            // 4. Call confirm-payment
+            const confirmPaymentRes =
+              await paymentService.confirmPayment(paymentCode);
+
+            if (!confirmPaymentRes.isSuccess) {
+              throw new Error(
+                confirmPaymentRes.error?.description ||
+                  "Lỗi xác nhận thanh toán",
+              );
+            }
+
+            setOrderDetails(orderRes.value);
+            toast.success("Đặt hàng thành công!");
+
+            // Animation out then show success
+            gsap.to(contentRef.current, {
+              scale: 0.96,
+              opacity: 0,
+              duration: 0.3,
+              onComplete: () => {
+                setOrderPlaced(true);
+                clearCart();
+                gsap.fromTo(
+                  contentRef.current,
+                  { scale: 0.96, opacity: 0 },
+                  {
+                    scale: 1,
+                    opacity: 1,
+                    duration: 0.5,
+                    ease: "back.out(1.2)",
+                  },
+                );
+              },
+            });
+          } else {
+            throw new Error(orderRes.error?.description || "Lỗi tạo đơn hàng");
+          }
+        } catch (error: any) {
+          toast.error(error.message || "Đã có lỗi xảy ra");
+        } finally {
+          setSubmitting(false);
+        }
+      })();
     }
-  }, [step, form, transition, clearCart]);
+  }, [
+    step,
+    form,
+    transition,
+    clearCart,
+    totalPrice,
+    DISCOUNT,
+    SHIPPING_FEE,
+    FINAL_TOTAL,
+    couponApplied,
+    coupon,
+    toast,
+    totalItems,
+  ]);
 
   const goBack = useCallback(() => {
     if (step > 1) transition(step - 1, -1);
@@ -127,6 +478,8 @@ export default function CheckoutClient() {
 
   /* Empty cart redirect */
   if (totalItems === 0 && !orderPlaced) {
+    if (loadingInitial) return <div className="min-h-screen bg-[#F4F7FF]" />; // prevent flicker
+
     return (
       <div
         className="min-h-screen flex items-center justify-center flex-col gap-5"
@@ -157,6 +510,14 @@ export default function CheckoutClient() {
           <IoArrowBack />
           Quay lại mua sắm
         </Link>
+      </div>
+    );
+  }
+
+  if (loadingInitial) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#F4F7FF]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#17409A] border-t-transparent" />
       </div>
     );
   }
@@ -244,7 +605,13 @@ export default function CheckoutClient() {
             {/* Step content */}
             <div ref={contentRef} className="relative">
               {orderPlaced ? (
-                <SuccessScreen orderId={orderId} />
+                <SuccessScreen
+                  orderId={
+                    orderDetails?.orderNumber ||
+                    orderDetails?.orderId ||
+                    orderId
+                  }
+                />
               ) : (
                 <>
                   {step === 1 && (
@@ -258,6 +625,12 @@ export default function CheckoutClient() {
                     <StepPayment
                       method={paymentMethod}
                       onChange={setPaymentMethod}
+                      coupon={coupon}
+                      onCouponChange={setCoupon}
+                      couponApplied={couponApplied}
+                      onCouponApplied={setCouponApplied}
+                      discount={DISCOUNT}
+                      isLoading={submitting}
                     />
                   )}
                   {step === 3 && (
@@ -295,7 +668,7 @@ export default function CheckoutClient() {
                 {/* Next / Submit */}
                 <button
                   onClick={goNext}
-                  disabled={step === 3 && !agreed}
+                  disabled={(step === 3 && !agreed) || submitting}
                   className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-black text-white transition-all duration-200 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{
                     background:
@@ -308,7 +681,9 @@ export default function CheckoutClient() {
                         : "0 6px 20px rgba(23,64,154,0.35)",
                   }}
                 >
-                  {step < 3 ? (
+                  {submitting ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent mx-8" />
+                  ) : step < 3 ? (
                     <>
                       Tiếp theo
                       <IoArrowForward className="text-base" />
@@ -362,14 +737,22 @@ export default function CheckoutClient() {
           </div>
           <button
             onClick={goNext}
-            disabled={step === 3 && !agreed}
+            disabled={(step === 3 && !agreed) || submitting}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black text-white transition-all duration-200 disabled:opacity-50"
             style={{
               background: "linear-gradient(135deg, #17409A 0%, #4ECDC4 100%)",
             }}
           >
-            {step < 3 ? "Tiếp theo" : "Đặt hàng"}
-            <IoArrowForward className="text-sm" />
+            {submitting ? (
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : step < 3 ? (
+              <>
+                Tiếp theo
+                <IoArrowForward className="text-sm" />
+              </>
+            ) : (
+              "Đặt hàng"
+            )}
           </button>
         </div>
       )}

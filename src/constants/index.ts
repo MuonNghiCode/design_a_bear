@@ -7,10 +7,12 @@ export const APP_CONFIG = {
 } as const;
 
 export const STORAGE_KEYS = {
-    TOKEN: 'token',
-    USER: 'user',
-    THEME: 'theme',
-    LANGUAGE: 'language',
+  TOKEN: 'token',
+  USER: 'user',
+  THEME: 'theme',
+  LANGUAGE: 'language',
+  CART_ID: 'cart_id',
+  PENDING_PAYMENT_ORDER: 'pending_payment_order',
 } as const;
 
 export const PAGINATION = {

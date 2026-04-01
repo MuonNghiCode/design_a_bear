@@ -1,14 +1,37 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { formatPrice } from "@/utils/currency";
+import { useDebounce } from "@/hooks";
 import {
   MdSearch,
   MdRemoveRedEye,
   MdFileDownload,
   MdClose,
+  MdAutorenew,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
-import { ORDERS, type OrderRow, type OrderStatus } from "@/data/admin";
+import { useAdminOrdersApi } from "@/hooks/useAdminOrdersApi";
+import { orderService } from "@/services/order.service";
+import { addressService } from "@/services/address.service";
+import { useToast } from "@/contexts/ToastContext";
+import type { OrderListItem, AddressDetail } from "@/types";
+
+export type OrderStatus =
+  | "pending"
+  | "packing"
+  | "shipping"
+  | "done"
+  | "cancelled";
+
+const BACKEND_STATUSES: { value: string; label: string }[] = [
+  { value: "PENDING", label: "Chờ xử lý" },
+  { value: "PACKING", label: "Đóng gói" },
+  { value: "SHIPPING", label: "Vận chuyển" },
+  // { value: "PAID", label: "Đã thanh toán" }, // TODO: confirm with backend
+  { value: "DONE", label: "Hoàn thành" },
+  { value: "CANCELLED", label: "Đã hủy" },
+];
 
 const STATUS_CFG: Record<
   OrderStatus,
@@ -49,34 +72,120 @@ const COL_HEADS = [
   "",
 ];
 
+const API_STATUS_TO_UI: Record<string, OrderStatus> = {
+  PENDING: "pending",
+  PACKING: "packing",
+  SHIPPING: "shipping",
+  // PAID: "done", // TODO: confirm with backend
+  DONE: "done",
+  CANCELLED: "cancelled",
+};
+
 export default function OrdersTable() {
+  const { data, loading, fetchOrders, usersMap } = useAdminOrdersApi();
   const [tab, setTab] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<OrderRow | null>(null);
+  const debouncedSearch = useDebounce(search, 350);
+  const [selected, setSelected] = useState<OrderListItem | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<AddressDetail | null>(
+    null,
+  );
+  const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
+  const [pageIndex, setPageIndex] = useState(1);
+  const pageSize = 10;
+
+  const handleViewDetails = async (
+    orderId: string,
+    shippingAddressId?: string | null,
+  ) => {
+    try {
+      setLoadingDetails(orderId);
+      setSelectedAddress(null);
+
+      const orderAction = orderService.getOrderById(orderId);
+      const addressAction = shippingAddressId
+        ? addressService.getAddressById(shippingAddressId)
+        : Promise.resolve(null);
+
+      const [res, addressRes] = await Promise.all([orderAction, addressAction]);
+
+      if (res.isSuccess && res.value) {
+        setSelected(res.value);
+      } else {
+        console.error("Failed to fetch order details", res.error);
+        const localData = data?.items.find((o) => o.orderId === orderId);
+        if (localData) setSelected(localData);
+      }
+
+      if (addressRes?.isSuccess && addressRes.value) {
+        setSelectedAddress(addressRes.value);
+      }
+    } catch (e) {
+      console.error(e);
+      // Fallback
+      const localData = data?.items.find((o) => o.orderId === orderId);
+      if (localData) setSelected(localData);
+    } finally {
+      setLoadingDetails(null);
+    }
+  };
+
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const { success, error: toastError } = useToast();
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (!selected) return;
+    try {
+      setUpdatingStatus(newStatus);
+      const res = await orderService.updateOrderStatus(selected.orderId, {
+        status: newStatus,
+        notes: `Cập nhật trạng thái thủ công thành ${newStatus}`,
+      });
+      if (res.isSuccess || res.value === null) {
+        success("Thay đổi trạng thái thành công!");
+        setSelected({ ...selected, status: newStatus });
+        fetchOrders({ pageIndex, pageSize });
+      } else {
+        toastError("Không thể thay đổi trạng thái!");
+      }
+    } catch (e) {
+      console.error(e);
+      toastError("Lỗi mạng khi đổi trạng thái!");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders({ pageIndex, pageSize });
+  }, [fetchOrders, pageIndex, pageSize]);
+
+  const orders = useMemo(() => data?.items || [], [data?.items]);
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: ORDERS.length };
-    ORDERS.forEach((o: OrderRow) => {
-      c[o.status] = (c[o.status] ?? 0) + 1;
+    const c: Record<string, number> = { all: orders.length };
+    orders.forEach((o) => {
+      const st = API_STATUS_TO_UI[o.status] || "pending";
+      c[st] = (c[st] ?? 0) + 1;
     });
     return c;
-  }, []);
+  }, [orders]);
 
   const filtered = useMemo(
     () =>
-      ORDERS.filter((o: OrderRow) => {
-        if (tab !== "all" && o.status !== tab) return false;
-        if (search) {
-          const q = search.toLowerCase();
-          return (
-            o.id.toLowerCase().includes(q) ||
-            o.customer.toLowerCase().includes(q) ||
-            o.product.toLowerCase().includes(q)
-          );
-        }
-        return true;
+      orders.filter((o) => {
+        const st = API_STATUS_TO_UI[o.status] || "pending";
+        if (tab !== "all" && st !== tab) return false;
+        const q = debouncedSearch.toLowerCase();
+        return (
+          o.orderNumber.toLowerCase().includes(q) ||
+          (o.userId || "").toLowerCase().includes(q) ||
+          (o.userId
+            ? (usersMap[o.userId]?.fullName || "").toLowerCase().includes(q)
+            : false)
+        );
       }),
-    [tab, search],
+    [tab, debouncedSearch, orders, usersMap],
   );
 
   return (
@@ -160,109 +269,142 @@ export default function OrdersTable() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((order: OrderRow, i: number) => {
-                const st = STATUS_CFG[order.status];
-                const avatarColor = AVATAR_COLORS[i % AVATAR_COLORS.length];
-
-                return (
-                  <tr
-                    key={order.id}
-                    className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer"
+              {loading && filtered.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="text-center py-6 text-sm text-[#9CA3AF]"
                   >
-                    {/* Order ID */}
-                    <td className="py-3 pr-4">
-                      <span className="text-[11px] font-black text-[#17409A] bg-[#17409A]/8 px-2.5 py-1 rounded-lg tracking-wide font-mono">
-                        {order.id}
-                      </span>
-                    </td>
+                    Đang tải...
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((order, i: number) => {
+                  const uiStatus = API_STATUS_TO_UI[order.status] || "pending";
+                  const st = STATUS_CFG[uiStatus];
 
-                    {/* Customer */}
-                    <td className="py-3 pr-4">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white font-black text-xs group-hover:scale-105 transition-transform duration-200"
-                          style={{ backgroundColor: avatarColor }}
-                        >
-                          {order.avatar}
-                        </div>
-                        <div>
-                          <p className="text-[#1A1A2E] font-bold text-sm leading-tight">
-                            {order.customer}
-                          </p>
-                          <p className="text-[#9CA3AF] text-[10px] font-semibold leading-tight">
-                            {order.city}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
+                  const userDetail = order.userId
+                    ? usersMap[order.userId]
+                    : null;
 
-                    {/* Product */}
-                    <td className="py-3 pr-4">
-                      <p className="text-[#1A1A2E] font-semibold text-sm leading-tight">
-                        {order.product}
-                      </p>
-                      {order.badge && (
-                        <span
-                          className="text-[9px] font-black px-2 py-0.5 rounded-full mt-0.5 inline-block"
-                          style={{
-                            color: order.badgeColor,
-                            backgroundColor: order.badgeColor + "18",
-                          }}
-                        >
-                          {order.badge}
+                  const customerName = userDetail
+                    ? userDetail.fullName
+                    : order.userId
+                      ? "Thành viên (Id đang tải)"
+                      : "Khách vãng lai";
+
+                  const avatarColor =
+                    AVATAR_COLORS[
+                      (userDetail ? userDetail.email.charCodeAt(0) : i) %
+                        AVATAR_COLORS.length
+                    ];
+                  const avatarChar = customerName.charAt(0).toUpperCase();
+
+                  const dateObj = new Date(order.createdAt);
+                  const dateStr = dateObj.toLocaleDateString("vi-VN");
+                  const timeStr = dateObj.toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+
+                  return (
+                    <tr
+                      key={order.orderId}
+                      className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer"
+                    >
+                      {/* Order ID */}
+                      <td className="py-3 pr-4">
+                        <span className="text-[11px] font-black text-[#17409A] bg-[#17409A]/8 px-2.5 py-1 rounded-lg tracking-wide font-mono">
+                          {order.orderNumber}
                         </span>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* Amount */}
-                    <td className="py-3 pr-4 whitespace-nowrap">
-                      <span className="text-[#1A1A2E] font-black text-sm">
-                        {(order.amount / 1000).toFixed(0)}K
-                      </span>
-                      <span className="text-[#9CA3AF] text-[10px] font-semibold ml-0.5">
-                        đ
-                      </span>
-                    </td>
+                      {/* Customer */}
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white font-black text-xs group-hover:scale-105 transition-transform duration-200"
+                            style={{ backgroundColor: avatarColor }}
+                          >
+                            {avatarChar}
+                          </div>
+                          <div>
+                            <p className="text-[#1A1A2E] font-bold text-sm leading-tight">
+                              {customerName}
+                            </p>
+                            <p className="text-[#9CA3AF] text-[10px] font-semibold leading-tight">
+                              {order.userId ? "Đã đăng ký" : "Khách mới"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
 
-                    {/* Status */}
-                    <td className="py-3 pr-4">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="w-1.5 h-1.5 rounded-full shrink-0"
-                          style={{ backgroundColor: st.color }}
-                        />
-                        <span
-                          className="text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap"
-                          style={{ color: st.color, backgroundColor: st.bg }}
+                      {/* Product */}
+                      <td className="py-3 pr-4">
+                        <p className="text-[#1A1A2E] font-semibold text-sm leading-tight">
+                          {order.orderItems && order.orderItems.length > 0
+                            ? `${order.orderItems.length} sản phẩm`
+                            : "Không có SP"}
+                        </p>
+                      </td>
+
+                      {/* Amount */}
+                      <td className="py-3 pr-4 whitespace-nowrap">
+                        <div className="text-[#17409A] font-black text-sm">
+                          {formatPrice(order.grandTotal)}
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: st.color }}
+                          />
+                          <span
+                            className="text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap"
+                            style={{ color: st.color, backgroundColor: st.bg }}
+                          >
+                            {st.label}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Date */}
+                      <td className="py-3 pr-4">
+                        <p className="text-[#4B5563] font-semibold text-[11px] leading-tight">
+                          {dateStr}
+                        </p>
+                        <p className="text-[#9CA3AF] text-[10px] font-semibold leading-tight">
+                          {timeStr}
+                        </p>
+                      </td>
+
+                      {/* Action */}
+                      <td className="py-3">
+                        <button
+                          onClick={() =>
+                            handleViewDetails(
+                              order.orderId,
+                              order.shippingAddressId,
+                            )
+                          }
+                          disabled={loadingDetails === order.orderId}
+                          className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all duration-150 disabled:opacity-50"
+                          title="Xem chi tiết"
                         >
-                          {st.label}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Date */}
-                    <td className="py-3 pr-4">
-                      <p className="text-[#4B5563] font-semibold text-[11px] leading-tight">
-                        {order.date}
-                      </p>
-                      <p className="text-[#9CA3AF] text-[10px] font-semibold leading-tight">
-                        {order.time}
-                      </p>
-                    </td>
-
-                    {/* Action */}
-                    <td className="py-3">
-                      <button
-                        onClick={() => setSelected(order)}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all duration-150"
-                        title="Xem chi tiết"
-                      >
-                        <MdRemoveRedEye className="text-base" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                          {loadingDetails === order.orderId ? (
+                            <MdAutorenew className="text-base animate-spin" />
+                          ) : (
+                            <MdRemoveRedEye className="text-base" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
 
@@ -288,17 +430,19 @@ export default function OrdersTable() {
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#F4F7FF]">
             <p className="text-[#9CA3AF] text-[11px] font-semibold">
               Hiển thị{" "}
-              <span className="text-[#1A1A2E] font-black">
-                {filtered.length}
-              </span>{" "}
-              / {ORDERS.length} đơn hàng
+              <span className="text-[#1A1A2E] font-black">{orders.length}</span>{" "}
+              / {data?.totalCount || 0} đơn hàng
             </p>
             <div className="flex items-center gap-1">
-              {[1, 2, 3].map((p) => (
+              {Array.from(
+                { length: data?.totalPages || 0 },
+                (_, i) => i + 1,
+              ).map((p) => (
                 <button
                   key={p}
+                  onClick={() => setPageIndex(p)}
                   className={`w-7 h-7 rounded-lg text-[11px] font-black transition-colors ${
-                    p === 1
+                    p === pageIndex
                       ? "bg-[#17409A] text-white"
                       : "text-[#9CA3AF] hover:bg-[#F4F7FF]"
                   }`}
@@ -312,130 +456,203 @@ export default function OrdersTable() {
       </div>
 
       {/* Order detail modal */}
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setSelected(null)}
-          />
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            {/* Coloured status header */}
-            <div
-              className="px-6 pt-5 pb-4"
-              style={{ backgroundColor: STATUS_CFG[selected.status].bg }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <span
-                  className="text-[10px] font-black tracking-[0.2em] uppercase"
-                  style={{ color: STATUS_CFG[selected.status].color }}
-                >
-                  Chi tiết đơn hàng
-                </span>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#1A1A2E] hover:bg-white/60 transition-all"
-                >
-                  <MdClose className="text-lg" />
-                </button>
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[#1A1A2E] font-black text-lg font-mono">
-                  {selected.id}
-                </span>
-                <span
-                  className="text-[10px] font-black px-2.5 py-1 rounded-full"
-                  style={{
-                    color: STATUS_CFG[selected.status].color,
-                    backgroundColor: STATUS_CFG[selected.status].color + "28",
-                  }}
-                >
-                  {STATUS_CFG[selected.status].label}
-                </span>
-              </div>
-              <p className="text-[#1A1A2E] font-black text-3xl leading-none">
-                {(selected.amount / 1000).toFixed(0)}K
-                <span className="text-[#9CA3AF] font-semibold text-base ml-1">
-                  đ
-                </span>
-              </p>
-            </div>
+      {selected &&
+        (() => {
+          const uiStatus = API_STATUS_TO_UI[selected.status] || "pending";
+          const userDetail = selected.userId ? usersMap[selected.userId] : null;
+          const customerName = userDetail
+            ? userDetail.fullName
+            : selected.userId
+              ? "Thành viên (Id đang tải)"
+              : "Khách vãng lai";
+          const dateObj = new Date(selected.createdAt);
+          const dateStr = dateObj.toLocaleDateString("vi-VN");
+          const timeStr = dateObj.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
 
-            {/* Body */}
-            <div className="p-6 flex flex-col gap-4">
-              {/* Customer */}
-              <div>
-                <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
-                  Khách hàng
-                </p>
-                <div className="flex items-center gap-3 bg-[#F8F9FF] rounded-2xl p-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0"
-                    style={{
-                      backgroundColor:
-                        AVATAR_COLORS[
-                          selected.customer.charCodeAt(0) % AVATAR_COLORS.length
-                        ],
-                    }}
-                  >
-                    {selected.avatar}
-                  </div>
-                  <div>
-                    <p className="text-[#1A1A2E] font-bold text-sm">
-                      {selected.customer}
-                    </p>
-                    <p className="text-[#9CA3AF] text-[11px] font-semibold">
-                      {selected.city}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product */}
-              <div>
-                <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
-                  Sản phẩm
-                </p>
-                <div className="bg-[#F8F9FF] rounded-2xl p-3">
-                  <p className="text-[#1A1A2E] font-bold text-sm">
-                    {selected.product}
-                  </p>
-                  {selected.badge && (
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                onClick={() => setSelected(null)}
+              />
+              <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                {/* Coloured status header */}
+                <div
+                  className="px-6 pt-5 pb-4"
+                  style={{ backgroundColor: STATUS_CFG[uiStatus].bg }}
+                >
+                  <div className="flex items-center justify-between mb-3">
                     <span
-                      className="text-[9px] font-black px-2 py-0.5 rounded-full mt-1 inline-block"
+                      className="text-[10px] font-black tracking-[0.2em] uppercase"
+                      style={{ color: STATUS_CFG[uiStatus].color }}
+                    >
+                      Chi tiết đơn hàng
+                    </span>
+                    <button
+                      onClick={() => setSelected(null)}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#1A1A2E] hover:bg-white/60 transition-all"
+                    >
+                      <MdClose className="text-lg" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[#1A1A2E] font-black text-lg font-mono">
+                      {selected.orderNumber}
+                    </span>
+                    <span
+                      className="text-[10px] font-black px-2.5 py-1 rounded-full"
                       style={{
-                        color: selected.badgeColor,
-                        backgroundColor: selected.badgeColor + "18",
+                        color: STATUS_CFG[uiStatus].color,
+                        backgroundColor: STATUS_CFG[uiStatus].color + "28",
                       }}
                     >
-                      {selected.badge}
+                      {STATUS_CFG[uiStatus].label}
                     </span>
-                  )}
-                </div>
-              </div>
+                  </div>
+                  <p className="text-[#1A1A2E] font-black text-3xl leading-none">
+                    {formatPrice(selected.grandTotal)}
+                  </p>
 
-              {/* Date / Time */}
-              <div className="flex items-center gap-3">
-                <div className="bg-[#F8F9FF] rounded-xl px-4 py-2.5">
-                  <p className="text-[9px] font-black tracking-wide text-[#9CA3AF] mb-0.5">
-                    NGÀY
-                  </p>
-                  <p className="text-[#1A1A2E] text-[11px] font-bold">
-                    {selected.date}
-                  </p>
+                  {/* Status Dropdown Update */}
+                  <div className="mt-5 pt-4 border-t border-black/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[9px] font-black text-[#1A1A2E]/50 tracking-[0.15em] mb-0.5 uppercase">
+                        Trạng thái Đơn hàng
+                      </p>
+                      <p className="text-[#1A1A2E]/70 text-[10px] font-bold">
+                        Lưu thay đổi tự động
+                      </p>
+                    </div>
+
+                    <div className="relative w-full sm:w-[150px]">
+                      <select
+                        value={selected.status}
+                        onChange={(e) => handleStatusUpdate(e.target.value)}
+                        disabled={updatingStatus !== null}
+                        className="appearance-none w-full bg-white/60 backdrop-blur-sm border border-white hover:bg-white text-[11px] font-black tracking-wide text-[#1A1A2E] py-2.5 px-3 pr-8 rounded-2xl cursor-pointer shadow-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {BACKEND_STATUSES.map((sts) => (
+                          <option
+                            key={sts.value}
+                            value={sts.value}
+                            className="text-black font-semibold"
+                          >
+                            {sts.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A2E]">
+                        {updatingStatus ? (
+                          <MdAutorenew className="animate-spin text-sm" />
+                        ) : (
+                          <svg
+                            className="fill-current h-4 w-4 opacity-50"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-[#F8F9FF] rounded-xl px-4 py-2.5">
-                  <p className="text-[9px] font-black tracking-wide text-[#9CA3AF] mb-0.5">
-                    GIỜ
-                  </p>
-                  <p className="text-[#1A1A2E] text-[11px] font-bold">
-                    {selected.time}
-                  </p>
+
+                {/* Body */}
+                <div className="p-6 flex flex-col gap-4">
+                  {/* Customer */}
+                  <div>
+                    <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
+                      Khách hàng
+                    </p>
+                    <div className="flex items-center gap-3 bg-[#F8F9FF] rounded-2xl p-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0"
+                        style={{
+                          backgroundColor:
+                            AVATAR_COLORS[
+                              customerName.charCodeAt(0) % AVATAR_COLORS.length
+                            ],
+                        }}
+                      >
+                        {customerName.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-[#1A1A2E] font-bold text-sm">
+                          {customerName}
+                        </p>
+                        <p className="text-[#9CA3AF] text-[11px] font-semibold">
+                          {selected.userId ? "Đã đăng ký" : "Guest"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Product */}
+                  <div>
+                    <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
+                      Sản phẩm
+                    </p>
+                    <div className="bg-[#F8F9FF] rounded-2xl p-3">
+                      <p className="text-[#1A1A2E] font-bold text-sm">
+                        {selected.orderItems && selected.orderItems.length > 0
+                          ? `${selected.orderItems.length} sản phẩm`
+                          : "Không có thông tin chi tiết sp"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Address Section */}
+                  {selectedAddress && (
+                    <div>
+                      <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
+                        Giao hàng tới
+                      </p>
+                      <div className="bg-[#F8F9FF] rounded-2xl p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="text-[#1A1A2E] font-bold text-sm">
+                              {selectedAddress.fullName}
+                            </p>
+                            <p className="text-[#9CA3AF] text-xs font-semibold mt-0.5">
+                              {selectedAddress.phoneNumber}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-full h-px bg-[#E5E7EB] my-3" />
+                        <p className="text-[#4B5563] text-xs leading-relaxed font-medium">
+                          {selectedAddress.state}, {selectedAddress.city}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Date / Time */}
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#F8F9FF] rounded-xl px-4 py-2.5">
+                      <p className="text-[9px] font-black tracking-wide text-[#9CA3AF] mb-0.5">
+                        NGÀY
+                      </p>
+                      <p className="text-[#1A1A2E] text-[11px] font-bold">
+                        {dateStr}
+                      </p>
+                    </div>
+                    <div className="bg-[#F8F9FF] rounded-xl px-4 py-2.5">
+                      <p className="text-[9px] font-black tracking-wide text-[#9CA3AF] mb-0.5">
+                        GIỜ
+                      </p>
+                      <p className="text-[#1A1A2E] text-[11px] font-bold">
+                        {timeStr}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          );
+        })()}
     </>
   );
 }

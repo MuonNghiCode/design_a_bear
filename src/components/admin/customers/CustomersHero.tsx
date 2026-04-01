@@ -7,12 +7,13 @@ import {
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { CUSTOMERS, CUSTOMER_MONTHLY } from "@/data/admin";
+import { formatPrice } from "@/utils/currency";
 
 const totalCustomers = CUSTOMERS.length;
 const vipCount = CUSTOMERS.filter((c) => c.status === "vip").length;
 const newCount = CUSTOMERS.filter((c) => c.status === "new").length;
 const totalSpent = CUSTOMERS.reduce((s, c) => s + c.totalSpent, 0);
-const avgSpend = Math.round(totalSpent / totalCustomers / 1000);
+const avgSpend = Math.round(totalSpent / totalCustomers);
 const MAX_BAR = Math.max(...CUSTOMER_MONTHLY.map((m) => m.value));
 
 const META = [
@@ -32,8 +33,8 @@ const META = [
   },
   {
     label: "Chi tiêu TB",
-    value: String(avgSpend) + "K",
-    unit: "VND",
+    value: formatPrice(avgSpend),
+    unit: "",
     color: "#FFD93D",
     Icon: MdTrendingUp,
   },

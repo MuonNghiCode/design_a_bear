@@ -359,6 +359,15 @@ function mapApiReviewToView(r: ProductReview): ReviewView {
   };
 }
 
+function isCompletedOrderStatus(status?: string | null): boolean {
+  const normalized = (status || "").toUpperCase();
+  return (
+    normalized === "DONE" ||
+    normalized === "DELIVERED" ||
+    normalized === "COMPLETED"
+  );
+}
+
 export default function ProductReviews({
   productId,
   accentColor,
@@ -422,6 +431,8 @@ export default function ProductReviews({
 
           let matchedOrderItemId: string | null = null;
           for (const order of orders) {
+            if (!isCompletedOrderStatus(order.status)) continue;
+
             for (const item of order.orderItems) {
               if (item.productId === productId && item.orderItemId) {
                 matchedOrderItemId = item.orderItemId;

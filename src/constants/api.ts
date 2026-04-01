@@ -22,7 +22,9 @@ export const API_ENDPOINTS = {
   ADDRESSES: {
     MY_ADDRESSES: "/api/Addresses/my-addresses",
     CREATE: "/api/Addresses",
-    GET_BY_ID: "/api/Addresses",
+    GET_BY_ID: "/api/Addresses/{id}",
+    UPDATE: "/api/Addresses/{id}",
+    DELETE: "/api/Addresses/{id}",
   },
   ORDERS: {
     FROM_CART: "/api/Orders/from-cart/{cartId}",
@@ -38,6 +40,20 @@ export const API_ENDPOINTS = {
     CREATE: "/api/Products",
     UPDATE: "/api/Products",
     DELETE: "/api/Products",
+  },
+  REVIEWS: {
+    CREATE: "/api/Reviews",
+    UPDATE: "/api/Reviews/{id}",
+    DELETE: "/api/Reviews/{id}",
+    GET_ALL: "/api/Reviews/all",
+    GET_BY_PRODUCT: "/api/Reviews/product/{productId}",
+    GET_BY_USER: "/api/Reviews/user/{userId}",
+    GET_REPLIES: "/api/Reviews/{id}/replies",
+    CAN_REVIEW: "/api/Reviews/product/{productId}/can-review",
+    GET_AVERAGE: "/api/Reviews/product/{productId}/average",
+    APPROVE: "/api/Reviews/{id}/approve",
+    REJECT: "/api/Reviews/{id}/reject",
+    REPLY: "/api/Reviews/{id}/reply",
   },
   CARTS: {
     BASE: "/api/Carts",

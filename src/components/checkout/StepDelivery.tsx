@@ -12,7 +12,21 @@ import {
 } from "react-icons/io5";
 import type { DeliveryForm } from "./checkout.types";
 import { deliverySchema } from "./checkout.config";
-import { FormField, SelectField, SearchableSelectField } from "./checkout.fields";
+import {
+  FormField,
+  SelectField,
+  SearchableSelectField,
+} from "./checkout.fields";
+
+function normalizeLocationName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/^(tinh|thanh pho|tp\.?|quan|huyen|thi xa|xa|phuong)\s+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 export function StepDelivery({
   form,
@@ -52,6 +66,26 @@ export function StepDelivery({
   }, [form.province]);
 
   useEffect(() => {
+    if (form.province || !form.provinceName || provinces.length === 0) return;
+
+    const wanted = normalizeLocationName(form.provinceName);
+    const matched = provinces.find(
+      (p) =>
+        normalizeLocationName(p.name) === wanted ||
+        normalizeLocationName(p.name).includes(wanted) ||
+        wanted.includes(normalizeLocationName(p.name)),
+    );
+
+    if (!matched) return;
+
+    onChange({
+      ...form,
+      province: matched.idProvince,
+      provinceName: matched.name,
+    });
+  }, [form, provinces, onChange]);
+
+  useEffect(() => {
     if (!form.district) {
       setCommunes([]);
       return;
@@ -61,6 +95,26 @@ export function StepDelivery({
       .then(setCommunes)
       .finally(() => setLoadingC(false));
   }, [form.district]);
+
+  useEffect(() => {
+    if (form.district || !form.districtName || districts.length === 0) return;
+
+    const wanted = normalizeLocationName(form.districtName);
+    const matched = districts.find(
+      (d) =>
+        normalizeLocationName(d.name) === wanted ||
+        normalizeLocationName(d.name).includes(wanted) ||
+        wanted.includes(normalizeLocationName(d.name)),
+    );
+
+    if (!matched) return;
+
+    onChange({
+      ...form,
+      district: matched.idDistrict,
+      districtName: matched.name,
+    });
+  }, [form, districts, onChange]);
 
   const set = (k: keyof DeliveryForm) => (v: string) =>
     onChange({ ...form, [k]: v });

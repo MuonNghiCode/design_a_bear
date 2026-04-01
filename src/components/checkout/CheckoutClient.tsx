@@ -28,6 +28,12 @@ import { addressService } from "@/services/address.service";
 import { orderService } from "@/services/order.service";
 import { paymentService } from "@/services/payment.service";
 import { STORAGE_KEYS } from "@/constants";
+import type { Address } from "@/types";
+import {
+  composeAddressText,
+  normalizePhoneNumber,
+  parseAddressTextDetailed,
+} from "@/utils/address";
 /*  Main Component */
 export default function CheckoutClient() {
   const [step, setStep] = useState(1);
@@ -57,6 +63,7 @@ export default function CheckoutClient() {
   const [orderDetails, setOrderDetails] = useState<any>(null); // Save response order for SuccessScreen
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [addresses, setAddresses] = useState<Address[]>([]);
 
   const contentRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -160,7 +167,12 @@ export default function CheckoutClient() {
             defaultForm.name = defAddr.fullName || defaultForm.name;
             defaultForm.phone = defAddr.phoneNumber || "";
             defaultForm.email = defAddr.email || defaultForm.email;
-            defaultForm.address = defAddr.line1 || "";
+            defaultForm.address = [defAddr.line1, defAddr.line2]
+              .filter(Boolean)
+              .join(", ");
+            defaultForm.provinceName = defAddr.city || "";
+            defaultForm.districtName = defAddr.state || "";
+            setAddresses(addressRes.value);
             // province/district mapping is tricky so user might have to re-select,
             // but we can set city implicitly if we want.
             // defaultForm.provinceName = defAddr.city;
@@ -219,29 +231,81 @@ export default function CheckoutClient() {
       setSubmitting(true);
       (async () => {
         try {
-          // 1. Create Address
-          const createAddrRes = await addressService.createAddress({
-            fullName: form.name,
-            phoneNumber: form.phone,
-            email: form.email,
-            city: form.provinceName || form.province,
-            state: form.districtName || form.district,
-            line1: form.address,
-            line2: form.note,
-            isDefaultShipping: true,
-            isDefaultBilling: true,
-          });
-
-          if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
-            throw new Error(
-              "Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.",
-            );
-          }
-          const addressId = createAddrRes.value.addressId;
-
-          // 2. Create Order
+          // 1. Resolve shipping address (reuse existing address if equivalent)
           const userObj = localStorage.getItem(STORAGE_KEYS.USER);
           const userId = userObj ? JSON.parse(userObj).id : null;
+          const normalizedPhone = normalizePhoneNumber(form.phone);
+          const parsedAddress = parseAddressTextDetailed(form.address);
+
+          const city = (
+            form.provinceName ||
+            form.province ||
+            parsedAddress.city
+          ).trim();
+          const state = (
+            form.districtName ||
+            form.district ||
+            parsedAddress.state
+          ).trim();
+
+          const normalizedCurrent = {
+            fullName: form.name.trim().toLowerCase(),
+            phoneNumber: normalizedPhone,
+            email: (form.email || "").trim().toLowerCase(),
+            line1: parsedAddress.line1.trim().toLowerCase(),
+            line2: (parsedAddress.line2 || "").trim().toLowerCase(),
+            city: city.toLowerCase(),
+            state: state.toLowerCase(),
+          };
+
+          let addressId =
+            addresses.find((a) => {
+              return (
+                a.fullName.trim().toLowerCase() ===
+                  normalizedCurrent.fullName &&
+                normalizePhoneNumber(a.phoneNumber) ===
+                  normalizedCurrent.phoneNumber &&
+                (a.email || "").trim().toLowerCase() ===
+                  normalizedCurrent.email &&
+                a.line1.trim().toLowerCase() === normalizedCurrent.line1 &&
+                (a.line2 || "").trim().toLowerCase() ===
+                  normalizedCurrent.line2 &&
+                a.city.trim().toLowerCase() === normalizedCurrent.city &&
+                a.state.trim().toLowerCase() === normalizedCurrent.state
+              );
+            })?.addressId ?? null;
+
+          if (!addressId) {
+            if (!userId) {
+              throw new Error("Không xác định được người dùng để tạo địa chỉ.");
+            }
+
+            const createAddrRes = await addressService.createAddress({
+              userId,
+              fullName: form.name.trim(),
+              phoneNumber: normalizedPhone,
+              email: form.email.trim() || null,
+              city,
+              state,
+              line1: parsedAddress.line1,
+              line2: parsedAddress.line2 || form.note || null,
+              isDefaultShipping: true,
+              isDefaultBilling: true,
+              label: null,
+              postalCode: null,
+              country: null,
+            });
+
+            if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
+              throw new Error(
+                "Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.",
+              );
+            }
+
+            addressId = createAddrRes.value.addressId;
+          }
+
+          // 2. Create Order
           const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
 
           if (!cartId) throw new Error("Chưa có giỏ hàng.");

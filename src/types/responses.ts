@@ -101,6 +101,11 @@ export interface ProfileResponseData {
   userId: string;
   email: string;
   fullName: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  language?: string;
+  timezone?: string;
   avatarUrl: string | null;
   provider: string;
   status: string;
@@ -196,7 +201,25 @@ export interface ProductReview {
   body: string;
   status: string;
   createdAt: string;
-  reviewReplies: unknown[];
+  reviewReplies: ReviewReply[];
+}
+
+export interface ReviewReply {
+  replyId: string;
+  reviewId: string;
+  staffUserId: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface GetProductReviewsResponseData {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: ProductReview[];
 }
 
 export interface ProductDetail {
@@ -363,6 +386,18 @@ export type GoogleCompleteProfileResponse =
   ApiResponse<GoogleCompleteProfileResponseData>;
 export type GetProductsResponse = ApiResponse<GetProductsResponseData>;
 export type GetProductDetailResponse = ApiResponse<ProductDetail>;
+export type GetProductReviewsResponse = ApiResponse<GetProductReviewsResponseData>;
+export type GetAllReviewsResponse = ApiResponse<GetProductReviewsResponseData>;
+export type GetUserReviewsResponse = ApiResponse<ProductReview[]>;
+export type CanReviewProductResponse = ApiResponse<boolean>;
+export type CreateReviewResponse = ApiResponse<ProductReview>;
+export type UpdateReviewResponse = ApiResponse<null>;
+export type DeleteReviewResponse = ApiResponse<null>;
+export type GetProductAverageRatingResponse = ApiResponse<number>;
+export type ApproveReviewResponse = ApiResponse<null>;
+export type RejectReviewResponse = ApiResponse<null>;
+export type ReplyReviewResponse = ApiResponse<ReviewReply>;
+export type GetReviewRepliesResponse = ApiResponse<ReviewReply[]>;
 export type GetCartResponse = ApiResponse<Cart>;
 export type AddToCartResponse = ApiResponse<CartItem>;
 export type GetPersonalizationRulesResponse = ApiResponse<

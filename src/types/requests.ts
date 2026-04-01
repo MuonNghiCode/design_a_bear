@@ -35,11 +35,72 @@ export interface GoogleCompleteProfileRequest {
   gender: "M" | "F";
 }
 
+export interface UpdateProfileRequest {
+  fullName: string;
+  phoneNumber: string;
+  dateOfBirth?: string;
+  gender?: string;
+  language?: string;
+  timezone?: string;
+  avatarUrl?: string;
+  status?: string;
+}
+
+export interface CreateAddressRequest {
+  userId: string;
+  label?: string | null;
+  fullName: string;
+  phoneNumber: string;
+  email?: string | null;
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state: string;
+  postalCode?: string | null;
+  country?: string | null;
+  isDefaultShipping: boolean;
+  isDefaultBilling: boolean;
+}
+
+export type UpdateAddressRequest = Omit<CreateAddressRequest, "userId">;
+
 export interface GetProductsRequest {
   pageIndex?: number;
   pageSize?: number;
   productType?: string;
   sortBy?: string;
+}
+
+export interface GetProductReviewsRequest {
+  pageIndex?: number;
+  pageSize?: number;
+}
+
+export interface CreateReviewRequest {
+  productId: string;
+  userId: string;
+  orderItemId: string;
+  rating: number;
+  title: string;
+  body: string;
+}
+
+export interface UpdateReviewRequest {
+  rating: number;
+  title: string;
+  body: string;
+}
+
+export interface GetAllReviewsRequest {
+  pageIndex?: number;
+  pageSize?: number;
+  status?: string;
+}
+
+export interface StaffReplyReviewRequest {
+  staffUserId: string;
+  reviewId: string;
+  content: string;
 }
 
 export interface CreateProductVariantRequest {

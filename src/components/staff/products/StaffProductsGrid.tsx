@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import {
   MdSearch,
@@ -12,11 +12,22 @@ import {
   MdAdd,
   MdRemove,
 } from "react-icons/md";
-import {
-  PRODUCTS_ADMIN,
-  type ProductAdmin,
-  type ProductAdminStatus,
-} from "@/data/admin";
+import { type ProductAdminStatus } from "@/data/admin";
+
+export interface StaffProductView {
+  id: string;
+  name: string;
+  imageUrl: string;
+  badge?: string;
+  badgeColor: string;
+  category: "complete" | "bear" | "accessory";
+  price: number;
+  stock: number;
+  sold: number;
+  rating: number;
+  status: ProductAdminStatus;
+  popular: boolean;
+}
 
 type ViewMode = "grid" | "table";
 type CategoryFilter = "all" | "complete" | "bear" | "accessory";
@@ -70,7 +81,7 @@ function StockModal({
   onClose,
   onSave,
 }: {
-  product: ProductAdmin;
+  product: StaffProductView;
   onClose: () => void;
   onSave: (newStock: number) => void;
 }) {
@@ -186,8 +197,8 @@ function ProductCard({
   onUpdateStock,
   onToggleStatus,
 }: {
-  p: ProductAdmin;
-  onUpdateStock: (p: ProductAdmin) => void;
+  p: StaffProductView;
+  onUpdateStock: (p: StaffProductView) => void;
   onToggleStatus: (id: string) => void;
 }) {
   const st = STATUS_CFG[p.status];
@@ -272,12 +283,38 @@ function ProductCard({
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function StaffProductsGrid() {
-  const [products, setProducts] = useState<ProductAdmin[]>(PRODUCTS_ADMIN);
+interface StaffProductsGridProps {
+  products: StaffProductView[];
+  loading?: boolean;
+  pageIndex: number;
+  totalPages: number;
+  totalCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  onChangePage: (page: number) => void;
+}
+
+export default function StaffProductsGrid({
+  products: sourceProducts,
+  loading = false,
+  pageIndex,
+  totalPages,
+  totalCount,
+  hasPreviousPage,
+  hasNextPage,
+  onChangePage,
+}: StaffProductsGridProps) {
+  const [products, setProducts] = useState<StaffProductView[]>(sourceProducts);
   const [view, setView] = useState<ViewMode>("grid");
   const [cat, setCat] = useState<CategoryFilter>("all");
   const [search, setSearch] = useState("");
-  const [editingStock, setEditingStock] = useState<ProductAdmin | null>(null);
+  const [editingStock, setEditingStock] = useState<StaffProductView | null>(
+    null,
+  );
+
+  useEffect(() => {
+    setProducts(sourceProducts);
+  }, [sourceProducts]);
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
@@ -287,7 +324,7 @@ export default function StaffProductsGrid() {
     });
   }, [products, cat, search]);
 
-  function handleUpdateStock(product: ProductAdmin) {
+  function handleUpdateStock(product: StaffProductView) {
     setEditingStock(product);
   }
 
@@ -358,6 +395,11 @@ export default function StaffProductsGrid() {
       {/* Grid view */}
       {view === "grid" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-4">
+          {loading && filtered.length === 0 && (
+            <p className="col-span-full text-center text-sm text-[#9CA3AF] py-8">
+              Đang tải sản phẩm...
+            </p>
+          )}
           {filtered.map((p) => (
             <ProductCard
               key={p.id}
@@ -387,6 +429,16 @@ export default function StaffProductsGrid() {
                 </tr>
               </thead>
               <tbody>
+                {loading && filtered.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-10 text-center text-sm text-[#9CA3AF]"
+                    >
+                      Đang tải sản phẩm...
+                    </td>
+                  </tr>
+                )}
                 {filtered.map((p, i) => {
                   const st = STATUS_CFG[p.status];
                   return (
@@ -480,6 +532,31 @@ export default function StaffProductsGrid() {
           </div>
         </div>
       )}
+
+      <div className="mt-4 bg-white rounded-2xl border border-[#F4F7FF] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-xs text-[#9CA3AF]">
+          Trang <span className="font-black text-[#1A1A2E]">{pageIndex}</span> /{" "}
+          {Math.max(1, totalPages)} · Tổng {totalCount} sản phẩm
+        </p>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onChangePage(Math.max(1, pageIndex - 1))}
+            disabled={!hasPreviousPage || loading}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E9EEFF] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Trang trước
+          </button>
+
+          <button
+            onClick={() => onChangePage(Math.min(totalPages, pageIndex + 1))}
+            disabled={!hasNextPage || loading}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#17409A] text-white hover:bg-[#13357f] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Trang sau
+          </button>
+        </div>
+      </div>
 
       {/* Stock modal */}
       {editingStock && (

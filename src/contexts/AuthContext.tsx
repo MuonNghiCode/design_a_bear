@@ -50,6 +50,7 @@ interface AuthContextType {
   verifyEmail: (email: string, otp: string) => Promise<void>;
   clearPendingVerification: () => void;
   clearPendingGoogleProfile: () => void;
+  updateCurrentUser: (patch: Partial<Pick<User, "name" | "avatar">>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -258,6 +259,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPendingGoogleProfile(null);
   };
 
+  const updateCurrentUser = (patch: Partial<Pick<User, "name" | "avatar">>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const nextUser: User = {
+        ...prev,
+        ...(patch.name ? { name: patch.name } : {}),
+        ...(patch.avatar !== undefined ? { avatar: patch.avatar } : {}),
+      };
+
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(nextUser));
+      localStorage.setItem("dab_user", JSON.stringify(nextUser));
+      return nextUser;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -274,6 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyEmail,
         clearPendingVerification,
         clearPendingGoogleProfile,
+        updateCurrentUser,
       }}
     >
       {children}

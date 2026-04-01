@@ -31,16 +31,21 @@ function mapDetailToItem(p: ProductDetail): ProductItem {
     price: p.variants?.[0]?.price ?? p.price,
     image: images[0] || "/teddy_bear.png",
     images: images.length > 0 ? images : undefined,
-    category: p.productType === "ACCESSORY" ? "accessory" : p.productType === "BASE_BEAR" ? "bear" : "complete",
+    category:
+      p.productType === "ACCESSORY"
+        ? "accessory"
+        : p.productType === "BASE_BEAR"
+          ? "bear"
+          : "complete",
     badgeColor: "#17409A",
     slug: p.slug,
   } as ProductItem;
 }
 
-export default function ProductDetailClient({ 
-  product, 
+export default function ProductDetailClient({
+  product,
   related = [],
-  personalizationRules = [] 
+  personalizationRules = [],
 }: ProductDetailClientProps) {
   const [quantity, setQuantity] = useState(1);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -95,6 +100,7 @@ export default function ProductDetailClient({
 
       {/* ── Reviews (dùng data thực từ API) ── */}
       <ProductReviews
+        productId={product.productId}
         accentColor={productItem.badgeColor || "#17409A"}
         reviews={product.reviews}
       />

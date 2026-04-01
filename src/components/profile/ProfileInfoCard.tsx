@@ -15,6 +15,9 @@ interface Props {
   name: string;
   phone: string;
   address: string;
+  saving: boolean;
+  saveMessage: string | null;
+  saveError: string | null;
   setName: (v: string) => void;
   setPhone: (v: string) => void;
   setAddress: (v: string) => void;
@@ -27,6 +30,9 @@ export default function ProfileInfoCard({
   name,
   phone,
   address,
+  saving,
+  saveMessage,
+  saveError,
   setName,
   setPhone,
   setAddress,
@@ -126,10 +132,23 @@ export default function ProfileInfoCard({
         {editMode && (
           <button
             onClick={onSave}
+            disabled={saving || !name.trim() || !phone.trim()}
             className="w-full bg-[#17409A] text-white font-black text-sm py-3 rounded-2xl hover:bg-[#0E2A66] transition-colors mt-1"
           >
-            Lưu thay đổi
+            {saving ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
+        )}
+
+        {saveMessage && (
+          <p className="text-xs font-semibold text-[#0F766E] bg-[#ECFDF5] border border-[#A7F3D0] rounded-xl px-3 py-2">
+            {saveMessage}
+          </p>
+        )}
+
+        {saveError && (
+          <p className="text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] border border-[#FECDD3] rounded-xl px-3 py-2">
+            {saveError}
+          </p>
         )}
       </div>
     </div>

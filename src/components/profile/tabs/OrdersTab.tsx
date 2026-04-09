@@ -320,7 +320,10 @@ export default function OrdersTab() {
                                   <span>SL: {item.quantity}</span>
                                   <span>
                                     Đơn giá:{" "}
-                                    {formatMoney(item.unitPrice, detail.currency)}
+                                    {formatMoney(
+                                      item.unitPrice,
+                                      detail.currency,
+                                    )}
                                   </span>
                                   <span>
                                     Line total:{" "}

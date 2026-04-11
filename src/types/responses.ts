@@ -205,6 +205,8 @@ export interface ProductReview {
   reviewId: string;
   productId: string;
   userId: string;
+  authorName?: string | null;
+  authorAvatar?: string | null;
   orderItemId: string | null;
   rating: number;
   title: string;

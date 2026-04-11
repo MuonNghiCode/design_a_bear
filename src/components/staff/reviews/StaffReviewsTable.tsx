@@ -24,6 +24,7 @@ interface StaffReviewsTableProps {
   reviews: ProductReview[];
   usersMap: Record<string, string>;
   productsMap: Record<string, string>;
+  currentStaffUserId?: string | null;
   loading?: boolean;
   statusTab: ReviewStatusTab;
   pendingCount: number;
@@ -99,18 +100,25 @@ function ReplyModal({
   review,
   userName,
   productName,
+  currentStaffUserId,
   onClose,
   onSubmit,
 }: {
   review: ProductReview;
   userName: string;
   productName: string;
+  currentStaffUserId?: string | null;
   onClose: () => void;
   onSubmit: (content: string) => Promise<void>;
 }) {
-  const lastReply =
-    review.reviewReplies?.[review.reviewReplies.length - 1]?.content || "";
-  const [reply, setReply] = useState(lastReply);
+  const myLatestReply =
+    review.reviewReplies
+      ?.filter(
+        (r) => !!currentStaffUserId && r.staffUserId === currentStaffUserId,
+      )
+      .at(-1) || null;
+  const hasExistingReply = !!myLatestReply;
+  const [reply, setReply] = useState(myLatestReply?.content || "");
   const [saving, setSaving] = useState(false);
 
   const submit = async () => {
@@ -186,7 +194,11 @@ function ReplyModal({
             className="flex items-center gap-2 bg-[#17409A] hover:bg-[#1a3a8a] disabled:opacity-40 text-white text-sm font-bold px-5 py-2.5 rounded-2xl transition-colors cursor-pointer disabled:cursor-not-allowed flex-1 justify-center"
           >
             <MdSend className="text-base" />
-            {saving ? "Đang gửi..." : "Gửi phản hồi"}
+            {saving
+              ? "Đang lưu..."
+              : hasExistingReply
+                ? "Lưu chỉnh sửa"
+                : "Gửi phản hồi"}
           </button>
           <button
             onClick={onClose}
@@ -204,6 +216,7 @@ export default function StaffReviewsTable({
   reviews,
   usersMap,
   productsMap,
+  currentStaffUserId,
   loading = false,
   statusTab,
   pendingCount,
@@ -374,6 +387,7 @@ export default function StaffReviewsTable({
                   const hasReply = (review.reviewReplies?.length || 0) > 0;
                   const isActing = processingId === review.reviewId;
                   const userName =
+                    (review.authorName || "").trim() ||
                     usersMap[review.userId] ||
                     `Khách hàng ${shortId(review.userId)}`;
                   const productName =
@@ -479,7 +493,9 @@ export default function StaffReviewsTable({
             const hasReply = (review.reviewReplies?.length || 0) > 0;
             const isActing = processingId === review.reviewId;
             const userName =
-              usersMap[review.userId] || `Khách hàng ${shortId(review.userId)}`;
+              (review.authorName || "").trim() ||
+              usersMap[review.userId] ||
+              `Khách hàng ${shortId(review.userId)}`;
             const productName =
               productsMap[review.productId] ||
               `Sản phẩm ${shortId(review.productId)}`;
@@ -589,6 +605,7 @@ export default function StaffReviewsTable({
           review={selected}
           userName={usersMap[selected.userId] || "Khách hàng"}
           productName={productsMap[selected.productId] || "Sản phẩm"}
+          currentStaffUserId={currentStaffUserId}
           onClose={() => setSelected(null)}
           onSubmit={(content) => Promise.resolve(onReply(selected, content))}
         />

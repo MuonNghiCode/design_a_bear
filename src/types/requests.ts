@@ -107,6 +107,11 @@ export interface StaffReplyReviewRequest {
   content: string;
 }
 
+export interface UpdateReplyReviewRequest {
+  staffUserId: string;
+  content: string;
+}
+
 export interface CreateProductVariantRequest {
   sku: string;
   variantName: string;

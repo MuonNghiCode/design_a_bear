@@ -60,6 +60,7 @@ export const API_ENDPOINTS = {
     APPROVE: "/api/Reviews/{id}/approve",
     REJECT: "/api/Reviews/{id}/reject",
     REPLY: "/api/Reviews/{id}/reply",
+    UPDATE_REPLY: "/api/Reviews/replies/{replyId}",
   },
   CARTS: {
     BASE: "/api/Carts",

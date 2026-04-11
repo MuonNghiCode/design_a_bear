@@ -72,8 +72,8 @@ export default function CheckoutClient() {
   const { isAuthenticated } = useAuth();
   const toast = useToast();
 
-  const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
-  // const SHIPPING_FEE = 0;
+  // const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
+  const SHIPPING_FEE = 0;
   const DISCOUNT = couponApplied ? 50_000 : 0;
   const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
 
@@ -84,6 +84,8 @@ export default function CheckoutClient() {
 
   // Handle PayOS redirect callback: /checkout?orderCode=...&status=...
   useEffect(() => {
+    const cancel = searchParams.get("cancel") || "false";
+    const status = searchParams.get("status") || "";
     const orderCodeFromQuery =
       searchParams.get("orderCode") ||
       searchParams.get("paymentCode") ||
@@ -94,6 +96,37 @@ export default function CheckoutClient() {
     const handlePaymentReturn = async () => {
       try {
         setSubmitting(true);
+        const pendingOrder = localStorage.getItem(
+          STORAGE_KEYS.PENDING_PAYMENT_ORDER,
+        );
+
+        if (cancel === "true" || (status && status.toUpperCase() !== "PAID")) {
+          if (pendingOrder) {
+            try {
+              const parsed = JSON.parse(pendingOrder);
+              if (parsed?.orderDetails?.orderId) {
+                await orderService.updateOrderStatus(
+                  parsed.orderDetails.orderId,
+                  {
+                    status: "CANCELLED",
+                    notes:
+                      cancel === "true"
+                        ? "Khách hàng hủy thanh toán"
+                        : `Thanh toán thất bại với trạng thái: ${status}`,
+                  },
+                );
+              }
+            } catch {}
+          }
+          localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
+          toast.error(
+            cancel === "true"
+              ? "Bạn đã hủy thanh toán. Đơn hàng đã chuyển CANCELLED."
+              : `Thanh toán thất bại: ${status}`,
+          );
+          return;
+        }
+
         const confirmRes =
           await paymentService.confirmPayment(orderCodeFromQuery);
 
@@ -103,9 +136,6 @@ export default function CheckoutClient() {
           );
         }
 
-        const pendingOrder = localStorage.getItem(
-          STORAGE_KEYS.PENDING_PAYMENT_ORDER,
-        );
         if (pendingOrder) {
           try {
             const parsed = JSON.parse(pendingOrder);

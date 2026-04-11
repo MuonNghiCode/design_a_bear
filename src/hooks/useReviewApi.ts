@@ -9,6 +9,7 @@ import type {
   ProductReview,
   ReviewReply,
   StaffReplyReviewRequest,
+  UpdateReplyReviewRequest,
   UpdateReviewRequest,
 } from "@/types";
 
@@ -254,6 +255,30 @@ export function useReviewApi() {
     [],
   );
 
+  const updateReplyReview = useCallback(
+    async (
+      replyId: string,
+      payload: UpdateReplyReviewRequest,
+    ): Promise<ReviewReply> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await reviewService.updateReplyReview(replyId, payload);
+        return unwrapValue(response);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Không thể cập nhật phản hồi đánh giá";
+        setError(message);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   return {
     loading,
     error,
@@ -269,5 +294,6 @@ export function useReviewApi() {
     approveReview,
     rejectReview,
     replyReview,
+    updateReplyReview,
   };
 }

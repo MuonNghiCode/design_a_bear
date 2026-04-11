@@ -14,6 +14,7 @@ import {
   IoTimeOutline,
 } from "react-icons/io5";
 import { paymentService } from "@/services/payment.service";
+import { orderService } from "@/services/order.service";
 import { useCart } from "@/contexts/CartContext";
 import { STORAGE_KEYS } from "@/constants";
 import { formatShortOrderCode } from "@/utils/order";
@@ -78,14 +79,28 @@ export default function PaymentSuccessClient() {
         }
 
         if (cancel === "true") {
+          if (pending?.orderDetails?.orderId) {
+            await orderService.updateOrderStatus(pending.orderDetails.orderId, {
+              status: "CANCELLED",
+              notes: "Khách hàng hủy thanh toán",
+            });
+          }
           setIsPaid(false);
           setErrorText("Bạn đã hủy thanh toán.");
+          localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
           return;
         }
 
         if (status && status.toUpperCase() !== "PAID") {
+          if (pending?.orderDetails?.orderId) {
+            await orderService.updateOrderStatus(pending.orderDetails.orderId, {
+              status: "CANCELLED",
+              notes: `Thanh toán thất bại với trạng thái: ${status}`,
+            });
+          }
           setIsPaid(false);
           setErrorText(`Trạng thái thanh toán: ${status}`);
+          localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
           return;
         }
 

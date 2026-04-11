@@ -101,6 +101,7 @@ export default function ProductDetailClient({
       {/* ── Reviews (dùng data thực từ API) ── */}
       <ProductReviews
         productId={product.productId}
+        productVariantIds={product.variants?.map((v) => v.variantId) ?? []}
         accentColor={productItem.badgeColor || "#17409A"}
         reviews={product.reviews}
       />

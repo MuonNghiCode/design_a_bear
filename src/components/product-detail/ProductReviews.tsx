@@ -153,12 +153,20 @@ function ReviewCard({
 
       {/* Author */}
       <div className="flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-black shrink-0"
-          style={{ backgroundColor: accentColor }}
-        >
-          {review.avatar}
-        </div>
+        {review.avatarUrl ? (
+          <img
+            src={review.avatarUrl}
+            alt={review.name}
+            className="w-10 h-10 rounded-full object-cover shrink-0"
+          />
+        ) : (
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-black shrink-0"
+            style={{ backgroundColor: accentColor }}
+          >
+            {review.avatar}
+          </div>
+        )}
         <div>
           <p className="font-black text-sm text-[#1A1A2E]">{review.name}</p>
           <p className="text-xs text-[#9CA3AF]">Khách hàng</p>
@@ -312,6 +320,7 @@ function ReviewCarousel({
    ──────────────────────────────────────────── */
 interface Props {
   productId: string;
+  productVariantIds?: string[];
   accentColor: string;
   reviews?: ProductReview[];
 }
@@ -327,6 +336,7 @@ const STAR_LABELS: Record<number, string> = {
 };
 
 interface ReviewView extends Review {
+  avatarUrl?: string | null;
   replies: ReviewReply[];
 }
 
@@ -346,11 +356,13 @@ function mapApiReviewToView(r: ProductReview): ReviewView {
     .toString()
     .padStart(2, "0")}/${date.getFullYear()}`;
   const userMeta = toShortUserLabel(r.userId);
+  const displayName = (r.authorName || "").trim() || userMeta.name;
 
   return {
     id: r.reviewId,
-    name: userMeta.name,
+    name: displayName,
     avatar: userMeta.avatar,
+    avatarUrl: r.authorAvatar ?? null,
     rating: r.rating,
     date: formattedDate,
     text: r.body || r.title,
@@ -370,6 +382,7 @@ function isCompletedOrderStatus(status?: string | null): boolean {
 
 export default function ProductReviews({
   productId,
+  productVariantIds = [],
   accentColor,
   reviews = [],
 }: Props) {
@@ -386,6 +399,7 @@ export default function ProductReviews({
   const { getOrdersByUserId } = useOrderApi();
   const {
     getProductReviews,
+    getUserReviews,
     canReviewProduct,
     getProductAverageRating,
     createReview,
@@ -429,12 +443,17 @@ export default function ProductReviews({
         .then((orders) => {
           if (!active) return;
 
+          const variantIdSet = new Set(productVariantIds);
           let matchedOrderItemId: string | null = null;
           for (const order of orders) {
             if (!isCompletedOrderStatus(order.status)) continue;
 
             for (const item of order.orderItems) {
-              if (item.productId === productId && item.orderItemId) {
+              const matchByProductId = item.productId === productId;
+              const matchByVariantId =
+                item.variantId != null && variantIdSet.has(item.variantId);
+
+              if ((matchByProductId || matchByVariantId) && item.orderItemId) {
                 matchedOrderItemId = item.orderItemId;
                 break;
               }
@@ -457,6 +476,7 @@ export default function ProductReviews({
     };
   }, [
     productId,
+    productVariantIds,
     getProductAverageRating,
     canReviewProduct,
     getOrdersByUserId,
@@ -628,14 +648,27 @@ export default function ProductReviews({
             onCreate={async ({ rating, title, body }) => {
               setIsSubmitting(true);
               try {
-                await createReview({
-                  productId,
-                  userId: user.id,
-                  orderItemId: orderItemIdForReview,
-                  rating,
-                  title,
-                  body,
-                });
+                const existingMyReviews = await getUserReviews(user.id);
+                const existingForProduct =
+                  existingMyReviews.find((r) => r.productId === productId) ||
+                  null;
+
+                if (existingForProduct?.reviewId) {
+                  await updateReview(existingForProduct.reviewId, {
+                    rating,
+                    title,
+                    body,
+                  });
+                } else {
+                  await createReview({
+                    productId,
+                    userId: user.id,
+                    orderItemId: orderItemIdForReview,
+                    rating,
+                    title,
+                    body,
+                  });
+                }
                 await refreshReviews();
                 const avg = await getProductAverageRating(productId);
                 setAverageRating(avg);
@@ -770,15 +803,16 @@ function WriteReviewForm({
         title: title.trim(),
         body: text.trim(),
       });
+      setSubmitted(false);
     } else {
       await onCreate({
         rating,
         title: title.trim(),
         body: text.trim(),
       });
+      // Show thank-you only for first-time creation.
+      setSubmitted(true);
     }
-
-    setSubmitted(true);
   };
 
   return (
@@ -817,20 +851,16 @@ function WriteReviewForm({
             Cảm ơn bạn đã đánh giá!
           </p>
           <p className="text-sm text-[#6B7280]">
-            Đánh giá của bạn sẽ được duyệt và hiển thị sớm.
+            Mỗi người dùng chỉ có 1 đánh giá cho sản phẩm này. Bạn có thể quay
+            lại để chỉnh sửa đánh giá vừa gửi.
           </p>
           <button
             type="button"
-            onClick={() => {
-              setTitle("");
-              setRating(0);
-              setText("");
-              setSubmitted(false);
-            }}
+            onClick={() => setSubmitted(false)}
             className="mt-2 text-sm font-bold underline underline-offset-2 cursor-pointer"
             style={{ color: accentColor }}
           >
-            Viết thêm đánh giá
+            Quay lại chỉnh sửa đánh giá
           </button>
         </div>
       ) : (
@@ -913,26 +943,28 @@ function WriteReviewForm({
             <p className="text-xs text-[#9CA3AF] leading-relaxed max-w-xs">
               Đánh giá của bạn sẽ được kiểm duyệt trước khi hiển thị công khai.
             </p>
-            <button
-              type="submit"
-              disabled={
-                submitting || !title.trim() || rating === 0 || !text.trim()
-              }
-              className="px-8 py-3.5 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 cursor-pointer"
-              style={{ backgroundColor: accentColor }}
-            >
-              {existingReview ? "Cập nhật đánh giá" : "Gửi đánh giá"}
-            </button>
-            {existingReview && (
+            <div className="flex items-center gap-3 ml-auto">
               <button
-                type="button"
-                onClick={() => void onDelete(existingReview.reviewId)}
-                disabled={submitting}
-                className="px-6 py-3.5 rounded-2xl border-2 border-[#FCA5A5] text-[#DC2626] font-black text-sm transition-all duration-200 hover:bg-[#FEF2F2] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                type="submit"
+                disabled={
+                  submitting || !title.trim() || rating === 0 || !text.trim()
+                }
+                className="px-8 py-3.5 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 cursor-pointer"
+                style={{ backgroundColor: accentColor }}
               >
-                Xóa đánh giá
+                {existingReview ? "Cập nhật đánh giá" : "Gửi đánh giá"}
               </button>
-            )}
+              {existingReview && (
+                <button
+                  type="button"
+                  onClick={() => void onDelete(existingReview.reviewId)}
+                  disabled={submitting}
+                  className="px-6 py-3.5 rounded-2xl border-2 border-[#FCA5A5] text-[#DC2626] font-black text-sm transition-all duration-200 hover:bg-[#FEF2F2] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Xóa đánh giá
+                </button>
+              )}
+            </div>
           </div>
         </form>
       )}

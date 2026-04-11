@@ -219,6 +219,10 @@ export default function ProductInfoPanel({
       const baseVariantId = selectedVariant
         ? selectedVariant.variantId
         : product.id;
+      const variantLabel = selectedVariant?.variantName?.trim();
+      const itemName = variantLabel
+        ? `${product.name} (${variantLabel})`
+        : product.name;
       let targetBuildId: string | null = null;
 
       // 1. If user selected accessories, CREATE A BUILD FIRST
@@ -253,7 +257,8 @@ export default function ProductInfoPanel({
       await addItem(
         {
           id: baseVariantId,
-          name: product.name,
+          name: itemName,
+          variantName: variantLabel,
           description:
             selectedAccessories.length > 0
               ? `Combo Gấu + ${selectedAccessories.length} Phụ kiện`

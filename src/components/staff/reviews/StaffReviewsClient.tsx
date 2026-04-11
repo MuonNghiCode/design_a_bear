@@ -28,6 +28,7 @@ export default function StaffReviewsClient() {
     approveReview,
     rejectReview,
     replyReview,
+    updateReplyReview,
   } = useReviewApi();
   const { success, error } = useToast();
   const { user } = useAuth();
@@ -187,18 +188,31 @@ export default function StaffReviewsClient() {
       }
 
       try {
-        await replyReview(review.reviewId, {
-          staffUserId: user.id,
-          reviewId: review.reviewId,
-          content,
-        });
-        success("Phản hồi đánh giá thành công");
+        const existingReply =
+          review.reviewReplies
+            ?.filter((r) => r.staffUserId === user.id)
+            .at(-1) ?? null;
+
+        if (existingReply?.replyId) {
+          await updateReplyReview(existingReply.replyId, {
+            staffUserId: user.id,
+            content,
+          });
+          success("Cập nhật phản hồi thành công");
+        } else {
+          await replyReview(review.reviewId, {
+            staffUserId: user.id,
+            reviewId: review.reviewId,
+            content,
+          });
+          success("Phản hồi đánh giá thành công");
+        }
         loadReviews();
       } catch (e) {
         error(e instanceof Error ? e.message : "Không thể phản hồi đánh giá");
       }
     },
-    [error, loadReviews, replyReview, success, user?.id],
+    [error, loadReviews, replyReview, success, updateReplyReview, user?.id],
   );
 
   const answered = items.filter(
@@ -286,6 +300,7 @@ export default function StaffReviewsClient() {
           reviews={items}
           usersMap={usersMap}
           productsMap={productsMap}
+          currentStaffUserId={user?.id ?? null}
           loading={loading}
           statusTab={statusTab}
           pendingCount={pending}

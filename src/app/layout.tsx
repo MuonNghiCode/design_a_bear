@@ -78,6 +78,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body
+        suppressHydrationWarning
         className={`${nunito.variable} antialiased`}
         style={{ fontFamily: "var(--font-nunito), Nunito, sans-serif" }}
       >

@@ -41,6 +41,12 @@ export const API_ENDPOINTS = {
     UPDATE: "/api/Products",
     DELETE: "/api/Products",
   },
+  CATEGORIES: {
+    GET_ALL: "/api/Categories",
+  },
+  CHARACTERS: {
+    GET_ALL: "/api/Characters",
+  },
   REVIEWS: {
     CREATE: "/api/Reviews",
     UPDATE: "/api/Reviews/{id}",
@@ -54,6 +60,7 @@ export const API_ENDPOINTS = {
     APPROVE: "/api/Reviews/{id}/approve",
     REJECT: "/api/Reviews/{id}/reject",
     REPLY: "/api/Reviews/{id}/reply",
+    UPDATE_REPLY: "/api/Reviews/replies/{replyId}",
   },
   CARTS: {
     BASE: "/api/Carts",
@@ -73,6 +80,9 @@ export const API_ENDPOINTS = {
   PAYMENTS: {
     CREATE: "/api/Payments/create-payment", // POST
     CONFIRM: "/api/Payments/confirm-payment", // GET /api/Payments/confirm-payment/{orderCode}
+  },
+  MEDIA: {
+    UPLOAD: "/api/media/upload",
   },
 } as const;
 

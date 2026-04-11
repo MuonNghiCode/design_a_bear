@@ -13,11 +13,13 @@ import { productService } from "@/services/product.service";
 type CartPayload = {
   variantId: string;
   unitPriceSnapshot: number;
+  variantName?: string;
 };
 
 export interface ProductCardProps {
   id: string;
   name: string;
+  variantName?: string;
   description: string;
   price: number;
   image: string;
@@ -67,6 +69,7 @@ export default function ProductCard({
                 : detailRes.value.price > 0
                   ? detailRes.value.price
                   : fallbackPrice,
+            variantName: firstAvailableVariant.variantName,
           };
         }
 
@@ -95,10 +98,14 @@ export default function ProductCard({
     try {
       setAddingToCart(true);
       const resolved = await resolveCartPayload();
+      const itemName = resolved.variantName
+        ? `${name} (${resolved.variantName})`
+        : name;
       await addItem(
         {
           id: resolved.variantId,
-          name,
+          name: itemName,
+          variantName: resolved.variantName,
           description,
           price: resolved.unitPriceSnapshot,
           image: imgSrc || "/teddy_bear.png",

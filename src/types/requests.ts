@@ -76,6 +76,10 @@ export interface GetProductReviewsRequest {
   pageSize?: number;
 }
 
+export interface GetCategoriesRequest {}
+
+export interface GetCharactersRequest {}
+
 export interface CreateReviewRequest {
   productId: string;
   userId: string;

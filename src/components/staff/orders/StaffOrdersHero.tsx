@@ -22,9 +22,7 @@ export default function StaffOrdersHero({
   const pending = orders.filter(
     (o) => o.status?.toUpperCase() === "PENDING",
   ).length;
-  const paid = orders.filter(
-    (o) => o.status?.toUpperCase() === "PAID",
-  ).length;
+  const paid = orders.filter((o) => o.status?.toUpperCase() === "PAID").length;
   const processing = orders.filter(
     (o) => o.status?.toUpperCase() === "PROCESSING",
   ).length;
@@ -99,9 +97,7 @@ export default function StaffOrdersHero({
           <span className="text-white font-black text-xl leading-tight">
             {loading ? "..." : processing}
           </span>
-          <span className="text-white/60 text-[10px] font-semibold">
-            xử lý
-          </span>
+          <span className="text-white/60 text-[10px] font-semibold">xử lý</span>
         </div>
       </div>
 
@@ -132,7 +128,12 @@ export default function StaffOrdersHero({
             max: total,
             color: "#7C5CFC",
           },
-          { label: "Hoàn thành", value: completed, max: total, color: "#4ECDC4" },
+          {
+            label: "Hoàn thành",
+            value: completed,
+            max: total,
+            color: "#4ECDC4",
+          },
           { label: "Hoàn tiền", value: refunded, max: total, color: "#6B7280" },
         ].map(({ label, value, max, color }) => (
           <div key={label} className="flex items-center gap-2">

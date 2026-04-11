@@ -1,7 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
 import type { CreateProductRequest } from "@/types";
 import CustomDropdown from "@/components/shared/CustomDropdown";
+import { useTaxonomyApi } from "@/hooks";
+import { mediaService } from "@/services/media.service";
+
+type VariantForm = {
+  variantName: string;
+  price: string;
+  imageUrl: string;
+};
 
 interface Props {
   onClose: () => void;
@@ -21,22 +29,34 @@ export default function CreateProductModal({
     model3DUrl: "",
     isPersonalizable: false,
     isActive: true,
-    price: "",
-    variantName: "Mặc định",
     imageUrl: "",
   });
+  const [variants, setVariants] = useState<VariantForm[]>([
+    { variantName: "Mặc định", price: "", imageUrl: "" },
+  ]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>(
+    [],
+  );
+  const [categoryPicker, setCategoryPicker] = useState("");
+  const [characterPicker, setCharacterPicker] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const {
+    loading: taxonomyLoading,
+    categories,
+    characters,
+    fetchTaxonomy,
+  } = useTaxonomyApi();
+
+  useEffect(() => {
+    fetchTaxonomy();
+  }, [fetchTaxonomy]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
-
-    if (name === "price") {
-      // Remove non-digit characters to get raw number
-      const rawValue = value.replace(/\D/g, "");
-      setFormData((prev) => ({ ...prev, [name]: rawValue }));
-      return;
-    }
 
     setFormData((prev) => ({
       ...prev,
@@ -45,35 +65,134 @@ export default function CreateProductModal({
     }));
   };
 
+  const handleVariantChange = (
+    index: number,
+    field: keyof VariantForm,
+    value: string,
+  ) => {
+    setVariants((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        [field]: field === "price" ? value.replace(/\D/g, "") : value,
+      };
+      return next;
+    });
+  };
+
+  const addVariant = () => {
+    setVariants((prev) => [
+      ...prev,
+      { variantName: "", price: "", imageUrl: "" },
+    ]);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const toggleCategory = (id: string) => {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const toggleCharacter = (id: string) => {
+    setSelectedCharacterIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const randomSku = () => {
+    const part = Math.random().toString(36).slice(2, 8).toUpperCase();
+    return `SKU-${part}`;
+  };
+
+  const addCategoryFromPicker = () => {
+    if (!categoryPicker) return;
+    setSelectedCategoryIds((prev) =>
+      prev.includes(categoryPicker) ? prev : [...prev, categoryPicker],
+    );
+    setCategoryPicker("");
+  };
+
+  const addCharacterFromPicker = () => {
+    if (!characterPicker) return;
+    setSelectedCharacterIds((prev) =>
+      prev.includes(characterPicker) ? prev : [...prev, characterPicker],
+    );
+    setCharacterPicker("");
+  };
+
+  const handleUploadImage = async () => {
+    if (!uploadFile) return;
+    setIsUploadingImage(true);
+    try {
+      const res = await mediaService.uploadMedia(uploadFile, "uploads");
+      if (!res.isSuccess || !res.value?.publicUrl) {
+        throw new Error(res.error?.description || "Upload ảnh thất bại");
+      }
+
+      setFormData((prev) => ({ ...prev, imageUrl: res.value.publicUrl }));
+      setUploadFile(null);
+      window.alert("Upload ảnh thành công");
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Upload ảnh thất bại");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const autoSku = `SKU-${Date.now()}`;
+    const slugBase = formData.name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+
+    const normalizedVariants = variants
+      .map((v, idx) => ({
+        sku: randomSku(),
+        variantName: v.variantName.trim() || `Biến thể ${idx + 1}`,
+        price: Number(v.price) || 0,
+        currency: "VND",
+        imageUrl: v.imageUrl.trim() || formData.imageUrl.trim(),
+      }))
+      .filter((v) => v.price > 0);
+
+    if (normalizedVariants.length === 0) {
+      window.alert("Cần ít nhất 1 biến thể có giá lớn hơn 0.");
+      return;
+    }
+
+    if (selectedCategoryIds.length === 0) {
+      window.alert("Vui lòng chọn ít nhất 1 category cho sản phẩm.");
+      return;
+    }
+
+    if (selectedCharacterIds.length === 0) {
+      window.alert("Vui lòng chọn ít nhất 1 character cho sản phẩm.");
+      return;
+    }
+
     const payload: CreateProductRequest = {
       name: formData.name,
-      slug: formData.name
-        .toLowerCase()
-        .replace(/\s+/g, "-")
-        .replace(/[^a-z0-9-]/g, ""),
+      slug: slugBase,
       productType: formData.productType,
       description: formData.description,
       model3DUrl: formData.model3DUrl,
       isPersonalizable: formData.isPersonalizable,
       isActive: formData.isActive,
-      categoryIds: [],
-      characterIds: [],
-      variants: [
-        {
-          sku: autoSku,
-          variantName: formData.variantName || "Mặc định",
-          price: Number(formData.price) || 0,
-          currency: "VND",
-          imageUrl: formData.imageUrl,
-        },
-      ],
+      categoryIds: selectedCategoryIds,
+      characterIds: selectedCharacterIds,
+      variants: normalizedVariants,
       media: formData.imageUrl
         ? [
             {
-              url: formData.imageUrl,
+              url: formData.imageUrl.trim(),
               altText: formData.name,
               sortOrder: 1,
             },
@@ -158,48 +277,208 @@ export default function CreateProductModal({
 
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                  Giá bán (VNĐ) *
+                  Ảnh đại diện (media)
                 </label>
-                <input
-                  required
-                  type="text"
-                  name="price"
-                  value={
-                    formData.price
-                      ? Number(formData.price).toLocaleString("vi-VN")
-                      : ""
-                  }
-                  onChange={handleChange}
-                  placeholder="Vd: 450.000"
-                  className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
-                />
+                <div className="space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setUploadFile(e.target.files?.[0] ?? null)
+                      }
+                      className="w-full sm:flex-1 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleUploadImage}
+                      disabled={!uploadFile || isUploadingImage}
+                      className="w-full sm:w-auto sm:min-w-23 px-3 py-2.5 rounded-xl text-xs font-bold bg-[#17409A] text-white hover:bg-[#0E2A66] disabled:opacity-50"
+                    >
+                      {isUploadingImage ? "Đang up..." : "Upload"}
+                    </button>
+                  </div>
+                  <input
+                    name="imageUrl"
+                    value={formData.imageUrl}
+                    onChange={handleChange}
+                    placeholder="URL ảnh sau upload"
+                    className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                  Tên phiên bản
+                  Model 3D URL
                 </label>
                 <input
-                  name="variantName"
-                  value={formData.variantName}
-                  onChange={handleChange}
-                  placeholder="Vd: Mặc định, Phiên bản đặc biệt..."
-                  className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                  Link Hình ảnh (URL)
-                </label>
-                <input
-                  name="imageUrl"
-                  value={formData.imageUrl}
+                  name="model3DUrl"
+                  value={formData.model3DUrl}
                   onChange={handleChange}
                   placeholder="https://..."
                   className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
                 />
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
+                  Categories *
+                </label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <CustomDropdown
+                        options={categories.map((category) => ({
+                          label: category.name,
+                          value: category.categoryId,
+                        }))}
+                        value={categoryPicker}
+                        onChange={setCategoryPicker}
+                        placeholder={
+                          taxonomyLoading ? "Đang tải..." : "Chọn category"
+                        }
+                        disabled={taxonomyLoading || categories.length === 0}
+                        buttonClassName="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border border-[#E5E7EB] transition-all flex items-center justify-between"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addCategoryFromPicker}
+                      disabled={!categoryPicker}
+                      className="px-3 py-2.5 rounded-xl text-xs font-bold bg-[#17409A]/10 text-[#17409A] hover:bg-[#17409A]/20 disabled:opacity-50"
+                    >
+                      Thêm
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCategoryIds.map((id) => {
+                      const item = categories.find((c) => c.categoryId === id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => toggleCategory(id)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-[#17409A]/10 text-[#17409A]"
+                        >
+                          {item?.name || id} ×
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
+                  Characters *
+                </label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <CustomDropdown
+                        options={characters.map((character) => ({
+                          label: character.name,
+                          value: character.characterId,
+                        }))}
+                        value={characterPicker}
+                        onChange={setCharacterPicker}
+                        placeholder={
+                          taxonomyLoading ? "Đang tải..." : "Chọn character"
+                        }
+                        disabled={taxonomyLoading || characters.length === 0}
+                        buttonClassName="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border border-[#E5E7EB] transition-all flex items-center justify-between"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addCharacterFromPicker}
+                      disabled={!characterPicker}
+                      className="px-3 py-2.5 rounded-xl text-xs font-bold bg-[#17409A]/10 text-[#17409A] hover:bg-[#17409A]/20 disabled:opacity-50"
+                    >
+                      Thêm
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCharacterIds.map((id) => {
+                      const item = characters.find((c) => c.characterId === id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => toggleCharacter(id)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-[#17409A]/10 text-[#17409A]"
+                        >
+                          {item?.name || id} ×
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
+                  Biến thể (Variants) *
+                </label>
+                <button
+                  type="button"
+                  onClick={addVariant}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#17409A]/10 text-[#17409A] hover:bg-[#17409A]/20 transition-colors"
+                >
+                  + Thêm biến thể
+                </button>
+              </div>
+
+              {variants.map((variant, index) => (
+                <div
+                  key={index}
+                  className="rounded-2xl bg-white/80 border border-[#E5E7EB] p-4 grid grid-cols-1 md:grid-cols-3 gap-3"
+                >
+                  <input
+                    value={variant.variantName}
+                    onChange={(e) =>
+                      handleVariantChange(index, "variantName", e.target.value)
+                    }
+                    placeholder="Tên biến thể"
+                    className="bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
+                  />
+                  <input
+                    type="text"
+                    value={
+                      variant.price
+                        ? Number(variant.price).toLocaleString("vi-VN")
+                        : ""
+                    }
+                    onChange={(e) =>
+                      handleVariantChange(index, "price", e.target.value)
+                    }
+                    placeholder="Giá (VNĐ)"
+                    className="bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={variant.imageUrl}
+                      onChange={(e) =>
+                        handleVariantChange(index, "imageUrl", e.target.value)
+                      }
+                      placeholder="Ảnh variant URL"
+                      className="flex-1 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
+                    />
+                    {variants.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(index)}
+                        className="px-2.5 py-2 rounded-xl text-xs font-bold bg-[#FF6B9D]/10 text-[#C43D6B] hover:bg-[#FF6B9D]/20 transition-colors"
+                      >
+                        Xóa
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="space-y-1.5">
@@ -216,7 +495,7 @@ export default function CreateProductModal({
               />
             </div>
 
-            <div className="flex items-center gap-6 pt-2">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-2">
               <label className="flex items-center gap-2 cursor-pointer group">
                 <input
                   type="checkbox"

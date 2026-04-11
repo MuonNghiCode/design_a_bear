@@ -191,6 +191,16 @@ export interface ProductCategory {
   slug: string;
 }
 
+export interface CharacterItem {
+  characterId: string;
+  name: string;
+  slug: string;
+  licenseBrand: string | null;
+}
+
+export type GetCategoriesResponse = ApiResponse<ProductCategory[]>;
+export type GetCharactersResponse = ApiResponse<CharacterItem[]>;
+
 export interface ProductReview {
   reviewId: string;
   productId: string;
@@ -359,6 +369,15 @@ export interface ConfirmPaymentResponseData {
   message?: string;
 }
 
+export interface MediaUploadData {
+  fileName: string;
+  filePath: string;
+  publicUrl: string;
+  fileSize: number;
+  contentType: string;
+  uploadedAt: string;
+}
+
 /* ── User API Responses ── */
 
 export interface UserDetail {
@@ -406,6 +425,7 @@ export type GetPersonalizationRulesResponse = ApiResponse<
 export type PromotionResponse = ApiResponse<PromotionResponseData>;
 export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
 export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;
+export type MediaUploadResponse = ApiResponse<MediaUploadData>;
 export type GetAddressByIdResponse = ApiResponse<AddressDetail>;
 export type GetAddressesResponse = ApiResponse<Address[]>;
 export type CreateBuildResponse = ApiResponse<Build>;

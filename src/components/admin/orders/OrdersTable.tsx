@@ -15,12 +15,17 @@ import { useAdminOrdersApi } from "@/hooks/useAdminOrdersApi";
 import { orderService } from "@/services/order.service";
 import { addressService } from "@/services/address.service";
 import { useToast } from "@/contexts/ToastContext";
+import CustomDropdown from "@/components/shared/CustomDropdown";
 import type { OrderListItem, AddressDetail } from "@/types";
+import { formatShortOrderCode } from "@/utils/order";
 
 export type OrderStatus =
   | "pending"
   | "paid"
   | "processing"
+  | "printing"
+  | "ready_for_pickup"
+  | "shipping"
   | "completed"
   | "cancelled"
   | "refunded";
@@ -29,6 +34,9 @@ const BACKEND_STATUSES: { value: string; label: string }[] = [
   { value: "PENDING", label: "Chờ xử lý" },
   { value: "PAID", label: "Đã thanh toán" },
   { value: "PROCESSING", label: "Đang xử lý" },
+  { value: "PRINTING", label: "Đang in" },
+  { value: "READY_FOR_PICKUP", label: "Sẵn sàng lấy hàng" },
+  { value: "SHIPPING", label: "Đang giao" },
   { value: "COMPLETED", label: "Hoàn thành" },
   { value: "DELIVERED", label: "Đã giao" },
   { value: "CANCELLED", label: "Đã hủy" },
@@ -42,6 +50,13 @@ const STATUS_CFG: Record<
   pending: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
   paid: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
   processing: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
+  printing: { label: "Đang in", color: "#06B6D4", bg: "#06B6D418" },
+  ready_for_pickup: {
+    label: "Sẵn sàng lấy hàng",
+    color: "#4ECDC4",
+    bg: "#4ECDC418",
+  },
+  shipping: { label: "Đang giao", color: "#14B8A6", bg: "#14B8A618" },
   completed: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
   cancelled: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
   refunded: { label: "Đã hoàn tiền", color: "#6B7280", bg: "#6B728018" },
@@ -52,6 +67,9 @@ const TABS: { key: OrderStatus | "all"; label: string }[] = [
   { key: "pending", label: "Chờ xử lý" },
   { key: "paid", label: "Đã thanh toán" },
   { key: "processing", label: "Đang xử lý" },
+  { key: "printing", label: "Đang in" },
+  { key: "ready_for_pickup", label: "Sẵn sàng lấy" },
+  { key: "shipping", label: "Đang giao" },
   { key: "completed", label: "Hoàn thành" },
   { key: "cancelled", label: "Đã hủy" },
   { key: "refunded", label: "Đã hoàn tiền" },
@@ -80,6 +98,9 @@ const API_STATUS_TO_UI: Record<string, OrderStatus> = {
   PENDING: "pending",
   PAID: "paid",
   PROCESSING: "processing",
+  PRINTING: "printing",
+  READY_FOR_PICKUP: "ready_for_pickup",
+  SHIPPING: "shipping",
   COMPLETED: "completed",
   DELIVERED: "completed",
   CANCELLED: "cancelled",
@@ -97,6 +118,7 @@ export default function OrdersTable() {
   );
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
   const pageSize = 10;
 
   const handleViewDetails = async (
@@ -138,6 +160,19 @@ export default function OrdersTable() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
+      setPageIndex(1);
+      success("Đã làm mới dữ liệu!");
+    } catch (e) {
+      toastError("Lỗi khi làm mới dữ liệu!");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleStatusUpdate = async (newStatus: string) => {
     if (!selected) return;
     try {
@@ -149,7 +184,8 @@ export default function OrdersTable() {
       if (res.isSuccess || res.value === null) {
         success("Thay đổi trạng thái thành công!");
         setSelected({ ...selected, status: newStatus });
-        fetchOrders({ pageIndex, pageSize });
+        fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
+        setPageIndex(1);
       } else {
         toastError("Không thể thay đổi trạng thái!");
       }
@@ -162,8 +198,8 @@ export default function OrdersTable() {
   };
 
   useEffect(() => {
-    fetchOrders({ pageIndex, pageSize });
-  }, [fetchOrders, pageIndex, pageSize]);
+    fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
+  }, [fetchOrders, pageSize]);
 
   const orders = useMemo(() => data?.items || [], [data?.items]);
 
@@ -193,6 +229,23 @@ export default function OrdersTable() {
     [tab, debouncedSearch, orders, usersMap],
   );
 
+  const localTotalCount = filtered.length;
+  const localTotalPages = Math.max(1, Math.ceil(localTotalCount / pageSize));
+  const pagedOrders = useMemo(() => {
+    const start = (pageIndex - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, pageIndex, pageSize]);
+
+  useEffect(() => {
+    if (pageIndex > localTotalPages) {
+      setPageIndex(localTotalPages);
+    }
+  }, [localTotalPages, pageIndex]);
+
+  useEffect(() => {
+    setPageIndex(1);
+  }, [tab, debouncedSearch]);
+
   return (
     <>
       <div className="bg-white rounded-3xl p-6">
@@ -219,6 +272,16 @@ export default function OrdersTable() {
             <button className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap">
               <MdFileDownload className="text-sm" />
               Xuất CSV
+            </button>
+            {/* Refresh */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="bg-[#17409A] hover:bg-[#17409A]/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl px-4 py-2.5 flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md"
+              title="Làm mới dữ liệu"
+            >
+              <MdAutorenew className={`text-base ${refreshing ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Làm mới</span>
             </button>
           </div>
         </div>
@@ -284,7 +347,7 @@ export default function OrdersTable() {
                   </td>
                 </tr>
               ) : (
-                filtered.map((order, i: number) => {
+                pagedOrders.map((order, i: number) => {
                   const uiStatus = API_STATUS_TO_UI[order.status] || "pending";
                   const st = STATUS_CFG[uiStatus];
 
@@ -320,7 +383,9 @@ export default function OrdersTable() {
                       {/* Order ID */}
                       <td className="py-3 pr-4">
                         <span className="text-[11px] font-black text-[#17409A] bg-[#17409A]/8 px-2.5 py-1 rounded-lg tracking-wide font-mono">
-                          {order.orderNumber}
+                          {formatShortOrderCode(
+                            order.orderNumber || order.orderId,
+                          )}
                         </span>
                       </td>
 
@@ -435,26 +500,27 @@ export default function OrdersTable() {
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#F4F7FF]">
             <p className="text-[#9CA3AF] text-[11px] font-semibold">
               Hiển thị{" "}
-              <span className="text-[#1A1A2E] font-black">{orders.length}</span>{" "}
-              / {data?.totalCount || 0} đơn hàng
+              <span className="text-[#1A1A2E] font-black">
+                {pagedOrders.length}
+              </span>{" "}
+              / {localTotalCount} đơn hàng
             </p>
             <div className="flex items-center gap-1">
-              {Array.from(
-                { length: data?.totalPages || 0 },
-                (_, i) => i + 1,
-              ).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPageIndex(p)}
-                  className={`w-7 h-7 rounded-lg text-[11px] font-black transition-colors ${
-                    p === pageIndex
-                      ? "bg-[#17409A] text-white"
-                      : "text-[#9CA3AF] hover:bg-[#F4F7FF]"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+              {Array.from({ length: localTotalPages }, (_, i) => i + 1).map(
+                (p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPageIndex(p)}
+                    className={`w-7 h-7 rounded-lg text-[11px] font-black transition-colors ${
+                      p === pageIndex
+                        ? "bg-[#17409A] text-white"
+                        : "text-[#9CA3AF] hover:bg-[#F4F7FF]"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
             </div>
           </div>
         )}
@@ -505,7 +571,9 @@ export default function OrdersTable() {
                   </div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[#1A1A2E] font-black text-lg font-mono">
-                      {selected.orderNumber}
+                      {formatShortOrderCode(
+                        selected.orderNumber || selected.orderId,
+                      )}
                     </span>
                     <span
                       className="text-[10px] font-black px-2.5 py-1 rounded-full"
@@ -532,35 +600,27 @@ export default function OrdersTable() {
                       </p>
                     </div>
 
-                    <div className="relative w-full sm:w-[150px]">
-                      <select
+                    <div className="relative w-full sm:w-37.5">
+                      <CustomDropdown
+                        options={BACKEND_STATUSES.map((sts) => ({
+                          label: sts.label,
+                          value: sts.value,
+                        }))}
                         value={selected.status}
-                        onChange={(e) => handleStatusUpdate(e.target.value)}
+                        onChange={handleStatusUpdate}
                         disabled={updatingStatus !== null}
-                        className="appearance-none w-full bg-white/60 backdrop-blur-sm border border-white hover:bg-white text-[11px] font-black tracking-wide text-[#1A1A2E] py-2.5 px-3 pr-8 rounded-2xl cursor-pointer shadow-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {BACKEND_STATUSES.map((sts) => (
-                          <option
-                            key={sts.value}
-                            value={sts.value}
-                            className="text-black font-semibold"
-                          >
-                            {sts.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#1A1A2E]">
-                        {updatingStatus ? (
+                        buttonClassName="w-full bg-white/60 backdrop-blur-sm border border-white hover:bg-white text-[11px] font-black tracking-wide text-[#1A1A2E] py-2.5 px-3 rounded-2xl cursor-pointer shadow-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                        chevronClassName="text-[#1A1A2E] text-sm opacity-60 transition-transform"
+                        menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-white bg-white shadow-xl py-1 overflow-hidden"
+                        optionClassName="w-full text-left px-3 py-2 text-[11px] font-bold text-[#1A1A2E] hover:bg-[#F4F7FF] transition-colors"
+                        activeOptionClassName="w-full text-left px-3 py-2 text-[11px] font-black text-[#17409A] bg-[#17409A]/10"
+                        ariaLabel="Cập nhật trạng thái đơn hàng"
+                      />
+                      {updatingStatus ? (
+                        <div className="pointer-events-none absolute inset-y-0 right-8 flex items-center text-[#1A1A2E]">
                           <MdAutorenew className="animate-spin text-sm" />
-                        ) : (
-                          <svg
-                            className="fill-current h-4 w-4 opacity-50"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                          </svg>
-                        )}
-                      </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>

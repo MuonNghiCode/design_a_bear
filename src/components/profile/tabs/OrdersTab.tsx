@@ -11,15 +11,21 @@ const STATUS_STYLE: Record<
   string,
   { label: string; color: string; bg: string }
 > = {
-  PAID: { label: "Đã thanh toán", color: "#4ECDC4", bg: "#4ECDC418" },
-  DONE: { label: "Hoàn tất", color: "#4ECDC4", bg: "#4ECDC418" },
   PENDING: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
+  PAID: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
   CANCELLED: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
-  PROCESSING: { label: "Đang xử lý", color: "#17409A", bg: "#17409A18" },
-  SHIPPING: { label: "Đang giao", color: "#7C5CFC", bg: "#7C5CFC18" },
-  SHIPPED: { label: "Đang giao", color: "#7C5CFC", bg: "#7C5CFC18" },
-  DELIVERED: { label: "Đã giao", color: "#4ECDC4", bg: "#4ECDC418" },
+  PROCESSING: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
+  COMPLETED: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
+  DELIVERED: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
+  REFUNDED: { label: "Đã hoàn tiền", color: "#6B7280", bg: "#6B728018" },
 };
+
+const BILLABLE_STATUSES = new Set([
+  "PAID",
+  "PROCESSING",
+  "COMPLETED",
+  "DELIVERED",
+]);
 
 function formatDate(dateText: string) {
   const date = new Date(dateText);
@@ -75,7 +81,7 @@ export default function OrdersTab() {
   const totalSpent = useMemo(
     () =>
       orders
-        .filter((o) => o.status === "PAID" || o.status === "DONE")
+        .filter((o) => BILLABLE_STATUSES.has(o.status?.toUpperCase()))
         .reduce((sum, o) => sum + o.grandTotal, 0),
     [orders],
   );
@@ -154,8 +160,9 @@ export default function OrdersTab() {
       )}
 
       {pagedOrders.map((order) => {
-        const st = STATUS_STYLE[order.status] ?? {
-          label: order.status,
+        const normalizedStatus = order.status?.toUpperCase() || "";
+        const st = STATUS_STYLE[normalizedStatus] ?? {
+          label: "Trạng thái không xác định",
           color: "#17409A",
           bg: "#17409A18",
         };

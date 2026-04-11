@@ -12,10 +12,11 @@ import { formatShortOrderCode } from "@/utils/order";
 
 type StaffOrderUiStatus =
   | "pending"
-  | "packing"
-  | "shipping"
-  | "done"
-  | "cancelled";
+  | "paid"
+  | "processing"
+  | "completed"
+  | "cancelled"
+  | "refunded";
 
 interface StaffOrdersTableProps {
   orders: OrderListItem[];
@@ -35,27 +36,31 @@ const STATUS_CFG: Record<
   { label: string; color: string; bg: string }
 > = {
   pending: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
-  packing: { label: "Đóng gói", color: "#7C5CFC", bg: "#7C5CFC18" },
-  shipping: { label: "Vận chuyển", color: "#17409A", bg: "#17409A18" },
-  done: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
+  paid: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
+  processing: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
+  completed: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
   cancelled: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
+  refunded: { label: "Đã hoàn tiền", color: "#6B7280", bg: "#6B728018" },
 };
 
 const TABS: { key: StaffOrderUiStatus | "all"; label: string }[] = [
   { key: "all", label: "Tất cả" },
   { key: "pending", label: "Chờ xử lý" },
-  { key: "packing", label: "Đóng gói" },
-  { key: "shipping", label: "Vận chuyển" },
-  { key: "done", label: "Hoàn thành" },
+  { key: "paid", label: "Đã thanh toán" },
+  { key: "processing", label: "Đang xử lý" },
+  { key: "completed", label: "Hoàn thành" },
+  { key: "cancelled", label: "Đã hủy" },
+  { key: "refunded", label: "Đã hoàn tiền" },
 ];
 
 function mapApiStatus(status: string): StaffOrderUiStatus {
   const s = status.toUpperCase();
   if (s === "PENDING") return "pending";
-  if (s === "PACKING" || s === "PROCESSING") return "packing";
-  if (s === "SHIPPING" || s === "SHIPPED") return "shipping";
-  if (s === "DONE" || s === "DELIVERED" || s === "PAID") return "done";
+  if (s === "PAID") return "paid";
+  if (s === "PROCESSING") return "processing";
+  if (s === "COMPLETED" || s === "DELIVERED") return "completed";
   if (s === "CANCELLED") return "cancelled";
+  if (s === "REFUNDED") return "refunded";
   return "pending";
 }
 
@@ -219,9 +224,12 @@ export default function StaffOrdersTable({
               filtered.map((o) => {
                 const st = mapApiStatus(o.status);
                 const cfg = STATUS_CFG[st];
-                const canAdvance = st === "pending" || st === "packing";
+                const canAdvance =
+                  st === "pending" || st === "paid" || st === "processing";
                 const nextLabel =
-                  st === "pending" ? "Bắt đầu đóng gói" : "Gửi vận chuyển";
+                  st === "pending" || st === "paid"
+                    ? "Bắt đầu xử lý"
+                    : "Đánh dấu đã giao";
                 const firstItem = o.orderItems[0];
                 const productName =
                   firstItem?.productName ||
@@ -285,12 +293,12 @@ export default function StaffOrdersTable({
                           onClick={() => handleAdvanceStatus(o)}
                           disabled={updatingId === o.orderId}
                           className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 ${
-                            st === "pending"
+                            st === "pending" || st === "paid"
                               ? "bg-[#7C5CFC]/10 text-[#7C5CFC] hover:bg-[#7C5CFC]/20"
                               : "bg-[#17409A]/10 text-[#17409A] hover:bg-[#17409A]/20"
                           }`}
                         >
-                          {st === "pending" ? (
+                          {st === "pending" || st === "paid" ? (
                             <MdInventory className="text-sm" />
                           ) : (
                             <MdLocalShipping className="text-sm" />
@@ -302,11 +310,13 @@ export default function StaffOrdersTable({
                       ) : (
                         <span className="flex items-center gap-1.5 text-xs text-[#9CA3AF]">
                           <MdCheckCircle className="text-[#4ECDC4]" />
-                          {st === "done"
+                          {st === "completed"
                             ? "Hoàn thành"
                             : st === "cancelled"
                               ? "Đã hủy"
-                              : "Vận chuyển"}
+                              : st === "refunded"
+                                ? "Đã hoàn tiền"
+                                : "Đang xử lý"}
                         </span>
                       )}
                     </td>
@@ -322,7 +332,8 @@ export default function StaffOrdersTable({
         {filtered.map((o) => {
           const st = mapApiStatus(o.status);
           const cfg = STATUS_CFG[st];
-          const canAdvance = st === "pending" || st === "packing";
+          const canAdvance =
+            st === "pending" || st === "paid" || st === "processing";
           const firstItem = o.orderItems[0];
           const productName =
             firstItem?.productName ||
@@ -363,12 +374,16 @@ export default function StaffOrdersTable({
                   disabled={updatingId === o.orderId}
                   className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer self-start disabled:opacity-50"
                 >
-                  {st === "pending" ? <MdInventory /> : <MdLocalShipping />}
+                  {st === "pending" || st === "paid" ? (
+                    <MdInventory />
+                  ) : (
+                    <MdLocalShipping />
+                  )}
                   {updatingId === o.orderId
                     ? "Đang cập nhật..."
-                    : st === "pending"
-                      ? "Bắt đầu đóng gói"
-                      : "Gửi vận chuyển"}
+                    : st === "pending" || st === "paid"
+                      ? "Bắt đầu xử lý"
+                      : "Đánh dấu đã giao"}
                 </button>
               )}
             </div>

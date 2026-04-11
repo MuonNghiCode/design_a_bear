@@ -19,18 +19,20 @@ import type { OrderListItem, AddressDetail } from "@/types";
 
 export type OrderStatus =
   | "pending"
-  | "packing"
-  | "shipping"
-  | "done"
-  | "cancelled";
+  | "paid"
+  | "processing"
+  | "completed"
+  | "cancelled"
+  | "refunded";
 
 const BACKEND_STATUSES: { value: string; label: string }[] = [
   { value: "PENDING", label: "Chờ xử lý" },
-  { value: "PACKING", label: "Đóng gói" },
-  { value: "SHIPPING", label: "Vận chuyển" },
-  // { value: "PAID", label: "Đã thanh toán" }, // TODO: confirm with backend
-  { value: "DONE", label: "Hoàn thành" },
+  { value: "PAID", label: "Đã thanh toán" },
+  { value: "PROCESSING", label: "Đang xử lý" },
+  { value: "COMPLETED", label: "Hoàn thành" },
+  { value: "DELIVERED", label: "Đã giao" },
   { value: "CANCELLED", label: "Đã hủy" },
+  { value: "REFUNDED", label: "Đã hoàn tiền" },
 ];
 
 const STATUS_CFG: Record<
@@ -38,19 +40,21 @@ const STATUS_CFG: Record<
   { label: string; color: string; bg: string }
 > = {
   pending: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
-  packing: { label: "Đóng gói", color: "#7C5CFC", bg: "#7C5CFC18" },
-  shipping: { label: "Vận chuyển", color: "#17409A", bg: "#17409A18" },
-  done: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
+  paid: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
+  processing: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
+  completed: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
   cancelled: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
+  refunded: { label: "Đã hoàn tiền", color: "#6B7280", bg: "#6B728018" },
 };
 
 const TABS: { key: OrderStatus | "all"; label: string }[] = [
   { key: "all", label: "Tất cả" },
   { key: "pending", label: "Chờ xử lý" },
-  { key: "packing", label: "Đóng gói" },
-  { key: "shipping", label: "Vận chuyển" },
-  { key: "done", label: "Hoàn thành" },
+  { key: "paid", label: "Đã thanh toán" },
+  { key: "processing", label: "Đang xử lý" },
+  { key: "completed", label: "Hoàn thành" },
   { key: "cancelled", label: "Đã hủy" },
+  { key: "refunded", label: "Đã hoàn tiền" },
 ];
 
 const AVATAR_COLORS = [
@@ -74,11 +78,12 @@ const COL_HEADS = [
 
 const API_STATUS_TO_UI: Record<string, OrderStatus> = {
   PENDING: "pending",
-  PACKING: "packing",
-  SHIPPING: "shipping",
-  // PAID: "done", // TODO: confirm with backend
-  DONE: "done",
+  PAID: "paid",
+  PROCESSING: "processing",
+  COMPLETED: "completed",
+  DELIVERED: "completed",
   CANCELLED: "cancelled",
+  REFUNDED: "refunded",
 };
 
 export default function OrdersTable() {

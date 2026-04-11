@@ -25,10 +25,10 @@ export default function StaffOrdersClient() {
     async (order: OrderListItem) => {
       const status = order.status?.toUpperCase();
       const nextStatus =
-        status === "PENDING"
-          ? "PACKING"
-          : status === "PACKING" || status === "PROCESSING"
-            ? "SHIPPING"
+        status === "PENDING" || status === "PAID"
+          ? "PROCESSING"
+          : status === "PROCESSING"
+            ? "DELIVERED"
             : null;
       if (!nextStatus) return;
 

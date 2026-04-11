@@ -247,7 +247,9 @@ export default function StaffOrdersTable() {
               className="bg-[#17409A] hover:bg-[#17409A]/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl px-4 py-2.5 flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md"
               title="Làm mới dữ liệu"
             >
-              <MdAutorenew className={`text-base ${refreshing ? "animate-spin" : ""}`} />
+              <MdAutorenew
+                className={`text-base ${refreshing ? "animate-spin" : ""}`}
+              />
               <span className="hidden sm:inline">Làm mới</span>
             </button>
           </div>
@@ -615,12 +617,51 @@ export default function StaffOrdersTable() {
                     <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
                       Sản phẩm
                     </p>
-                    <div className="bg-[#F8F9FF] rounded-2xl p-3">
-                      <p className="text-[#1A1A2E] font-bold text-sm">
-                        {selected.orderItems && selected.orderItems.length > 0
-                          ? `${selected.orderItems.length} sản phẩm`
-                          : "Không có thông tin chi tiết sp"}
-                      </p>
+                    <div className="bg-[#F8F9FF] rounded-2xl p-3 space-y-2 max-h-48 overflow-y-auto">
+                      {selected.orderItems && selected.orderItems.length > 0 ? (
+                        selected.orderItems.map((item, idx) => {
+                          const itemName =
+                            item.productNameSnapshot ||
+                            item.productName ||
+                            "Sản phẩm";
+                          const variantLabel = item.variantName?.trim();
+                          const lineTotal =
+                            item.lineTotal ?? item.unitPrice * item.quantity;
+
+                          return (
+                            <div
+                              key={
+                                item.orderItemId || `${item.variantId}-${idx}`
+                              }
+                              className="bg-white rounded-xl p-2.5 border border-[#E5E7EB] flex items-start gap-2.5"
+                            >
+                              <img
+                                src={item.productImageUrl || "/teddy_bear.png"}
+                                alt={itemName}
+                                className="w-12 h-12 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-[#1A1A2E] font-bold text-sm leading-tight">
+                                  {variantLabel
+                                    ? `${itemName} (${variantLabel})`
+                                    : itemName}
+                                </p>
+                                <p className="text-[#6B7280] text-[11px] font-semibold mt-1">
+                                  SL: {item.quantity} x{" "}
+                                  {formatPrice(item.unitPrice)}
+                                </p>
+                                <p className="text-[#17409A] text-[11px] font-black mt-0.5">
+                                  Thành tiền: {formatPrice(lineTotal)}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="text-[#6B7280] font-semibold text-sm">
+                          Không có thông tin chi tiết sản phẩm
+                        </p>
+                      )}
                     </div>
                   </div>
 

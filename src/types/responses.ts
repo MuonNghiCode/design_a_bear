@@ -263,13 +263,16 @@ export interface CartItem {
   variantPrice: number;
   sku: string;
   productName: string;
+  productImageUrl?: string | null;
+  productNameSnapshot?: string | null;
+  variantNameSnapshot?: string | null;
   productSlug: string;
   productType: string;
 }
 
 export interface Cart {
   cartId: string;
-  customerId: string | null;
+  userId: string | null;
   currency: string;
   createdAt: string;
   updatedAt: string;

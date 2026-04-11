@@ -164,7 +164,7 @@ export interface CreateOrderFromCartRequest {
 /* ── Cart API Requests ── */
 
 export interface CreateCartRequest {
-  customerId: string | null;
+  userId: string | null;
   currency: string;
 }
 
@@ -174,6 +174,12 @@ export interface AddToCartRequest {
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
+  productName?: string;
+  variantName?: string | null;
+  productImageUrl?: string | null;
+  productNameSnapshot?: string;
+  variantNameSnapshot?: string | null;
+  productImageUrlSnapshot?: string | null;
 }
 
 /* ── Order API Requests ── */

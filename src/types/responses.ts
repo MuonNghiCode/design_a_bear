@@ -96,7 +96,6 @@ export interface LogoutResponseData {
   message?: string;
 }
 
-
 export interface ProfileResponseData {
   userId: string;
   email: string;
@@ -199,7 +198,10 @@ export interface CharacterItem {
 }
 
 export type GetCategoriesResponse = ApiResponse<ProductCategory[]>;
+export type GetCategoryResponse = ApiResponse<ProductCategory>;
+
 export type GetCharactersResponse = ApiResponse<CharacterItem[]>;
+export type GetCharacterResponse = ApiResponse<CharacterItem>;
 
 export interface ProductReview {
   reviewId: string;
@@ -410,7 +412,8 @@ export type GoogleCompleteProfileResponse =
   ApiResponse<GoogleCompleteProfileResponseData>;
 export type GetProductsResponse = ApiResponse<GetProductsResponseData>;
 export type GetProductDetailResponse = ApiResponse<ProductDetail>;
-export type GetProductReviewsResponse = ApiResponse<GetProductReviewsResponseData>;
+export type GetProductReviewsResponse =
+  ApiResponse<GetProductReviewsResponseData>;
 export type GetAllReviewsResponse = ApiResponse<GetProductReviewsResponseData>;
 export type GetUserReviewsResponse = ApiResponse<ProductReview[]>;
 export type CanReviewProductResponse = ApiResponse<boolean>;

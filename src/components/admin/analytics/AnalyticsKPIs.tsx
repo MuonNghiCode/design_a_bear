@@ -1,9 +1,24 @@
 import { ANALYTICS_KPIS } from "@/data/admin";
 
-export default function AnalyticsKPIs() {
+export interface KPIItem {
+  label: string;
+  value: string | number;
+  unit: string;
+  trend?: string;
+  up?: boolean;
+  accent?: string;
+}
+
+interface AnalyticsKPIsProps {
+  stats?: KPIItem[];
+}
+
+export default function AnalyticsKPIs({ stats }: AnalyticsKPIsProps = {}) {
+  const displayItems = stats || ANALYTICS_KPIS;
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {ANALYTICS_KPIS.map((k, i) => {
+      {displayItems.map((k, i) => {
         const isHero = i === 0;
         return (
           <div
@@ -45,29 +60,6 @@ export default function AnalyticsKPIs() {
                   }`}
                 >
                   {k.unit}
-                </span>
-              </div>
-
-              {/* Trend */}
-              <div className="flex items-center gap-1.5 mt-2">
-                <span
-                  className={`text-[11px] font-black px-2 py-0.5 rounded-full ${
-                    isHero ? "bg-white/15 text-white" : "text-white"
-                  }`}
-                  style={
-                    isHero
-                      ? undefined
-                      : { backgroundColor: k.accent + "22", color: k.accent }
-                  }
-                >
-                  {k.up ? "↑" : "↓"} {k.trend}
-                </span>
-                <span
-                  className={`text-[10px] font-semibold ${
-                    isHero ? "text-white/40" : "text-[#9CA3AF]"
-                  }`}
-                >
-                  vs tháng trước
                 </span>
               </div>
             </div>

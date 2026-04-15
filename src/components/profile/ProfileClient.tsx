@@ -115,31 +115,26 @@ export default function ProfileClient() {
         if (selected) {
           if (selected.phoneNumber) setPhone(selected.phoneNumber);
 
-          // line2 là cho note của người dùng. Không hiển thị
-          const display = [selected.line1, selected.state, selected.city]
+          // line1 = địa chỉ cụ thể, line2 = phường/xã
+          const display = [
+            selected.line1,
+            selected.line2,
+            selected.state,
+            selected.city,
+          ]
             .map((v) => (v || "").trim())
             .filter(Boolean)
             .join(", ");
           setAddressDisplay(display || "Chưa có địa chỉ");
 
-          // Tách line1: phần sau dấu phẩy cuối là tên phường
-          const rawLine1 = selected.line1 || "";
-          const lastCommaIdx = rawLine1.lastIndexOf(",");
-          let streetAddress = rawLine1;
-          let wardName = "";
-          if (lastCommaIdx > 0) {
-            streetAddress = rawLine1.substring(0, lastCommaIdx).trim();
-            wardName = rawLine1.substring(lastCommaIdx + 1).trim();
-          }
-
           setAddressForm({
-            streetAddress,
+            streetAddress: selected.line1 || "",
             province: "",
             provinceName: selected.city || "",
             district: "",
             districtName: selected.state || "",
             ward: "",
-            wardName,
+            wardName: selected.line2 || "",
           });
         } else {
           setPhone("Chưa có số điện thoại");
@@ -218,12 +213,8 @@ export default function ProfileClient() {
         );
       }
 
-      // Build line1: streetAddress + wardName (same format as checkout)
-      const line1Parts = [
-        addressForm.streetAddress.trim(),
-        addressForm.wardName.trim(),
-      ].filter(Boolean);
-      const line1 = line1Parts.join(", ");
+      // line1 = địa chỉ cụ thể, line2 = phường/xã
+      const line1 = addressForm.streetAddress.trim();
 
       if (user?.id && line1) {
         const createAddressRes = await addressService.createAddress({
@@ -233,7 +224,7 @@ export default function ProfileClient() {
           phoneNumber: normalizedPhone,
           email: user.email,
           line1,
-          line2: null,
+          line2: addressForm.wardName.trim() || null,
           city: addressForm.provinceName || "",
           state: addressForm.districtName || "",
           postalCode: null,

@@ -402,6 +402,22 @@ export interface UserDetail {
 export type GetUserResponse = ApiResponse<UserDetail>;
 export type GetUsersResponse = ApiResponse<UserDetail[]>;
 
+/* ── Report API Responses ── */
+
+export interface DailyRevenue {
+  date: string;
+  revenue: number;
+}
+
+export interface RevenueReportData {
+  totalRevenue: number;
+  totalProfit: number;
+  totalOrders: number;
+  dailyBreakdown: DailyRevenue[];
+}
+
+export type GetRevenueReportResponse = ApiResponse<RevenueReportData>;
+
 /* ── Aggregated export aliases ── */
 
 export type ProfileResponse = ApiResponse<ProfileResponseData>;

@@ -6,3 +6,5 @@ export * from "./taxonomy.service";
 export * from "./media.service";
 export * from "./category.service";
 export * from "./character.service";
+export * from "./order.service";
+export * from "./user.service";

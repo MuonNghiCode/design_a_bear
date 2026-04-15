@@ -15,6 +15,7 @@ import {
   MdInventory2,
   MdGroups,
   MdCategory,
+  MdReceipt,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
@@ -29,6 +30,7 @@ const NAV = [
 
   { icon: MdPeople, label: "Khách hàng", href: "/admin/customers" },
   { icon: MdGroups, label: "Nhân viên", href: "/admin/staff" },
+  { icon: MdReceipt, label: "Báo cáo", href: "/admin/reports" },
   { icon: MdBarChart, label: "Thống kê", href: "/admin/analytics" },
   { icon: MdStar, label: "Đánh giá", href: "/admin/reviews" },
 ];

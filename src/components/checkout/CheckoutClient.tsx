@@ -191,18 +191,9 @@ export default function CheckoutClient() {
             defaultForm.name = defAddr.fullName || defaultForm.name;
             defaultForm.phone = defAddr.phoneNumber || "";
             defaultForm.email = defAddr.email || defaultForm.email;
-            // Tách line1: phần sau dấu phẩy cuối là tên phường
-            const rawLine1 = defAddr.line1 || "";
-            const lastCommaIdx = rawLine1.lastIndexOf(",");
-            if (lastCommaIdx > 0) {
-              defaultForm.address = rawLine1.substring(0, lastCommaIdx).trim();
-              defaultForm.wardName = rawLine1
-                .substring(lastCommaIdx + 1)
-                .trim();
-            } else {
-              defaultForm.address = rawLine1;
-              defaultForm.wardName = "";
-            }
+            defaultForm.address = defAddr.line1 || "";
+            defaultForm.wardName = defAddr.line2 || "";
+            defaultForm.note = defAddr.label || "";
             defaultForm.provinceName = defAddr.city || "";
             defaultForm.districtName = defAddr.state || "";
             setAddresses(addressRes.value);
@@ -275,8 +266,8 @@ export default function CheckoutClient() {
             fullName: form.name.trim().toLowerCase(),
             phoneNumber: normalizedPhone,
             email: (form.email || "").trim().toLowerCase(),
-            line1: line1ForMatch.trim().toLowerCase(),
-            line2: (form.note || "").trim().toLowerCase(),
+            line1: form.address.trim().toLowerCase(),
+            line2: (form.wardName || "").trim().toLowerCase(),
             city: city.toLowerCase(),
             state: state.toLowerCase(),
           };
@@ -303,10 +294,6 @@ export default function CheckoutClient() {
               throw new Error("Không xác định được người dùng để tạo địa chỉ.");
             }
 
-            // field "line1": street address + ward name
-            const wardSuffix = form.wardName ? `, ${form.wardName}` : "";
-            const line1Value = `${form.address.trim()}${wardSuffix}`;
-
             const createAddrRes = await addressService.createAddress({
               userId,
               fullName: form.name.trim(),
@@ -314,11 +301,11 @@ export default function CheckoutClient() {
               email: form.email.trim() || null,
               city,
               state,
-              line1: line1Value,
-              line2: form.note || null,
+              line1: form.address.trim(),
+              line2: form.wardName || null,
+              label: form.note || null,
               isDefaultShipping: true,
               isDefaultBilling: true,
-              label: null,
               postalCode: null,
               country: null,
             });

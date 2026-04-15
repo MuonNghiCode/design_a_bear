@@ -224,3 +224,9 @@ export interface CreatePaymentRequest {
 }
 
 export interface ConfirmPaymentRequest {}
+
+/* ── Report API Requests ── */
+export interface GetRevenueReportRequest {
+  startDate: string;
+  endDate: string;
+}

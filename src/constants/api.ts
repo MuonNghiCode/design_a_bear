@@ -94,6 +94,9 @@ export const API_ENDPOINTS = {
   MEDIA: {
     UPLOAD: "/api/media/upload",
   },
+  REPORTS: {
+    REVENUE: "/api/Reports/revenue",
+  },
 } as const;
 
 export const HTTP_METHOD = {

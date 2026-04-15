@@ -1,4 +1,17 @@
+"use client";
+
+import { useMemo } from "react";
 import { REVENUE_COMPARISON } from "@/data/admin";
+
+interface RevenueComparisonProps {
+  data?: number[];
+  lastYearData?: number[];
+  labels?: string[];
+  title?: string;
+  subtitle?: string;
+  thisYearLabel?: string;
+  lastYearLabel?: string;
+}
 
 // SVG dimensions
 const W = 480,
@@ -9,74 +22,113 @@ const PAD_L = 36,
   PAD_B = 28;
 const CHART_W = W - PAD_L - PAD_R;
 const CHART_H = H - PAD_T - PAD_B;
-const MAX_V = 36;
-const N = REVENUE_COMPARISON.thisYear.length;
 
-function xAt(i: number) {
-  return PAD_L + (i / (N - 1)) * CHART_W;
-}
-function yAt(v: number) {
-  return PAD_T + (1 - v / MAX_V) * CHART_H;
-}
-function smoothPath(values: number[]) {
-  const cp = (xAt(1) - xAt(0)) * 0.38;
-  return values.reduce((acc, v, i) => {
-    const x = xAt(i),
-      y = yAt(v);
-    if (i === 0) return `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-    const px = xAt(i - 1),
-      py = yAt(values[i - 1]);
-    return `${acc} C ${(px + cp).toFixed(1)} ${py.toFixed(1)} ${(x - cp).toFixed(1)} ${y.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }, "");
-}
+export default function RevenueComparison({
+  data,
+  lastYearData,
+  labels,
+  title = "So sánh doanh thu",
+  subtitle = "Năm nay vs Năm ngoái",
+  thisYearLabel = "2026",
+  lastYearLabel = "2025",
+}: RevenueComparisonProps) {
+  // Use provided props or fall back to mock data
+  const currentData = data || REVENUE_COMPARISON.thisYear;
+  const prevData =
+    lastYearData || (data ? undefined : REVENUE_COMPARISON.lastYear);
+  const currentLabels = labels || REVENUE_COMPARISON.labels;
 
-const thisYearPath = smoothPath(REVENUE_COMPARISON.thisYear);
-const lastYearPath = smoothPath(REVENUE_COMPARISON.lastYear);
-const thisYearPts = REVENUE_COMPARISON.thisYear.map((v, i) => ({
-  x: xAt(i),
-  y: yAt(v),
-}));
-const lastYearPts = REVENUE_COMPARISON.lastYear.map((v, i) => ({
-  x: xAt(i),
-  y: yAt(v),
-}));
+  const N = currentData.length;
 
-// Grid y lines at 0, 12, 24, 36
-const GRID_Y = [36, 24, 12];
+  const MAX_V = useMemo(() => {
+    const combined = [...currentData, ...(prevData || [])];
+    const m = Math.max(...combined);
+    return m === 0 ? 100 : m * 1.2;
+  }, [currentData, prevData]);
 
-export default function RevenueComparison() {
-  const thisTotal = REVENUE_COMPARISON.thisYear
-    .reduce((a, b) => a + b, 0)
-    .toFixed(1);
-  const lastTotal = REVENUE_COMPARISON.lastYear
-    .reduce((a, b) => a + b, 0)
-    .toFixed(1);
-  const growth = (((+thisTotal - +lastTotal) / +lastTotal) * 100).toFixed(1);
+  const xAt = (i: number) => PAD_L + (i / (N - 1 || 1)) * CHART_W;
+  const yAt = (v: number) => PAD_T + (1 - v / MAX_V) * CHART_H;
+
+  const smoothPath = (values: number[]) => {
+    if (values.length < 2) return "";
+    const cp = (xAt(1) - xAt(0)) * 0.38;
+    return values.reduce((acc, v, i) => {
+      const x = xAt(i),
+        y = yAt(v);
+      if (i === 0) return `M ${x.toFixed(1)} ${y.toFixed(1)}`;
+      const px = xAt(i - 1),
+        py = yAt(values[i - 1]);
+      return `${acc} C ${(px + cp).toFixed(1)} ${py.toFixed(1)} ${(x - cp).toFixed(1)} ${y.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }, "");
+  };
+
+  const thisYearPath = useMemo(
+    () => smoothPath(currentData),
+    [currentData, MAX_V, N],
+  );
+  const lastYearPath = useMemo(
+    () => (prevData ? smoothPath(prevData) : ""),
+    [prevData, MAX_V, N],
+  );
+
+  const thisYearPts = useMemo(
+    () => currentData.map((v, i) => ({ x: xAt(i), y: yAt(v) })),
+    [currentData, MAX_V, N],
+  );
+  const lastYearPts = useMemo(
+    () => (prevData ? prevData.map((v, i) => ({ x: xAt(i), y: yAt(v) })) : []),
+    [prevData, MAX_V, N],
+  );
+
+  const GRID_Y = [MAX_V, MAX_V * 0.66, MAX_V * 0.33];
+
+  const thisTotal = currentData.reduce((a, b) => a + b, 0);
+  const lastTotal = prevData ? prevData.reduce((a, b) => a + b, 0) : 0;
+
+  const growth =
+    prevData && lastTotal > 0
+      ? (((thisTotal - lastTotal) / lastTotal) * 100).toFixed(1)
+      : "0";
+
+  // Guard: cần ít nhất 2 điểm để vẽ đường biểu đồ
+  if (N < 2) {
+    return (
+      <div className="bg-white rounded-3xl p-6 h-full flex flex-col shadow-sm border border-[#F4F7FF] items-center justify-center gap-3">
+        <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase">
+          {title}
+        </p>
+        <p className="text-[#1A1A2E] font-black text-xl">{subtitle}</p>
+        <p className="text-[#D1D5DB] font-bold text-sm mt-4">
+          Đang tải dữ liệu biểu đồ...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-3xl p-6 h-full flex flex-col">
+    <div className="bg-white rounded-3xl p-6 h-full flex flex-col shadow-sm border border-[#F4F7FF]">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase">
-            So sánh doanh thu
+            {title}
           </p>
-          <p className="text-[#1A1A2E] font-black text-xl mt-0.5">
-            Năm nay vs Năm ngoái
-          </p>
+          <p className="text-[#1A1A2E] font-black text-xl mt-0.5">{subtitle}</p>
         </div>
         <div className="flex items-center gap-4 text-xs font-black">
           <span className="flex items-center gap-1.5">
             <span className="w-6 h-0.5 bg-[#17409A] rounded inline-block" />
-            <span className="text-[#6B7280]">2026</span>
+            <span className="text-[#6B7280]">{thisYearLabel}</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <span
-              className="w-6 h-0.5 bg-[#9CA3AF] rounded inline-block border-dashed"
-              style={{ borderTop: "2px dashed #9CA3AF", height: 0 }}
-            />
-            <span className="text-[#9CA3AF]">2025</span>
-          </span>
+          {prevData && (
+            <span className="flex items-center gap-1.5">
+              <span
+                className="w-6 h-0.5 bg-[#9CA3AF] rounded inline-block border-dashed"
+                style={{ borderTop: "2px dashed #9CA3AF", height: 0 }}
+              />
+              <span className="text-[#9CA3AF]">{lastYearLabel}</span>
+            </span>
+          )}
         </div>
       </div>
 
@@ -88,10 +140,10 @@ export default function RevenueComparison() {
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Grid lines */}
-          {GRID_Y.map((v) => {
+          {GRID_Y.map((v, i) => {
             const y = yAt(v);
             return (
-              <g key={v}>
+              <g key={i}>
                 <line
                   x1={PAD_L}
                   y1={y}
@@ -108,22 +160,28 @@ export default function RevenueComparison() {
                   fill="#9CA3AF"
                   fontFamily="Nunito, sans-serif"
                 >
-                  {v}M
+                  {v >= 1000000
+                    ? (v / 1000000).toFixed(1) + "M"
+                    : v >= 1000
+                      ? (v / 1000).toFixed(1) + "K"
+                      : Math.round(v)}
                 </text>
               </g>
             );
           })}
 
-          {/* Last year — dashed, gray */}
-          <path
-            d={lastYearPath}
-            fill="none"
-            stroke="#D1D5DB"
-            strokeWidth={2}
-            strokeDasharray="6 3"
-          />
+          {/* Last year line */}
+          {prevData && (
+            <path
+              d={lastYearPath}
+              fill="none"
+              stroke="#D1D5DB"
+              strokeWidth={2}
+              strokeDasharray="6 3"
+            />
+          )}
 
-          {/* This year — solid, navy */}
+          {/* This year line */}
           <path
             d={thisYearPath}
             fill="none"
@@ -132,9 +190,10 @@ export default function RevenueComparison() {
           />
 
           {/* Dots — last year */}
-          {lastYearPts.map((pt, i) => (
-            <circle key={i} cx={pt.x} cy={pt.y} r={3.5} fill="#D1D5DB" />
-          ))}
+          {prevData &&
+            lastYearPts.map((pt, i) => (
+              <circle key={i} cx={pt.x} cy={pt.y} r={2.5} fill="#D1D5DB" />
+            ))}
 
           {/* Dots — this year */}
           {thisYearPts.map((pt, i) => (
@@ -142,13 +201,13 @@ export default function RevenueComparison() {
               <circle
                 cx={pt.x}
                 cy={pt.y}
-                r={5}
+                r={N > 15 ? 2.5 : 4}
                 fill="white"
                 stroke="#17409A"
-                strokeWidth={2}
+                strokeWidth={N > 15 ? 1 : 2}
               />
               {/* Value label on last point */}
-              {i === N - 1 && (
+              {i === N - 1 && N <= 15 && (
                 <text
                   x={pt.x + 8}
                   y={pt.y + 4}
@@ -157,27 +216,32 @@ export default function RevenueComparison() {
                   fontFamily="Nunito, sans-serif"
                   fontWeight="800"
                 >
-                  {REVENUE_COMPARISON.thisYear[i]}M
+                  {currentData[i]?.toLocaleString()}
                 </text>
               )}
             </g>
           ))}
 
-          {/* Month labels */}
-          {REVENUE_COMPARISON.labels.map((label, i) => (
-            <text
-              key={i}
-              x={xAt(i)}
-              y={H - 4}
-              textAnchor="middle"
-              fontSize={9}
-              fill={i === N - 1 ? "#17409A" : "#9CA3AF"}
-              fontFamily="Nunito, sans-serif"
-              fontWeight={i === N - 1 ? "800" : "600"}
-            >
-              {label}
-            </text>
-          ))}
+          {/* Labels */}
+          {currentLabels.map((label, i) => {
+            // Show all labels if N is small, otherwise space them out
+            if (N > 12 && i % Math.ceil(N / 8) !== 0 && i !== N - 1)
+              return null;
+            return (
+              <text
+                key={i}
+                x={xAt(i)}
+                y={H - 4}
+                textAnchor="middle"
+                fontSize={9}
+                fill={i === N - 1 ? "#17409A" : "#9CA3AF"}
+                fontFamily="Nunito, sans-serif"
+                fontWeight={i === N - 1 ? "800" : "600"}
+              >
+                {label}
+              </text>
+            );
+          })}
         </svg>
       </div>
 
@@ -185,21 +249,29 @@ export default function RevenueComparison() {
       <div className="flex items-center gap-6 mt-3 pt-4 border-t border-[#F4F7FF]">
         <div>
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-wider uppercase">
-            Năm nay
+            {thisYearLabel}
           </p>
-          <p className="text-[#1A1A2E] font-black text-lg">{thisTotal}M</p>
-        </div>
-        <div>
-          <p className="text-[#9CA3AF] text-[10px] font-black tracking-wider uppercase">
-            Năm ngoái
+          <p className="text-[#1A1A2E] font-black text-lg">
+            {thisTotal.toLocaleString("vi-VN")}
           </p>
-          <p className="text-[#9CA3AF] font-black text-lg">{lastTotal}M</p>
         </div>
-        <div className="ml-auto">
-          <span className="bg-[#4ECDC4]/15 text-[#4ECDC4] font-black text-sm px-3 py-1.5 rounded-xl">
-            ↑ +{growth}% tăng trưởng
-          </span>
-        </div>
+        {prevData && (
+          <div>
+            <p className="text-[#9CA3AF] text-[10px] font-black tracking-wider uppercase">
+              {lastYearLabel}
+            </p>
+            <p className="text-[#9CA3AF] font-black text-lg">
+              {lastTotal.toLocaleString("vi-VN")}
+            </p>
+          </div>
+        )}
+        {growth !== "0" && (
+          <div className="ml-auto">
+            <span className="bg-[#4ECDC4]/15 text-[#4ECDC4] font-black text-sm px-3 py-1.5 rounded-xl">
+              {+growth >= 0 ? "↑" : "↓"} {Math.abs(+growth)}% tăng trưởng
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

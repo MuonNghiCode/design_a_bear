@@ -451,6 +451,46 @@ export default function ProductInfoPanel({
         </span>
       </div>
 
+      {(product.categories?.length || product.characters?.length) && (
+        <div className="space-y-3">
+          {product.categories && product.categories.length > 0 && (
+            <div>
+              <p className="text-xs font-black tracking-[0.2em] uppercase text-[#9CA3AF] mb-2">
+                Danh mục
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.categories.map((categoryName) => (
+                  <span
+                    key={categoryName}
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#17409A]/10 text-[#17409A]"
+                  >
+                    {categoryName}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {product.characters && product.characters.length > 0 && (
+            <div>
+              <p className="text-xs font-black tracking-[0.2em] uppercase text-[#9CA3AF] mb-2">
+                Nhân vật
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.characters.map((characterName) => (
+                  <span
+                    key={characterName}
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#FF8C42]/15 text-[#FF8C42]"
+                  >
+                    {characterName}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Separator ── */}
       <div className="h-px bg-[#E5E7EB]" />
 

@@ -56,6 +56,22 @@ const extractProductItems = (value: unknown): ProductListItem[] => {
   return [];
 };
 
+const extractRuleItems = (value: unknown): PersonalizationRule[] => {
+  if (Array.isArray(value)) {
+    return value as PersonalizationRule[];
+  }
+
+  if (
+    value &&
+    typeof value === "object" &&
+    Array.isArray((value as { items?: unknown }).items)
+  ) {
+    return (value as { items: PersonalizationRule[] }).items;
+  }
+
+  return [];
+};
+
 export default function PersonalizationGroupsClient() {
   const searchParams = useSearchParams();
   const ref = useRef<HTMLDivElement>(null);
@@ -112,8 +128,9 @@ export default function PersonalizationGroupsClient() {
 
     if (rulesResult.status === "fulfilled") {
       const rulesRes = rulesResult.value;
-      if (rulesRes.isSuccess && Array.isArray(rulesRes.value)) {
-        setRules(rulesRes.value);
+      const ruleItems = extractRuleItems(rulesRes.value);
+      if (rulesRes.isSuccess) {
+        setRules(ruleItems);
       } else {
         setRules([]);
         toastError(

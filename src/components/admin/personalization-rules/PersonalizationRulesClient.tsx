@@ -37,6 +37,25 @@ const EMPTY_FORM: RuleFormData = {
   ruleType: "OPTIONAL",
 };
 
+const normalizeProductType = (value: string | null | undefined) =>
+  (value || "").trim().toUpperCase();
+
+const extractRuleItems = (value: unknown): PersonalizationRule[] => {
+  if (Array.isArray(value)) {
+    return value as PersonalizationRule[];
+  }
+
+  if (
+    value &&
+    typeof value === "object" &&
+    Array.isArray((value as { items?: unknown }).items)
+  ) {
+    return (value as { items: PersonalizationRule[] }).items;
+  }
+
+  return [];
+};
+
 interface PersonalizationRulesClientProps {
   embedded?: boolean;
 }
@@ -67,8 +86,9 @@ export default function PersonalizationRulesClient({
         productService.getProducts({ pageSize: 200 }),
       ]);
 
-      if (rulesRes.isSuccess && Array.isArray(rulesRes.value)) {
-        setRules(rulesRes.value);
+      const ruleItems = extractRuleItems(rulesRes.value);
+      if (rulesRes.isSuccess) {
+        setRules(ruleItems);
       } else {
         toastError(
           rulesRes.error?.description || "Không thể tải danh sách rule.",
@@ -122,12 +142,18 @@ export default function PersonalizationRulesClient({
   }, [embedded]);
 
   const accessoryProducts = useMemo(
-    () => products.filter((p) => p.productType === "ACCESSORY"),
+    () =>
+      products.filter(
+        (p) => normalizeProductType(p.productType) === "ACCESSORY",
+      ),
     [products],
   );
 
   const baseProducts = useMemo(
-    () => products.filter((p) => p.productType !== "ACCESSORY"),
+    () =>
+      products.filter(
+        (p) => normalizeProductType(p.productType) === "BASE_BEAR",
+      ),
     [products],
   );
 

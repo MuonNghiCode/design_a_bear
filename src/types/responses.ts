@@ -188,6 +188,7 @@ export interface ProductCategory {
   parentId: string | null;
   name: string;
   slug: string;
+  isActive?: boolean;
 }
 
 export interface CharacterItem {
@@ -251,6 +252,7 @@ export interface ProductDetail {
   media: ProductMedia[];
   variants: ProductVariant[];
   categories: ProductCategory[];
+  characters?: CharacterItem[];
   reviews: ProductReview[];
 }
 
@@ -292,8 +294,18 @@ export interface PersonalizationRule {
   allowedComponentProductId: string;
   isRequired: boolean;
   maxQuantity: number;
-  ruleType: "OPTIONAL" | "REQUIRED";
+  ruleType: "OPTIONAL" | "REQUIRED" | "ACCESSORY" | string;
   addonProduct: ProductDetail;
+}
+
+export interface GetPersonalizationRulesAdminResponseData {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: PersonalizationRule[];
 }
 
 export interface PersonalizationGroup {
@@ -461,7 +473,7 @@ export type CreatePersonalizationGroupResponse =
 export type UpdatePersonalizationGroupResponse = ApiResponse<null>;
 export type DeletePersonalizationGroupResponse = ApiResponse<null>;
 export type GetPersonalizationRulesAdminResponse = ApiResponse<
-  PersonalizationRule[]
+  GetPersonalizationRulesAdminResponseData | PersonalizationRule[]
 >;
 export type GetPersonalizationRuleResponse = ApiResponse<PersonalizationRule>;
 export type CreatePersonalizationRuleResponse = ApiResponse<PersonalizationRule>;

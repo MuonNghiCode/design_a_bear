@@ -9,7 +9,6 @@ export const CATEGORIES = [
   { id: "all", label: "Tất cả" },
   { id: "complete", label: "Sản phẩm hoàn chỉnh" },
   { id: "bear", label: "Gấu bông" },
-  { id: "accessory", label: "Phụ kiện" },
 ];
 
 export const SORT_OPTIONS = [

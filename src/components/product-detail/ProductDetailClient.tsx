@@ -40,6 +40,8 @@ function mapDetailToItem(p: ProductDetail): ProductItem {
         : p.productType === "BASE_BEAR"
           ? "bear"
           : "complete",
+    categories: (p.categories || []).map((c) => c.name).filter(Boolean),
+    characters: (p.characters || []).map((c) => c.name).filter(Boolean),
     badgeColor: "#17409A",
     slug: p.slug,
   } as ProductItem;

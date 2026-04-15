@@ -28,7 +28,7 @@ interface Props {
   groups: PersonalizationGroup[];
 }
 
-const RULE_TYPE_OPTIONS = ["OPTIONAL", "REQUIRED"];
+const RULE_TYPE_OPTIONS = ["OPTIONAL", "REQUIRED", "ACCESSORY"];
 
 export default function PersonalizationRuleFormModal({
   isOpen,

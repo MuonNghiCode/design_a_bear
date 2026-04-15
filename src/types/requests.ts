@@ -76,9 +76,19 @@ export interface GetProductReviewsRequest {
   pageSize?: number;
 }
 
-export interface GetCategoriesRequest {}
+export interface CreateCategoryRequest {
+  parentId?: string | null;
+  name: string;
+  slug: string;
+}
+export type UpdateCategoryRequest = CreateCategoryRequest;
 
-export interface GetCharactersRequest {}
+export interface CreateCharacterRequest {
+  name: string;
+  slug: string;
+  licenseBrand?: string | null;
+}
+export type UpdateCharacterRequest = CreateCharacterRequest;
 
 export interface CreateReviewRequest {
   productId: string;
@@ -153,17 +163,17 @@ export interface CreateBuildRequest {
 }
 
 export interface CreateOrderFromCartRequest {
-    userId: string | null;
-    shippingAddressId: string | null;
-    billingAddressId: string | null;
-    currency: string;
-    subtotal: number;
-    discountTotal: number;
-    taxTotal: number;
-    shippingTotal: number;
-    grandTotal: number;
-    notes?: string;
-    promoCode?: string;
+  userId: string | null;
+  shippingAddressId: string | null;
+  billingAddressId: string | null;
+  currency: string;
+  subtotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  shippingTotal: number;
+  grandTotal: number;
+  notes?: string;
+  promoCode?: string;
 }
 
 /* ── Cart API Requests ── */
@@ -202,15 +212,21 @@ export interface UpdateOrderStatusRequest {
 /* ── Promotion & Payment Requests ── */
 
 export interface ValidatePromotionRequest {
-    code: string;
+  code: string;
 }
 
 export interface CreatePaymentRequest {
-    orderId: string;
-    itemName: string;
-    quantity: number;
-    amount: number;
-    description?: string;
+  orderId: string;
+  itemName: string;
+  quantity: number;
+  amount: number;
+  description?: string;
 }
 
 export interface ConfirmPaymentRequest {}
+
+/* ── Report API Requests ── */
+export interface GetRevenueReportRequest {
+  startDate: string;
+  endDate: string;
+}

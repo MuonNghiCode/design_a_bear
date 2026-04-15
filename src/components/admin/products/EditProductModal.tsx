@@ -5,6 +5,7 @@ import { productService } from "@/services/product.service";
 import CustomDropdown from "@/components/shared/CustomDropdown";
 import { useTaxonomyApi } from "@/hooks";
 import { mediaService } from "@/services/media.service";
+import { generateSlug } from "@/utils/string";
 
 type VariantForm = {
   sku: string;
@@ -229,6 +230,8 @@ export default function EditProductModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const slugBase = generateSlug(formData.name);
+
     const normalizedVariants = variants
       .map((v, idx) => ({
         sku: v.sku.trim() || randomSku(),
@@ -256,7 +259,7 @@ export default function EditProductModal({
 
     const payload: UpdateProductRequest = {
       name: formData.name,
-      slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, "-"),
+      slug: formData.slug || slugBase,
       productType: formData.productType,
       description: formData.description,
       model3DUrl: formData.model3DUrl,

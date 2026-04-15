@@ -4,6 +4,7 @@ import type { CreateProductRequest } from "@/types";
 import CustomDropdown from "@/components/shared/CustomDropdown";
 import { useTaxonomyApi } from "@/hooks";
 import { mediaService } from "@/services/media.service";
+import { generateSlug } from "@/utils/string";
 
 type VariantForm = {
   variantName: string;
@@ -148,10 +149,7 @@ export default function CreateProductModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const slugBase = formData.name
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace(/[^a-z0-9-]/g, "");
+    const slugBase = generateSlug(formData.name);
 
     const normalizedVariants = variants
       .map((v, idx) => ({

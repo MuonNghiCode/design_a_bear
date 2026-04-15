@@ -29,11 +29,7 @@ import { orderService } from "@/services/order.service";
 import { paymentService } from "@/services/payment.service";
 import { STORAGE_KEYS } from "@/constants";
 import type { Address } from "@/types";
-import {
-  composeAddressText,
-  normalizePhoneNumber,
-  parseAddressTextDetailed,
-} from "@/utils/address";
+import { normalizePhoneNumber } from "@/utils/address";
 /*  Main Component */
 export default function CheckoutClient() {
   const [step, setStep] = useState(1);
@@ -77,12 +73,10 @@ export default function CheckoutClient() {
   const DISCOUNT = couponApplied ? 50_000 : 0;
   const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
 
-  // Ensure cart drawer is closed when arriving at checkout.
   useEffect(() => {
     closeCart();
   }, [closeCart]);
 
-  // Handle PayOS redirect callback: /checkout?orderCode=...&status=...
   useEffect(() => {
     const cancel = searchParams.get("cancel") || "false";
     const status = searchParams.get("status") || "";
@@ -197,16 +191,12 @@ export default function CheckoutClient() {
             defaultForm.name = defAddr.fullName || defaultForm.name;
             defaultForm.phone = defAddr.phoneNumber || "";
             defaultForm.email = defAddr.email || defaultForm.email;
-            defaultForm.address = [defAddr.line1, defAddr.line2]
-              .filter(Boolean)
-              .join(", ");
+            defaultForm.address = defAddr.line1 || "";
+            defaultForm.wardName = defAddr.line2 || "";
+            defaultForm.note = defAddr.label || "";
             defaultForm.provinceName = defAddr.city || "";
             defaultForm.districtName = defAddr.state || "";
             setAddresses(addressRes.value);
-            // province/district mapping is tricky so user might have to re-select,
-            // but we can set city implicitly if we want.
-            // defaultForm.provinceName = defAddr.city;
-            // defaultForm.districtName = defAddr.state;
           }
         } catch (e) {}
 
@@ -265,25 +255,19 @@ export default function CheckoutClient() {
           const userObj = localStorage.getItem(STORAGE_KEYS.USER);
           const userId = userObj ? JSON.parse(userObj).id : null;
           const normalizedPhone = normalizePhoneNumber(form.phone);
-          const parsedAddress = parseAddressTextDetailed(form.address);
 
-          const city = (
-            form.provinceName ||
-            form.province ||
-            parsedAddress.city
-          ).trim();
-          const state = (
-            form.districtName ||
-            form.district ||
-            parsedAddress.state
-          ).trim();
+          const city = (form.provinceName || form.province).trim();
+          const state = (form.districtName || form.district).trim();
+
+          const wardSuffixForMatch = form.wardName ? `, ${form.wardName}` : "";
+          const line1ForMatch = `${form.address.trim()}${wardSuffixForMatch}`;
 
           const normalizedCurrent = {
             fullName: form.name.trim().toLowerCase(),
             phoneNumber: normalizedPhone,
             email: (form.email || "").trim().toLowerCase(),
-            line1: parsedAddress.line1.trim().toLowerCase(),
-            line2: (parsedAddress.line2 || "").trim().toLowerCase(),
+            line1: form.address.trim().toLowerCase(),
+            line2: (form.wardName || "").trim().toLowerCase(),
             city: city.toLowerCase(),
             state: state.toLowerCase(),
           };
@@ -317,11 +301,11 @@ export default function CheckoutClient() {
               email: form.email.trim() || null,
               city,
               state,
-              line1: parsedAddress.line1,
-              line2: parsedAddress.line2 || form.note || null,
+              line1: form.address.trim(),
+              line2: form.wardName || null,
+              label: form.note || null,
               isDefaultShipping: true,
               isDefaultBilling: true,
-              label: null,
               postalCode: null,
               country: null,
             });

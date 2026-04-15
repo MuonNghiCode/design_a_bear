@@ -43,9 +43,19 @@ export const API_ENDPOINTS = {
   },
   CATEGORIES: {
     GET_ALL: "/api/Categories",
+    GET_BY_ID: "/api/Categories/{id}",
+    CREATE: "/api/Categories",
+    UPDATE: "/api/Categories/{id}",
+    DELETE: "/api/Categories/{id}",
   },
   CHARACTERS: {
     GET_ALL: "/api/Characters",
+    GET_BY_ID: "/api/Characters/{id}",
+    CREATE: "/api/Characters",
+    UPDATE: "/api/Characters/{id}",
+    DELETE: "/api/Characters/{id}",
+    GET_ALL_WITH_ACCESSORIES: "/api/Characters/all-with-accessories",
+    GET_BY_SLUG: "/api/Characters/slug/{slug}",
   },
   REVIEWS: {
     CREATE: "/api/Reviews",
@@ -83,6 +93,9 @@ export const API_ENDPOINTS = {
   },
   MEDIA: {
     UPLOAD: "/api/media/upload",
+  },
+  REPORTS: {
+    REVENUE: "/api/Reports/revenue",
   },
 } as const;
 

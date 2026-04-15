@@ -296,6 +296,12 @@ export interface PersonalizationRule {
   addonProduct: ProductDetail;
 }
 
+export interface PersonalizationGroup {
+  groupId: string;
+  name: string;
+  description: string | null;
+}
+
 /* ── Build API Responses ── */
 
 export interface BuildComponent {
@@ -446,6 +452,21 @@ export type AddToCartResponse = ApiResponse<CartItem>;
 export type GetPersonalizationRulesResponse = ApiResponse<
   PersonalizationRule[]
 >;
+export type GetPersonalizationGroupsResponse = ApiResponse<
+  PersonalizationGroup[]
+>;
+export type GetPersonalizationGroupResponse = ApiResponse<PersonalizationGroup>;
+export type CreatePersonalizationGroupResponse =
+  ApiResponse<PersonalizationGroup>;
+export type UpdatePersonalizationGroupResponse = ApiResponse<null>;
+export type DeletePersonalizationGroupResponse = ApiResponse<null>;
+export type GetPersonalizationRulesAdminResponse = ApiResponse<
+  PersonalizationRule[]
+>;
+export type GetPersonalizationRuleResponse = ApiResponse<PersonalizationRule>;
+export type CreatePersonalizationRuleResponse = ApiResponse<PersonalizationRule>;
+export type UpdatePersonalizationRuleResponse = ApiResponse<null>;
+export type DeletePersonalizationRuleResponse = ApiResponse<null>;
 export type PromotionResponse = ApiResponse<PromotionResponseData>;
 export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
 export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;

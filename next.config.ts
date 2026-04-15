@@ -23,6 +23,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.pravatar.cc",
       },
+      {
+        protocol: "https",
+        hostname: "media.designabear.com",
+      },
     ],
   },
 };

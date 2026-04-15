@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { type ProductItem } from "@/types/products";
+import { type ProductVariant } from "@/types/responses";
 
 /* ── Inline paw SVG ── */
 function PawSVG({
@@ -36,19 +37,38 @@ function PawSVG({
 
 interface Props {
   product: ProductItem;
+  selectedVariant?: ProductVariant | null;
 }
 
-export default function ProductImageSection({ product }: Props) {
+export default function ProductImageSection({
+  product,
+  selectedVariant,
+}: Props) {
   const accent = product.badgeColor || "#17409A";
 
-  // Build gallery: use product.images if provided, else repeat the single image 4x
-  const gallery: string[] =
-    product.images && product.images.length > 0
-      ? product.images
-      : [product.image, product.image, product.image, product.image];
+  // Build gallery: prioritize variant image if selected, otherwise use product images
+  let gallery: string[] = [];
+  if (selectedVariant?.imageUrl) {
+    // If variant has an image, put it first, then add product images
+    gallery = [selectedVariant.imageUrl];
+    if (product.images && product.images.length > 0) {
+      gallery.push(...product.images);
+    }
+  } else {
+    // Fall back to product images
+    gallery =
+      product.images && product.images.length > 0
+        ? product.images
+        : [product.image, product.image, product.image, product.image];
+  }
 
   const [activeIdx, setActiveIdx] = useState(0);
   const activeSrc = gallery[activeIdx];
+
+  // Reset to first image (variant image) when variant changes
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [selectedVariant?.variantId]);
 
   // Auto-advance every 5 seconds; pause on manual selection
   const next = useCallback(

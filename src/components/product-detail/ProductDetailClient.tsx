@@ -5,7 +5,10 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { type ProductDetail } from "@/types";
 import { type ProductItem } from "@/types/products";
-import { type PersonalizationRule } from "@/types/responses";
+import {
+  type PersonalizationRule,
+  type ProductVariant,
+} from "@/types/responses";
 import ProductImageSection from "./ProductImageSection";
 import ProductInfoPanel from "./ProductInfoPanel";
 import ProductSpecs from "./ProductSpecs";
@@ -48,6 +51,9 @@ export default function ProductDetailClient({
   personalizationRules = [],
 }: ProductDetailClientProps) {
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    product.variants?.length > 0 ? product.variants[0] : null,
+  );
   const heroRef = useRef<HTMLDivElement>(null);
   const productItem = mapDetailToItem(product);
 
@@ -77,12 +83,17 @@ export default function ProductDetailClient({
       >
         <div className="flex flex-col lg:flex-row gap-14 lg:gap-20 items-start">
           <div className="pd-img-enter w-full lg:w-[55%]">
-            <ProductImageSection product={productItem} />
+            <ProductImageSection
+              product={productItem}
+              selectedVariant={selectedVariant}
+            />
           </div>
           <div className="pd-info-enter w-full lg:w-[45%] lg:sticky lg:top-28">
             <ProductInfoPanel
               product={productItem}
               variants={product.variants}
+              selectedVariant={selectedVariant}
+              onSelectVariant={setSelectedVariant}
               personalizationRules={personalizationRules}
               quantity={quantity}
               setQuantity={setQuantity}

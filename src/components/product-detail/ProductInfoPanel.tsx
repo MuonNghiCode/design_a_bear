@@ -159,6 +159,8 @@ const DELIVERY_INFO = [
 interface Props {
   product: ProductItem;
   variants?: ProductVariant[];
+  selectedVariant: ProductVariant | null;
+  onSelectVariant: (v: ProductVariant) => void;
   personalizationRules?: PersonalizationRule[];
   quantity: number;
   setQuantity: (q: number) => void;
@@ -167,6 +169,8 @@ interface Props {
 export default function ProductInfoPanel({
   product,
   variants = [],
+  selectedVariant,
+  onSelectVariant,
   personalizationRules = [],
   quantity,
   setQuantity,
@@ -177,9 +181,6 @@ export default function ProductInfoPanel({
   const { addItem } = useCart();
   const toast = useToast();
   const [addingToCart, setAddingToCart] = useState(false);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    variants.length > 0 ? variants[0] : null,
-  );
 
   const [selectedAccessories, setSelectedAccessories] = useState<
     PersonalizationRule[]
@@ -351,7 +352,7 @@ export default function ProductInfoPanel({
               return (
                 <button
                   key={v.variantId}
-                  onClick={() => setSelectedVariant(v)}
+                  onClick={() => onSelectVariant(v)}
                   className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
                     isSelected
                       ? "border-[#17409A] bg-[#17409A] text-white shadow-md shadow-[#17409A]/20"

@@ -4,6 +4,7 @@ import type { UpdateProductRequest } from "@/types/requests";
 import { productService } from "@/services/product.service";
 import CustomDropdown from "@/components/shared/CustomDropdown";
 import { useTaxonomyApi } from "@/hooks";
+import { useToast } from "@/contexts/ToastContext";
 import { mediaService } from "@/services/media.service";
 import { generateSlug } from "@/utils/string";
 
@@ -27,6 +28,7 @@ export default function EditProductModal({
   onSubmit,
   isSubmitting,
 }: Props) {
+  const toast = useToast();
   const [isFetching, setIsFetching] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
@@ -49,6 +51,9 @@ export default function EditProductModal({
   const [characterPicker, setCharacterPicker] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [variantUploadFiles, setVariantUploadFiles] = useState<
+    Record<number, File | null>
+  >({});
   const {
     loading: taxonomyLoading,
     categories,
@@ -202,9 +207,28 @@ export default function EditProductModal({
         })),
       );
       setUploadFile(null);
-      window.alert("Upload ảnh thành công");
+      toast.success("Upload ảnh thành công");
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : "Upload ảnh thất bại");
+      toast.error(err instanceof Error ? err.message : "Upload ảnh thất bại");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleUploadVariantImage = async (index: number) => {
+    const file = variantUploadFiles[index];
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const res = await mediaService.uploadMedia(file, "uploads");
+      if (!res.isSuccess || !res.value?.publicUrl) {
+        throw new Error(res.error?.description || "Upload ảnh thất bại");
+      }
+      handleVariantChange(index, "imageUrl", res.value.publicUrl);
+      setVariantUploadFiles((prev) => ({ ...prev, [index]: null }));
+      toast.success("Upload ảnh variant thành công");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload ảnh thất bại");
     } finally {
       setIsUploadingImage(false);
     }
@@ -243,17 +267,17 @@ export default function EditProductModal({
       .filter((v) => v.price > 0);
 
     if (normalizedVariants.length === 0) {
-      window.alert("Cần ít nhất 1 biến thể có giá lớn hơn 0.");
+      toast.error("Cần ít nhất 1 biến thể có giá lớn hơn 0.");
       return;
     }
 
     if (selectedCategoryIds.length === 0) {
-      window.alert("Vui lòng chọn ít nhất 1 category cho sản phẩm.");
+      toast.error("Vui lòng chọn ít nhất 1 category cho sản phẩm.");
       return;
     }
 
     if (selectedCharacterIds.length === 0) {
-      window.alert("Vui lòng chọn ít nhất 1 character cho sản phẩm.");
+      toast.error("Vui lòng chọn ít nhất 1 character cho sản phẩm.");
       return;
     }
 
@@ -528,7 +552,7 @@ export default function EditProductModal({
                 {variants.map((variant, index) => (
                   <div
                     key={`${variant.sku || "new"}-${index}`}
-                    className="rounded-2xl bg-white/80 border border-[#E5E7EB] p-4 grid grid-cols-1 md:grid-cols-3 gap-3"
+                    className="rounded-2xl bg-white/80 border border-[#E5E7EB] p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
                   >
                     <input
                       value={variant.variantName}
@@ -540,7 +564,7 @@ export default function EditProductModal({
                         )
                       }
                       placeholder="Tên biến thể"
-                      className="bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
+                      className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
                     />
                     <input
                       type="text"
@@ -553,26 +577,49 @@ export default function EditProductModal({
                         handleVariantChange(index, "price", e.target.value)
                       }
                       placeholder="Giá (VNĐ)"
-                      className="bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
+                      className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            setVariantUploadFiles((prev) => ({
+                              ...prev,
+                              [index]: e.target.files?.[0] ?? null,
+                            }))
+                          }
+                          className="w-full min-w-0 sm:flex-1 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleUploadVariantImage(index)}
+                          disabled={
+                            !variantUploadFiles[index] || isUploadingImage
+                          }
+                          className="w-full sm:w-auto px-2.5 py-2 rounded-xl text-xs font-bold bg-[#17409A] text-white hover:bg-[#0E2A66] disabled:opacity-50"
+                        >
+                          {isUploadingImage ? "Đang up..." : "Upload"}
+                        </button>
+                        {variants.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => removeVariant(index)}
+                            className="w-full sm:w-auto px-2.5 py-2 rounded-xl text-xs font-bold bg-[#FF6B9D]/10 text-[#C43D6B] hover:bg-[#FF6B9D]/20 transition-colors"
+                          >
+                            Xóa
+                          </button>
+                        ) : null}
+                      </div>
                       <input
                         value={variant.imageUrl}
                         onChange={(e) =>
                           handleVariantChange(index, "imageUrl", e.target.value)
                         }
-                        placeholder="Ảnh variant URL"
-                        className="flex-1 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
+                        placeholder="Ảnh variant URL (sau upload)"
+                        className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
                       />
-                      {variants.length > 1 ? (
-                        <button
-                          type="button"
-                          onClick={() => removeVariant(index)}
-                          className="px-2.5 py-2 rounded-xl text-xs font-bold bg-[#FF6B9D]/10 text-[#C43D6B] hover:bg-[#FF6B9D]/20 transition-colors"
-                        >
-                          Xóa
-                        </button>
-                      ) : null}
                     </div>
                   </div>
                 ))}

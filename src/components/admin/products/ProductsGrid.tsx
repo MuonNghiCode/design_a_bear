@@ -29,7 +29,7 @@ import CreateProductModal from "./CreateProductModal";
 import EditProductModal from "./EditProductModal";
 
 type ViewMode = "grid" | "table";
-type CategoryFilter = "all" | "complete" | "bear" | "accessory";
+type CategoryFilter = "all" | "bear" | "accessory";
 
 const STATUS_CFG: Record<
   ProductAdminStatus,
@@ -42,8 +42,7 @@ const STATUS_CFG: Record<
 
 const CATEGORY_TABS: { key: CategoryFilter; label: string }[] = [
   { key: "all", label: "Tất cả" },
-  { key: "complete", label: "Gấu hoàn chỉnh" },
-  { key: "bear", label: "Thân gấu" },
+  { key: "bear", label: "Gấu" },
   { key: "accessory", label: "Phụ kiện" },
 ];
 
@@ -90,17 +89,22 @@ function ProductCard({
   isDeleting: boolean;
 }) {
   const st = STATUS_CFG[p.status];
+  const stockPercent =
+    p.status === "active" && p.stock > 0
+      ? Math.min(100, Math.round((p.stock / 80) * 100))
+      : 0;
+
   return (
     <div
       onClick={() => onView(p)}
-      className="group bg-[#F8F9FF] rounded-2xl overflow-hidden border border-transparent hover:border-[#17409A]/10 hover:shadow-lg hover:shadow-[#17409A]/5 transition-all duration-300 cursor-pointer relative"
+      className="group h-full bg-[#F8F9FF] rounded-2xl overflow-hidden border border-transparent hover:border-[#17409A]/10 hover:shadow-lg hover:shadow-[#17409A]/5 transition-all duration-300 cursor-pointer relative flex flex-col"
     >
       {/* Category color top stripe */}
       <div className="h-0.5 w-full" style={{ backgroundColor: p.badgeColor }} />
 
       {/* Image area */}
       <div
-        className="relative flex items-center justify-center py-4 overflow-hidden"
+        className="relative h-28 flex items-center justify-center overflow-hidden"
         style={{ backgroundColor: p.badgeColor + "0d" }}
       >
         <Image
@@ -126,9 +130,9 @@ function ProductCard({
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 flex flex-1 flex-col">
         {/* Name + badge */}
-        <div className="mb-2.5">
+        <div className="mb-2.5 min-h-14">
           {p.badge && (
             <span
               className="text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 inline-block"
@@ -151,7 +155,7 @@ function ProductCard({
         </p>
 
         {/* Stats row */}
-        <div className="flex items-center justify-between text-[10px] font-semibold text-[#9CA3AF] mb-3">
+        <div className="flex items-center justify-between text-[10px] font-semibold text-[#9CA3AF] mb-3 min-h-4">
           <span>
             <span className="text-[#4B5563] font-black">{p.sold}</span> đơn
           </span>
@@ -167,20 +171,18 @@ function ProductCard({
         </div>
 
         {/* Stock bar */}
-        {p.status === "active" && p.stock > 0 && (
-          <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mb-3">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.min(100, Math.round((p.stock / 80) * 100))}%`,
-                backgroundColor: p.stock <= 10 ? "#FF8C42" : "#4ECDC4",
-              }}
-            />
-          </div>
-        )}
+        <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mb-3">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${stockPercent}%`,
+              backgroundColor: p.stock <= 10 ? "#FF8C42" : "#4ECDC4",
+            }}
+          />
+        </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5 pt-1 border-t border-[#E9ECEF]">
+        <div className="mt-auto flex items-center gap-1.5 pt-1 border-t border-[#E9ECEF]">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -389,11 +391,10 @@ const mapProductToAdmin = (p: ProductListItem, index: number): ProductAdmin => {
   ];
   const color = badgeColors[index % badgeColors.length];
 
-  let category: "complete" | "bear" | "accessory" = "bear";
+  let category: "bear" | "accessory" = "bear";
   if (p.productType === "ACCESSORY") category = "accessory";
-  else if (p.productType === "COMPLETE_BEAR") category = "complete";
 
-  const badgeName = p.productType === "ACCESSORY" ? "Phụ kiện" : "Gấu bông";
+  const badgeName = p.productType === "ACCESSORY" ? "Phụ kiện" : "Gấu";
 
   return {
     id: p.productId,
@@ -625,7 +626,7 @@ export default function ProductsGrid() {
         {viewMode === "grid" && (
           <>
             {filtered.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 items-stretch">
                 {filtered.map((p: ProductAdmin) => (
                   <ProductCard
                     key={p.id}

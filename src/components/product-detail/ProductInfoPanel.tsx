@@ -159,6 +159,8 @@ const DELIVERY_INFO = [
 interface Props {
   product: ProductItem;
   variants?: ProductVariant[];
+  selectedVariant: ProductVariant | null;
+  onSelectVariant: (v: ProductVariant) => void;
   personalizationRules?: PersonalizationRule[];
   quantity: number;
   setQuantity: (q: number) => void;
@@ -167,6 +169,8 @@ interface Props {
 export default function ProductInfoPanel({
   product,
   variants = [],
+  selectedVariant,
+  onSelectVariant,
   personalizationRules = [],
   quantity,
   setQuantity,
@@ -177,9 +181,6 @@ export default function ProductInfoPanel({
   const { addItem } = useCart();
   const toast = useToast();
   const [addingToCart, setAddingToCart] = useState(false);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    variants.length > 0 ? variants[0] : null,
-  );
 
   const [selectedAccessories, setSelectedAccessories] = useState<
     PersonalizationRule[]
@@ -351,7 +352,7 @@ export default function ProductInfoPanel({
               return (
                 <button
                   key={v.variantId}
-                  onClick={() => setSelectedVariant(v)}
+                  onClick={() => onSelectVariant(v)}
                   className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
                     isSelected
                       ? "border-[#17409A] bg-[#17409A] text-white shadow-md shadow-[#17409A]/20"
@@ -449,6 +450,46 @@ export default function ProductInfoPanel({
           Còn hàng
         </span>
       </div>
+
+      {(product.categories?.length || product.characters?.length) && (
+        <div className="space-y-3">
+          {product.categories && product.categories.length > 0 && (
+            <div>
+              <p className="text-xs font-black tracking-[0.2em] uppercase text-[#9CA3AF] mb-2">
+                Danh mục
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.categories.map((categoryName) => (
+                  <span
+                    key={categoryName}
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#17409A]/10 text-[#17409A]"
+                  >
+                    {categoryName}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {product.characters && product.characters.length > 0 && (
+            <div>
+              <p className="text-xs font-black tracking-[0.2em] uppercase text-[#9CA3AF] mb-2">
+                Nhân vật
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.characters.map((characterName) => (
+                  <span
+                    key={characterName}
+                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#FF8C42]/15 text-[#FF8C42]"
+                  >
+                    {characterName}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Separator ── */}
       <div className="h-px bg-[#E5E7EB]" />

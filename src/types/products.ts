@@ -10,6 +10,8 @@ export interface ProductItem extends ProductCardProps {
   popular?: boolean;
   createdAt?: number;
   images?: string[];
+  categories?: string[];
+  characters?: string[];
 }
 
 export interface ProductsClientProps {

@@ -188,6 +188,7 @@ export interface ProductCategory {
   parentId: string | null;
   name: string;
   slug: string;
+  isActive?: boolean;
 }
 
 export interface CharacterItem {
@@ -251,6 +252,7 @@ export interface ProductDetail {
   media: ProductMedia[];
   variants: ProductVariant[];
   categories: ProductCategory[];
+  characters?: CharacterItem[];
   reviews: ProductReview[];
 }
 
@@ -292,8 +294,24 @@ export interface PersonalizationRule {
   allowedComponentProductId: string;
   isRequired: boolean;
   maxQuantity: number;
-  ruleType: "OPTIONAL" | "REQUIRED";
+  ruleType: "OPTIONAL" | "REQUIRED" | "ACCESSORY" | string;
   addonProduct: ProductDetail;
+}
+
+export interface GetPersonalizationRulesAdminResponseData {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: PersonalizationRule[];
+}
+
+export interface PersonalizationGroup {
+  groupId: string;
+  name: string;
+  description: string | null;
 }
 
 /* ── Build API Responses ── */
@@ -446,6 +464,21 @@ export type AddToCartResponse = ApiResponse<CartItem>;
 export type GetPersonalizationRulesResponse = ApiResponse<
   PersonalizationRule[]
 >;
+export type GetPersonalizationGroupsResponse = ApiResponse<
+  PersonalizationGroup[]
+>;
+export type GetPersonalizationGroupResponse = ApiResponse<PersonalizationGroup>;
+export type CreatePersonalizationGroupResponse =
+  ApiResponse<PersonalizationGroup>;
+export type UpdatePersonalizationGroupResponse = ApiResponse<null>;
+export type DeletePersonalizationGroupResponse = ApiResponse<null>;
+export type GetPersonalizationRulesAdminResponse = ApiResponse<
+  GetPersonalizationRulesAdminResponseData | PersonalizationRule[]
+>;
+export type GetPersonalizationRuleResponse = ApiResponse<PersonalizationRule>;
+export type CreatePersonalizationRuleResponse = ApiResponse<PersonalizationRule>;
+export type UpdatePersonalizationRuleResponse = ApiResponse<null>;
+export type DeletePersonalizationRuleResponse = ApiResponse<null>;
 export type PromotionResponse = ApiResponse<PromotionResponseData>;
 export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
 export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;

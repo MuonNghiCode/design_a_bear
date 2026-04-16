@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "media.designabear.com",
+        hostname: "**.designabear.com",
       },
       {
         protocol: "https",

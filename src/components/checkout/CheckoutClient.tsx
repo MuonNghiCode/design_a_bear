@@ -27,6 +27,7 @@ import { userService } from "@/services/user.service";
 import { addressService } from "@/services/address.service";
 import { orderService } from "@/services/order.service";
 import { paymentService } from "@/services/payment.service";
+import { shippingService } from "@/services/shipping.service";
 import { STORAGE_KEYS } from "@/constants";
 import type { Address } from "@/types";
 import { normalizePhoneNumber } from "@/utils/address";
@@ -68,10 +69,15 @@ export default function CheckoutClient() {
   const { isAuthenticated } = useAuth();
   const toast = useToast();
 
+  const [shippingFee, setShippingFee] = useState(0);
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
+  const [resolvedAddressId, setResolvedAddressId] = useState<string | null>(
+    null,
+  );
+
   // const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
-  const SHIPPING_FEE = 0;
   const DISCOUNT = couponApplied ? 50_000 : 0;
-  const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
+  const FINAL_TOTAL = totalPrice + shippingFee - DISCOUNT;
 
   useEffect(() => {
     closeCart();
@@ -228,6 +234,101 @@ export default function CheckoutClient() {
     });
   }, []);
 
+  /**
+   * Resolve shipping address (reuse existing address if equivalent or create a new one)
+   * This is needed both for shipping fee calculation and final order placement.
+   */
+  const getOrResolveAddressId = async (): Promise<string> => {
+    const userObj = localStorage.getItem(STORAGE_KEYS.USER);
+    const userId = userObj ? JSON.parse(userObj).id : null;
+    const normalizedPhone = normalizePhoneNumber(form.phone);
+
+    const city = (form.provinceName || form.province).trim();
+    const state = (form.districtName || form.district).trim();
+
+    const normalizedCurrent = {
+      fullName: form.name.trim().toLowerCase(),
+      phoneNumber: normalizedPhone,
+      email: (form.email || "").trim().toLowerCase(),
+      line1: form.address.trim().toLowerCase(),
+      line2: (form.wardName || "").trim().toLowerCase(),
+      city: city.toLowerCase(),
+      state: state.toLowerCase(),
+    };
+
+    let addrId =
+      addresses.find((a) => {
+        return (
+          a.fullName.trim().toLowerCase() === normalizedCurrent.fullName &&
+          normalizePhoneNumber(a.phoneNumber) === normalizedCurrent.phoneNumber &&
+          (a.email || "").trim().toLowerCase() === normalizedCurrent.email &&
+          a.line1.trim().toLowerCase() === normalizedCurrent.line1 &&
+          (a.line2 || "").trim().toLowerCase() === normalizedCurrent.line2 &&
+          a.city.trim().toLowerCase() === normalizedCurrent.city &&
+          a.state.trim().toLowerCase() === normalizedCurrent.state
+        );
+      })?.addressId ?? null;
+
+    if (!addrId) {
+      if (!userId) {
+        throw new Error("Không xác định được người dùng để tạo địa chỉ.");
+      }
+
+      const createAddrRes = await addressService.createAddress({
+        userId,
+        fullName: form.name.trim(),
+        phoneNumber: normalizedPhone,
+        email: form.email.trim() || null,
+        city,
+        state,
+        line1: form.address.trim(),
+        line2: form.wardName || null,
+        label: form.note || null,
+        isDefaultShipping: true,
+        isDefaultBilling: true,
+        postalCode: null,
+        country: null,
+      });
+
+      if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
+        throw new Error("Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.");
+      }
+
+      addrId = createAddrRes.value.addressId;
+      // Update local address list to prevent duplicate creation next time
+      const freshAddrs = await addressService.getMyAddresses();
+      if (freshAddrs.isSuccess && freshAddrs.value) {
+        setAddresses(freshAddrs.value);
+      }
+    }
+
+    return addrId;
+  };
+
+  const calculateFee = async (addrId: string) => {
+    const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
+    if (!cartId || !addrId) return;
+
+    try {
+      setIsCalculatingShipping(true);
+      const res = await shippingService.calculateShippingFee({
+        cartId,
+        addressId: addrId,
+        transport: "road",
+      });
+
+      if (res.isSuccess && res.value?.fee?.fee !== undefined) {
+        setShippingFee(res.value.fee.fee);
+      }
+    } catch (error) {
+      console.error("Lỗi tính phí vận chuyển:", error);
+      // Fallback to 0 or a fixed amount if needed? 
+      // For now keep at 0 or current.
+    } finally {
+      setIsCalculatingShipping(false);
+    }
+  };
+
   const goNext = useCallback(() => {
     if (step === 1) {
       const result = deliverySchema.safeParse({
@@ -244,97 +345,50 @@ export default function CheckoutClient() {
         return;
       }
       setShowDeliveryErrors(false);
+
+      // Transitioning from Step 1 -> Step 2: Resolve address and calculate fee
+      (async () => {
+        try {
+          setSubmitting(true);
+          const addrId = await getOrResolveAddressId();
+          setResolvedAddressId(addrId);
+          await calculateFee(addrId);
+          transition(step + 1, 1);
+        } catch (error: any) {
+          toast.error(error.message || "Đã có lỗi xảy ra");
+        } finally {
+          setSubmitting(false);
+        }
+      })();
+      return;
     }
+
     if (step < 3) transition(step + 1, 1);
     else {
       // Place order via API
       setSubmitting(true);
       (async () => {
         try {
-          // 1. Resolve shipping address (reuse existing address if equivalent)
-          const userObj = localStorage.getItem(STORAGE_KEYS.USER);
-          const userId = userObj ? JSON.parse(userObj).id : null;
-          const normalizedPhone = normalizePhoneNumber(form.phone);
-
-          const city = (form.provinceName || form.province).trim();
-          const state = (form.districtName || form.district).trim();
-
-          const wardSuffixForMatch = form.wardName ? `, ${form.wardName}` : "";
-          const line1ForMatch = `${form.address.trim()}${wardSuffixForMatch}`;
-
-          const normalizedCurrent = {
-            fullName: form.name.trim().toLowerCase(),
-            phoneNumber: normalizedPhone,
-            email: (form.email || "").trim().toLowerCase(),
-            line1: form.address.trim().toLowerCase(),
-            line2: (form.wardName || "").trim().toLowerCase(),
-            city: city.toLowerCase(),
-            state: state.toLowerCase(),
-          };
-
-          let addressId =
-            addresses.find((a) => {
-              return (
-                a.fullName.trim().toLowerCase() ===
-                  normalizedCurrent.fullName &&
-                normalizePhoneNumber(a.phoneNumber) ===
-                  normalizedCurrent.phoneNumber &&
-                (a.email || "").trim().toLowerCase() ===
-                  normalizedCurrent.email &&
-                a.line1.trim().toLowerCase() === normalizedCurrent.line1 &&
-                (a.line2 || "").trim().toLowerCase() ===
-                  normalizedCurrent.line2 &&
-                a.city.trim().toLowerCase() === normalizedCurrent.city &&
-                a.state.trim().toLowerCase() === normalizedCurrent.state
-              );
-            })?.addressId ?? null;
-
-          if (!addressId) {
-            if (!userId) {
-              throw new Error("Không xác định được người dùng để tạo địa chỉ.");
-            }
-
-            const createAddrRes = await addressService.createAddress({
-              userId,
-              fullName: form.name.trim(),
-              phoneNumber: normalizedPhone,
-              email: form.email.trim() || null,
-              city,
-              state,
-              line1: form.address.trim(),
-              line2: form.wardName || null,
-              label: form.note || null,
-              isDefaultShipping: true,
-              isDefaultBilling: true,
-              postalCode: null,
-              country: null,
-            });
-
-            if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
-              throw new Error(
-                "Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.",
-              );
-            }
-
-            addressId = createAddrRes.value.addressId;
-          }
+          // 1. Resolve shipping address
+          const addrId = await getOrResolveAddressId();
 
           // 2. Create Order
           const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
-
           if (!cartId) throw new Error("Chưa có giỏ hàng.");
 
           const orderPayload = {
-            userId,
-            shippingAddressId: addressId,
-            billingAddressId: addressId,
+            userId: localStorage.getItem(STORAGE_KEYS.USER)
+              ? JSON.parse(localStorage.getItem(STORAGE_KEYS.USER)!).id
+              : null,
+            shippingAddressId: addrId,
+            billingAddressId: addrId,
             currency: "VND",
             subtotal: totalPrice,
             discountTotal: DISCOUNT,
             taxTotal: 0,
-            shippingTotal: SHIPPING_FEE,
+            shippingTotal: shippingFee,
             grandTotal: FINAL_TOTAL,
-            notes: form.note || "Order from NextJS Frontend",
+            notes: form.note || "Order from Design a Bear",
             promoCode: couponApplied ? coupon : undefined,
           };
 
@@ -468,7 +522,7 @@ export default function CheckoutClient() {
     clearCart,
     totalPrice,
     DISCOUNT,
-    SHIPPING_FEE,
+    shippingFee,
     FINAL_TOTAL,
     couponApplied,
     coupon,
@@ -721,7 +775,8 @@ export default function CheckoutClient() {
         style={{ width: 400 }}
       >
         <OrderSummary
-          shippingFee={SHIPPING_FEE}
+          shippingFee={shippingFee}
+          isCalculatingShipping={isCalculatingShipping}
           discount={DISCOUNT}
           finalTotal={FINAL_TOTAL}
           coupon={coupon}

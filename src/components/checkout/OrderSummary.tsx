@@ -19,6 +19,7 @@ interface OrderSummaryProps {
   onApplyCoupon: () => void;
   couponApplied: boolean;
   step: number;
+  isCalculatingShipping?: boolean;
 }
 
 export function OrderSummary({
@@ -29,6 +30,7 @@ export function OrderSummary({
   onCouponChange,
   onApplyCoupon,
   couponApplied,
+  isCalculatingShipping = false,
 }: OrderSummaryProps) {
   const { items, totalItems, totalPrice } = useCart();
   const freeShip = totalPrice >= FREE_SHIP;
@@ -209,7 +211,11 @@ export function OrderSummary({
             ["Tạm tính", fmt(totalPrice)],
             [
               "Phí vận chuyển",
-              shippingFee === 0 ? "Miễn phí" : fmt(shippingFee),
+              isCalculatingShipping
+                ? "Đang tính..."
+                : shippingFee === 0
+                  ? "Miễn phí"
+                  : fmt(shippingFee),
             ],
             ...(discount > 0 ? [["Giảm giá", `−${fmt(discount)}`]] : []),
           ].map(([k, v]) => (

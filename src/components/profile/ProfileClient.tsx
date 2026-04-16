@@ -55,6 +55,7 @@ export default function ProfileClient() {
     null,
   );
   const [saveProfileError, setSaveProfileError] = useState<string | null>(null);
+  const [currentAddressId, setCurrentAddressId] = useState<string | null>(null);
 
   const heroRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
@@ -126,6 +127,7 @@ export default function ProfileClient() {
             .filter(Boolean)
             .join(", ");
           setAddressDisplay(display || "Chưa có địa chỉ");
+          setCurrentAddressId(selected.addressId);
 
           setAddressForm({
             streetAddress: selected.line1 || "",
@@ -217,8 +219,10 @@ export default function ProfileClient() {
       const line1 = addressForm.streetAddress.trim();
 
       if (user?.id && line1) {
-        const createAddressRes = await addressService.createAddress({
-          userId: user.id,
+        let success = false;
+        let finalSel: Address | null = null;
+
+        const addressData = {
           label: null,
           fullName: name.trim(),
           phoneNumber: normalizedPhone,
@@ -231,24 +235,31 @@ export default function ProfileClient() {
           country: null,
           isDefaultShipping: true,
           isDefaultBilling: true,
-        });
+        };
 
-        if (!createAddressRes.isFailure) {
-          const newAddressId = createAddressRes.value?.addressId;
-
-          await Promise.allSettled(
-            addresses
-              .filter((a) => a.addressId !== newAddressId)
-              .map((a) => addressService.deleteAddress(a.addressId)),
+        if (currentAddressId) {
+          const upRes = await addressService.updateAddress(
+            currentAddressId,
+            addressData,
           );
+          success = !upRes.isFailure;
+        } else {
+          const createRes = await addressService.createAddress({
+            userId: user.id,
+            ...addressData,
+          });
+          success = !createRes.isFailure;
+          if (success) setCurrentAddressId(createRes.value?.addressId || null);
+        }
 
+        if (success) {
           const refreshedAddresses = await addressService.getMyAddresses();
           if (!refreshedAddresses.isFailure) {
             const next = refreshedAddresses.value ?? [];
             setAddresses(next);
             const sel = next.find((a) => a.isDefaultShipping) ?? next[0];
             if (sel) {
-              const display = [sel.line1, sel.state, sel.city]
+              const display = [sel.line1, sel.line2, sel.state, sel.city]
                 .map((v) => (v || "").trim())
                 .filter(Boolean)
                 .join(", ");

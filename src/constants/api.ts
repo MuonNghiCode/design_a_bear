@@ -97,6 +97,9 @@ export const API_ENDPOINTS = {
   REPORTS: {
     REVENUE: "/api/Reports/revenue",
   },
+  SHIPPING: {
+    CALCULATE_FEE: "/api/Shipping/calculate-fee",
+  },
 } as const;
 
 export const HTTP_METHOD = {

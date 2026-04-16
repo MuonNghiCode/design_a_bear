@@ -79,7 +79,13 @@ export const API_ENDPOINTS = {
     CLEAR: "/api/Carts",
   },
   PERSONALIZATION_RULES: {
+    BASE: "/api/PersonalizationRules",
+    BY_ID: "/api/PersonalizationRules/{id}",
     GET_ACTIVE: "/api/PersonalizationRules/product",
+  },
+  PERSONALIZATION_GROUPS: {
+    BASE: "/api/PersonalizationGroups",
+    BY_ID: "/api/PersonalizationGroups/{id}",
   },
   BUILDS: {
     BASE: "/api/Builds",

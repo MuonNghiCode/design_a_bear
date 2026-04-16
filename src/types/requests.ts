@@ -197,6 +197,33 @@ export interface AddToCartRequest {
   productImageUrlSnapshot?: string | null;
 }
 
+/* ── Personalization Group API Requests ── */
+
+export interface CreatePersonalizationGroupRequest {
+  name: string;
+  description: string | null;
+}
+
+export type UpdatePersonalizationGroupRequest =
+  CreatePersonalizationGroupRequest;
+
+/* ── Personalization Rule API Requests ── */
+
+export interface CreatePersonalizationRuleRequest {
+  baseProductId: string;
+  groupId: string;
+  allowedComponentProductId: string;
+  isRequired: boolean;
+  maxQuantity: number;
+  ruleType: string;
+}
+
+export interface UpdatePersonalizationRuleRequest {
+  isRequired: boolean;
+  maxQuantity: number;
+  ruleType: string;
+}
+
 /* ── Order API Requests ── */
 
 export interface GetOrdersRequest {

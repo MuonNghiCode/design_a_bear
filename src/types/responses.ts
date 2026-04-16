@@ -181,6 +181,7 @@ export interface ProductVariant {
   currency: string;
   isSoldOut: boolean;
   imageUrl: string | null;
+  weightGram: number;
 }
 
 export interface ProductCategory {
@@ -434,7 +435,45 @@ export interface RevenueReportData {
   dailyBreakdown: DailyRevenue[];
 }
 
+export type ProductIssueStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "RESOLVED"
+  | "CLOSED";
+
+export interface ProductIssueReport {
+  reportId: string;
+  userId: string;
+  orderItemId: string;
+  orderId?: string;
+  productId?: string;
+  type?: string;
+  description: string;
+  requestRefund: boolean;
+  evidenceUrls: string[];
+  status: ProductIssueStatus;
+  staffId?: string | null;
+  resolution?: string | null;
+  staffNotes?: string | null;
+  repairNotes?: string | null;
+  finalNotes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GetProductIssuesResponseData = {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: ProductIssueReport[];
+};
+
 export type GetRevenueReportResponse = ApiResponse<RevenueReportData>;
+export type GetProductIssuesResponse =
+  ApiResponse<GetProductIssuesResponseData>;
 
 /* ── Aggregated export aliases ── */
 
@@ -476,7 +515,8 @@ export type GetPersonalizationRulesAdminResponse = ApiResponse<
   GetPersonalizationRulesAdminResponseData | PersonalizationRule[]
 >;
 export type GetPersonalizationRuleResponse = ApiResponse<PersonalizationRule>;
-export type CreatePersonalizationRuleResponse = ApiResponse<PersonalizationRule>;
+export type CreatePersonalizationRuleResponse =
+  ApiResponse<PersonalizationRule>;
 export type UpdatePersonalizationRuleResponse = ApiResponse<null>;
 export type DeletePersonalizationRuleResponse = ApiResponse<null>;
 export type PromotionResponse = ApiResponse<PromotionResponseData>;

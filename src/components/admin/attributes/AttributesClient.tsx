@@ -196,7 +196,7 @@ export default function AttributesClient() {
             Thuộc tính
           </h1>
           <p className="text-[#9CA3AF] text-sm font-semibold">
-            Quản lý danh mục và nhân vật · Tháng 3 / 2026
+            Quản lý danh mục và tính cách
           </p>
         </div>
         <button
@@ -240,7 +240,7 @@ export default function AttributesClient() {
               }`}
             >
               <MdStars className="text-sm" />
-              Nhân vật
+              Tính cách
             </button>
           </div>
         </div>

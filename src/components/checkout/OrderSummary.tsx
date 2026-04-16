@@ -33,8 +33,8 @@ export function OrderSummary({
   isCalculatingShipping = false,
 }: OrderSummaryProps) {
   const { items, totalItems, totalPrice } = useCart();
-  const freeShip = totalPrice >= FREE_SHIP;
-  const barWidth = Math.min((totalPrice / FREE_SHIP) * 100, 100);
+  // const freeShip = totalPrice >= FREE_SHIP;
+  // const barWidth = Math.min((totalPrice / FREE_SHIP) * 100, 100);
 
   return (
     <div
@@ -61,7 +61,7 @@ export function OrderSummary({
         </p>
       </div>
 
-      {/* Free-ship progress */}
+      {/* Free-ship progress - Tạm thời ẩn theo yêu cầu
       <div
         className="mx-7 mt-5 mb-4 p-4 rounded-2xl shrink-0"
         style={{ backgroundColor: "#F4F7FF" }}
@@ -98,6 +98,7 @@ export function OrderSummary({
           />
         </div>
       </div>
+      */}
 
       {/* Items list */}
       <div className="flex-1 overflow-y-auto px-7 space-y-3 pb-4">

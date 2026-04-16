@@ -7,12 +7,16 @@ import { useTaxonomyApi } from "@/hooks";
 import { useToast } from "@/contexts/ToastContext";
 import { mediaService } from "@/services/media.service";
 import { generateSlug } from "@/utils/string";
+import { formatDate } from "@/utils/date";
+import { formatInputAsCurrency } from "@/utils/currency";
+import { MdAddPhotoAlternate, MdDeleteOutline } from "react-icons/md";
 
 type VariantForm = {
   sku: string;
   variantName: string;
   price: string;
   imageUrl: string;
+  weightGram: string;
 };
 
 interface Props {
@@ -39,9 +43,17 @@ export default function EditProductModal({
     isPersonalizable: false,
     isActive: true,
     imageUrl: "",
+    createdAt: "",
+    media: [] as { url: string; altText: string; sortOrder: number }[],
   });
   const [variants, setVariants] = useState<VariantForm[]>([
-    { sku: "", variantName: "Mặc định", price: "", imageUrl: "" },
+    {
+      sku: "",
+      variantName: "Mặc định",
+      price: "",
+      imageUrl: "",
+      weightGram: "",
+    },
   ]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>(
@@ -91,6 +103,8 @@ export default function EditProductModal({
             isPersonalizable: p.isPersonalizable || false,
             isActive: p.isActive,
             imageUrl: defaultMedia?.url || "",
+            createdAt: p.createdAt || "",
+            media: p.media || [],
           });
 
           setVariants(
@@ -98,16 +112,18 @@ export default function EditProductModal({
               ? p.variants.map((v) => ({
                   sku: v.sku || "",
                   variantName: v.variantName || "",
-                  price: v.price?.toString() || "",
+                  price: formatInputAsCurrency(v.price),
                   imageUrl: v.imageUrl || defaultMedia?.url || "",
+                  weightGram: v.weightGram?.toString() || "",
                 }))
               : [
                   {
                     sku: defaultVariant?.sku || "",
                     variantName: defaultVariant?.variantName || "Mặc định",
-                    price: defaultVariant?.price?.toString() || "",
+                    price: formatInputAsCurrency(defaultVariant?.price || 0),
                     imageUrl:
                       defaultVariant?.imageUrl || defaultMedia?.url || "",
+                    weightGram: defaultVariant?.weightGram?.toString() || "",
                   },
                 ],
           );
@@ -141,7 +157,7 @@ export default function EditProductModal({
       const next = [...prev];
       next[index] = {
         ...next[index],
-        [field]: field === "price" ? value.replace(/\D/g, "") : value,
+        [field]: field === "price" ? formatInputAsCurrency(value) : value,
       };
       return next;
     });
@@ -172,6 +188,7 @@ export default function EditProductModal({
           variantName: prev[0]?.variantName || "Mặc định",
           price: prev[0]?.price || "",
           imageUrl: prev[0]?.imageUrl || "",
+          weightGram: prev[0]?.weightGram || "",
         },
       ]);
     }
@@ -180,7 +197,13 @@ export default function EditProductModal({
   const addVariant = () => {
     setVariants((prev) => [
       ...prev,
-      { sku: "", variantName: "", price: "", imageUrl: formData.imageUrl },
+      {
+        sku: "",
+        variantName: "",
+        price: "",
+        imageUrl: formData.imageUrl,
+        weightGram: "",
+      },
     ]);
   };
 
@@ -247,8 +270,10 @@ export default function EditProductModal({
     const { name, value, type } = e.target;
 
     if (name === "price") {
-      const rawValue = value.replace(/\D/g, "");
-      setFormData((prev) => ({ ...prev, [name]: rawValue }));
+      setFormData((prev) => ({
+        ...prev,
+        [name]: formatInputAsCurrency(value),
+      }));
       return;
     }
 
@@ -267,9 +292,10 @@ export default function EditProductModal({
       .map((v, idx) => ({
         sku: v.sku.trim() || randomSku(),
         variantName: v.variantName.trim() || `Biến thể ${idx + 1}`,
-        price: Number(v.price) || 0,
+        price: Number(v.price.replace(/\D/g, "")) || 0,
         currency: "VND",
         imageUrl: v.imageUrl.trim() || formData.imageUrl.trim(),
+        weightGram: Number(v.weightGram) || 0,
       }))
       .filter((v) => v.price > 0);
 
@@ -307,15 +333,7 @@ export default function EditProductModal({
       categoryIds: isAccessory ? [] : selectedCategoryIds,
       characterIds: isAccessory ? [] : selectedCharacterIds,
       variants: variantsToSubmit,
-      media: mediaUrl
-        ? [
-            {
-              url: mediaUrl,
-              altText: formData.name,
-              sortOrder: 1,
-            },
-          ]
-        : [],
+      media: formData.media,
     };
 
     const ok = await onSubmit(payload);
@@ -336,9 +354,16 @@ export default function EditProductModal({
             <h2 className="text-xl font-black text-[#1A1A2E]">
               Chỉnh sửa sản phẩm
             </h2>
-            <p className="text-xs font-semibold text-[#6B7280] mt-0.5">
-              Cập nhật thông tin chi tiết
-            </p>
+            <div className="flex items-center gap-3 mt-0.5">
+              <p className="text-xs font-semibold text-[#6B7280]">
+                Cập nhật thông tin chi tiết
+              </p>
+              {formData.createdAt && (
+                <span className="text-[10px] font-bold bg-[#17409A]/10 text-[#17409A] px-2 py-0.5 rounded-md">
+                  Ngày tạo: {formatDate(formData.createdAt)}
+                </span>
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -395,36 +420,77 @@ export default function EditProductModal({
                 </div>
 
                 {!isAccessory && (
-                  <div className="space-y-1.5">
+                  <div className="col-span-full space-y-3">
                     <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                      Ảnh đại diện (media)
+                      Bộ sưu tập Media (Gallery) *
                     </label>
-                    <div className="space-y-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                      {formData.media.map((m, idx) => (
+                        <div
+                          key={idx}
+                          className="group relative aspect-square rounded-2xl bg-white border border-[#E5E7EB] overflow-hidden shadow-sm hover:shadow-md transition-all"
+                        >
+                          <img
+                            src={m.url}
+                            alt={m.altText}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                media: prev.media.filter((_, i) => i !== idx),
+                              }));
+                            }}
+                            className="absolute top-1 right-1 w-7 h-7 flex items-center justify-center rounded-lg bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                          >
+                            <MdDeleteOutline className="text-lg" />
+                          </button>
+                        </div>
+                      ))}
+
+                      <div className="aspect-square rounded-2xl border-2 border-dashed border-[#D7DEEF] bg-white hover:bg-[#F8F9FF] transition-all flex flex-col items-center justify-center gap-2 relative">
+                        <MdAddPhotoAlternate className="text-2xl text-[#6B7280]" />
+                        <span className="text-[10px] font-bold text-[#6B7280]">
+                          Thêm ảnh
+                        </span>
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) =>
-                            setUploadFile(e.target.files?.[0] ?? null)
-                          }
-                          className="w-full sm:flex-1 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB]"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setIsUploadingImage(true);
+                            try {
+                              const res = await mediaService.uploadMedia(
+                                file,
+                                "uploads",
+                              );
+                              if (res.isSuccess && res.value?.publicUrl) {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  media: [
+                                    ...prev.media,
+                                    {
+                                      url: res.value!.publicUrl!,
+                                      altText: formData.name,
+                                      sortOrder: prev.media.length + 1,
+                                    },
+                                  ],
+                                }));
+                                toast.success("Thêm ảnh thành công");
+                              }
+                            } catch (err) {
+                              toast.error("Upload ảnh thất bại");
+                            } finally {
+                              setIsUploadingImage(false);
+                            }
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
                         />
-                        <button
-                          type="button"
-                          onClick={handleUploadImage}
-                          disabled={!uploadFile || isUploadingImage}
-                          className="w-full sm:w-auto sm:min-w-23 px-3 py-2.5 rounded-xl text-xs font-bold bg-[#17409A] text-white hover:bg-[#0E2A66] disabled:opacity-50"
-                        >
-                          {isUploadingImage ? "Đang up..." : "Upload"}
-                        </button>
                       </div>
-                      <input
-                        name="imageUrl"
-                        value={formData.imageUrl}
-                        onChange={handleChange}
-                        placeholder="URL ảnh sau upload"
-                        className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
-                      />
                     </div>
                   </div>
                 )}
@@ -510,79 +576,144 @@ export default function EditProductModal({
                 {variants.map((variant, index) => (
                   <div
                     key={`${variant.sku || "new"}-${index}`}
-                    className="rounded-2xl bg-white/80 border border-[#E5E7EB] p-4 space-y-2"
+                    className="rounded-2xl bg-white/80 border border-[#E5E7EB] p-4 space-y-3"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input
-                        value={variant.variantName}
-                        onChange={(e) =>
-                          handleVariantChange(
-                            index,
-                            "variantName",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Tên biến thể"
-                        className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
-                      />
-                      <div className="relative">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={variant.price}
-                          onChange={(e) =>
-                            handleVariantChange(index, "price", e.target.value)
-                          }
-                          placeholder="Giá"
-                          className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 pr-12 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
-                        />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#6B7280]">
-                          VND
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_minmax(0,1fr)] items-center gap-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          setVariantUploadFiles((prev) => ({
-                            ...prev,
-                            [index]: e.target.files?.[0] ?? null,
-                          }))
-                        }
-                        className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleUploadVariantImage(index)}
-                        disabled={
-                          !variantUploadFiles[index] || isUploadingImage
-                        }
-                        className="px-2.5 py-2 rounded-xl text-xs font-bold bg-[#17409A] text-white hover:bg-[#0E2A66] disabled:opacity-50 whitespace-nowrap"
-                      >
-                        {isUploadingImage ? "Đang up..." : "Upload"}
-                      </button>
-                      {!isAccessory && variants.length > 1 ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black bg-[#E5E7EB] text-[#6B7280] px-2 py-0.5 rounded-lg">
+                        SKU: {variant.sku || "Tự động tạo"}
+                      </span>
+                      {!isAccessory && variants.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeVariant(index)}
-                          className="px-2.5 py-2 rounded-xl text-xs font-bold bg-[#FF6B9D]/10 text-[#C43D6B] hover:bg-[#FF6B9D]/20 transition-colors whitespace-nowrap"
+                          className="text-[#C43D6B] hover:text-red-600 transition-colors"
                         >
-                          Xóa
+                          <MdDeleteOutline className="text-lg" />
                         </button>
-                      ) : (
-                        <div />
                       )}
-                      <input
-                        value={variant.imageUrl}
-                        onChange={(e) =>
-                          handleVariantChange(index, "imageUrl", e.target.value)
-                        }
-                        placeholder="Ảnh variant URL (sau upload)"
-                        className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20"
-                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-[#9CA3AF] uppercase pl-1">
+                          Tên biến thể
+                        </label>
+                        <input
+                          value={variant.variantName}
+                          onChange={(e) =>
+                            handleVariantChange(
+                              index,
+                              "variantName",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Màu sắc, kích thước..."
+                          className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20 shadow-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-[#9CA3AF] uppercase pl-1">
+                          Giá (VND)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={variant.price}
+                            onChange={(e) =>
+                              handleVariantChange(
+                                index,
+                                "price",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Giá"
+                            className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 pr-12 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20 shadow-sm"
+                          />
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#9CA3AF]">
+                            VND
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-[#9CA3AF] uppercase pl-1">
+                          Cân nặng (Gram)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={variant.weightGram}
+                            onChange={(e) =>
+                              handleVariantChange(
+                                index,
+                                "weightGram",
+                                e.target.value,
+                              )
+                            }
+                            placeholder="Khối lượng"
+                            className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 pr-12 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20 shadow-sm"
+                          />
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#9CA3AF]">
+                            Gr
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-[auto_1fr] items-center gap-3 bg-[#F4F7FF]/50 p-2 rounded-xl border border-dashed border-[#D7DEEF]">
+                      <div className="w-12 h-12 rounded-lg bg-white overflow-hidden border border-[#E5E7EB]">
+                        {variant.imageUrl ? (
+                          <img
+                            src={variant.imageUrl}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[#9CA3AF]">
+                            <MdAddPhotoAlternate />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            setVariantUploadFiles((prev) => ({
+                              ...prev,
+                              [index]: e.target.files?.[0] ?? null,
+                            }))
+                          }
+                          className="hidden"
+                          id={`variant-upload-${index}`}
+                        />
+                        <label
+                          htmlFor={`variant-upload-${index}`}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#17409A] text-white hover:bg-[#0E2A66] cursor-pointer shadow-sm active:scale-95 transition-all"
+                        >
+                          {variantUploadFiles[index]
+                            ? "Đã chọn file"
+                            : "Chọn ảnh"}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleUploadVariantImage(index)}
+                          disabled={
+                            !variantUploadFiles[index] || isUploadingImage
+                          }
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-[#17409A] border border-[#17409A] hover:bg-[#F4F7FF] disabled:opacity-50 transition-all font-bold"
+                        >
+                          Tải lên
+                        </button>
+                        <input
+                          value={variant.imageUrl}
+                          readOnly
+                          placeholder="Chưa có ảnh"
+                          className="flex-1 min-w-0 bg-transparent text-[10px] text-[#6B7280] outline-none border-none truncate"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

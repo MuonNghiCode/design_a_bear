@@ -128,6 +128,7 @@ export interface CreateProductVariantRequest {
   price: number;
   currency: string;
   imageUrl: string;
+  weightGram: number;
 }
 
 export interface CreateProductMediaRequest {

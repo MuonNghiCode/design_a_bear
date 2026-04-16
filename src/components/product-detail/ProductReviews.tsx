@@ -375,7 +375,6 @@ function isCompletedOrderStatus(status?: string | null): boolean {
   const normalized = (status || "").toUpperCase();
   return (
     normalized === "DONE" ||
-    normalized === "DELIVERED" ||
     normalized === "COMPLETED"
   );
 }

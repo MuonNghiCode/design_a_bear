@@ -25,15 +25,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-<<<<<<< HEAD
         hostname: "**.designabear.com",
-=======
-        hostname: "media.designabear.com",
       },
       {
         protocol: "https",
         hostname: "m.media-amazon.com",
->>>>>>> 75127fdda0fffa69d8a7d3b0be649fc9083165da
       },
     ],
   },

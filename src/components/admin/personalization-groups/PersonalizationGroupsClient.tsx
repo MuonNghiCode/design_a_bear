@@ -72,13 +72,23 @@ const extractRuleItems = (value: unknown): PersonalizationRule[] => {
   return [];
 };
 
+const RULE_TYPES = [
+  { value: "", label: "Tất cả" },
+  { value: "OPTIONAL", label: "Optional" },
+  { value: "REQUIRED", label: "Required" },
+  { value: "ACCESSORY", label: "Accessory" },
+];
+
 export default function PersonalizationGroupsClient() {
   const searchParams = useSearchParams();
   const ref = useRef<HTMLDivElement>(null);
   const [groups, setGroups] = useState<PersonalizationGroup[]>([]);
+  const [groupsPageIndex, setGroupsPageIndex] = useState(1);
+  const groupsPageSize = 10;
   const [activeTab, setActiveTab] = useState<"groups" | "rules">("groups");
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [loadingRules, setLoadingRules] = useState(true);
+  const [selectedRuleType, setSelectedRuleType] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<PersonalizationGroup | null>(
     null,
@@ -87,6 +97,9 @@ export default function PersonalizationGroupsClient() {
   const [formData, setFormData] = useState(EMPTY_FORM);
 
   const [rules, setRules] = useState<PersonalizationRule[]>([]);
+  const [rulesPageIndex, setRulesPageIndex] = useState(1);
+  const rulesPageSize = 10;
+
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
   const [isProcessingRule, setIsProcessingRule] = useState(false);
@@ -122,14 +135,17 @@ export default function PersonalizationGroupsClient() {
   const fetchRulesAndProducts = useCallback(async () => {
     setLoadingRules(true);
     const [rulesResult, productsResult] = await Promise.allSettled([
-      personalizationRuleService.getRules(),
-      productService.getProducts({ pageSize: 200 }),
+      personalizationRuleService.getRules({
+        pageIndex: 1,
+        pageSize: 200, // Lấy toàn bộ để filter client-side
+      }),
+      productService.getProducts({ pageSize: 500 }),
     ]);
 
     if (rulesResult.status === "fulfilled") {
       const rulesRes = rulesResult.value;
-      const ruleItems = extractRuleItems(rulesRes.value);
-      if (rulesRes.isSuccess) {
+      if (rulesRes.isSuccess && rulesRes.value) {
+        const ruleItems = extractRuleItems(rulesRes.value);
         setRules(ruleItems);
       } else {
         setRules([]);
@@ -206,7 +222,35 @@ export default function PersonalizationGroupsClient() {
   }, []);
 
   const totalGroups = useMemo(() => groups.length, [groups]);
-  const totalRules = useMemo(() => rules.length, [rules]);
+  const groupsTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(totalGroups / groupsPageSize)),
+    [totalGroups],
+  );
+  const pagedGroups = useMemo(() => {
+    const start = (groupsPageIndex - 1) * groupsPageSize;
+    return groups.slice(start, start + groupsPageSize);
+  }, [groups, groupsPageIndex]);
+
+  // Rules Pagination & Filtering (Client-side)
+  const filteredRules = useMemo(() => {
+    if (!selectedRuleType) return rules;
+    return rules.filter((r) => r.ruleType === selectedRuleType);
+  }, [rules, selectedRuleType]);
+
+  const totalRules = filteredRules.length;
+  const rulesTotalPages = Math.max(1, Math.ceil(totalRules / rulesPageSize));
+
+  const pagedRules = useMemo(() => {
+    const start = (rulesPageIndex - 1) * rulesPageSize;
+    return filteredRules.slice(start, start + rulesPageSize);
+  }, [filteredRules, rulesPageIndex, rulesPageSize]);
+
+  useEffect(() => {
+    if (rulesPageIndex > rulesTotalPages) {
+      setRulesPageIndex(Math.max(1, rulesTotalPages));
+    }
+  }, [rulesTotalPages, rulesPageIndex]);
+
   const accessoryProducts = useMemo(
     () =>
       products.filter(
@@ -244,13 +288,20 @@ export default function PersonalizationGroupsClient() {
   };
 
   const handleDelete = async (group: PersonalizationGroup) => {
-    const ok = window.confirm(`Xóa nhóm \"${group.name}\"?`);
-    if (!ok) return;
+    if (!confirm(`Bạn có chắc muốn xóa nhóm "${group.name}"?`)) return;
 
     try {
       const res = await personalizationGroupService.deleteGroup(group.groupId);
       if (res.isSuccess) {
         success("Xóa nhóm thành công!");
+        const newTotalGroups = groups.length - 1;
+        const newTotalPages = Math.max(
+          1,
+          Math.ceil(newTotalGroups / groupsPageSize),
+        );
+        if (groupsPageIndex > newTotalPages) {
+          setGroupsPageIndex(newTotalPages);
+        }
         fetchGroups();
       } else {
         toastError(res.error?.description || "Xóa nhóm thất bại.");
@@ -488,7 +539,7 @@ export default function PersonalizationGroupsClient() {
 
         <div className="relative p-6 md:p-7">
           {activeTab === "groups" && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="inline-flex items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-[#F4F7FF] px-3 py-2">
                   <MdChecklist className="text-base text-[#17409A]" />
@@ -507,22 +558,65 @@ export default function PersonalizationGroupsClient() {
               </div>
 
               <PersonalizationGroupsTable
-                groups={groups}
+                groups={pagedGroups}
                 loading={loadingGroups}
                 onEdit={openEditModal}
                 onDelete={handleDelete}
               />
+
+              {groupsTotalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-[#F4F7FF] pt-4">
+                  <p className="text-xs font-semibold text-[#9CA3AF]">
+                    Hiển thị {pagedGroups.length} / {totalGroups} nhóm
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    {Array.from(
+                      { length: groupsTotalPages },
+                      (_, i) => i + 1,
+                    ).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setGroupsPageIndex(p)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-black transition-all ${
+                          p === groupsPageIndex
+                            ? "bg-[#17409A] text-white shadow-lg shadow-[#17409A]/20"
+                            : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEFF] hover:text-[#17409A]"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === "rules" && (
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex items-center gap-2 rounded-2xl border border-[#E5E7EB] bg-[#F4F7FF] px-3 py-2">
-                  <MdLink className="text-base text-[#17409A]" />
-                  <p className="text-xs font-black text-[#17409A]">
-                    Tổng số rules: {totalRules}
-                  </p>
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {RULE_TYPES.map((type) => (
+                    <button
+                      key={type.value}
+                      onClick={() => {
+                        setSelectedRuleType(type.value);
+                        setRulesPageIndex(1);
+                      }}
+                      className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
+                        selectedRuleType === type.value
+                          ? "bg-[#17409A] text-white shadow-lg shadow-[#17409A]/20"
+                          : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEFF] hover:text-[#17409A]"
+                      }`}
+                    >
+                      {type.label}
+                      {selectedRuleType === type.value && (
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px]">
+                          {totalRules}
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
 
                 <button
@@ -535,13 +629,39 @@ export default function PersonalizationGroupsClient() {
               </div>
 
               <PersonalizationRulesTable
-                rules={rules}
+                rules={pagedRules}
                 loading={loadingRules}
                 groups={groups}
                 products={products}
                 onEdit={openEditRuleModal}
                 onDelete={handleDeleteRule}
               />
+
+              {rulesTotalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-[#F4F7FF] pt-4">
+                  <p className="text-xs font-semibold text-[#9CA3AF]">
+                    Hiển thị {pagedRules.length} / {totalRules} rules
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    {Array.from(
+                      { length: rulesTotalPages },
+                      (_, i) => i + 1,
+                    ).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setRulesPageIndex(p)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-black transition-all ${
+                          p === rulesPageIndex
+                            ? "bg-[#17409A] text-white shadow-lg shadow-[#17409A]/20"
+                            : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEFF] hover:text-[#17409A]"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -104,7 +104,7 @@ export function OrderSummary({
       <div className="flex-1 overflow-y-auto px-7 space-y-3 pb-4">
         {items.map((item) => (
           <div
-            key={item.product.id}
+            key={item.cartItemId}
             className="flex gap-3.5 items-center py-3"
             style={{ borderBottom: "1px solid #F3F4F6" }}
           >

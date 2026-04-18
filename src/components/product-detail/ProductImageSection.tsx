@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { type ProductItem } from "@/types/products";
-import { type ProductVariant } from "@/types/responses";
+import {
+  type PersonalizationRule,
+  type ProductVariant,
+} from "@/types/responses";
 
 /* ── Inline paw SVG ── */
 function PawSVG({

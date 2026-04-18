@@ -6,6 +6,7 @@ import type {
   CreateProductIssueRequest,
   ResolveProductIssueRequest,
   CompleteProductIssueRequest,
+  RejectProductIssueRequest,
 } from "@/types";
 
 class ProductIssueService extends BaseApiService {
@@ -58,6 +59,20 @@ class ProductIssueService extends BaseApiService {
     );
   }
 
+  async getAllIssues(params: {
+    status?: string | null;
+    pageIndex?: number;
+    pageSize?: number;
+    userId?: string;
+    productId?: string;
+  }): Promise<ApiResponse<GetProductIssuesResponseData>> {
+    return this.get<GetProductIssuesResponseData>(
+      API_ENDPOINTS.PRODUCT_ISSUE_REPORTS.BASE,
+      params as Record<string, unknown>,
+      { withCredentials: false },
+    );
+  }
+
   async assignIssue(id: string): Promise<ApiResponse<null>> {
     const url = API_ENDPOINTS.PRODUCT_ISSUE_REPORTS.ASSIGN.replace("{id}", id);
     return this.put<null>(url, {}, { withCredentials: false });
@@ -79,6 +94,14 @@ class ProductIssueService extends BaseApiService {
       "{id}",
       id,
     );
+    return this.put<null>(url, data, { withCredentials: false });
+  }
+
+  async rejectIssue(
+    id: string,
+    data: RejectProductIssueRequest,
+  ): Promise<ApiResponse<null>> {
+    const url = API_ENDPOINTS.PRODUCT_ISSUE_REPORTS.REJECT.replace("{id}", id);
     return this.put<null>(url, data, { withCredentials: false });
   }
 }

@@ -111,6 +111,7 @@ export const API_ENDPOINTS = {
     ASSIGN: "/api/ProductIssueReports/{id}/assign",
     RESOLVE: "/api/ProductIssueReports/{id}/resolve",
     COMPLETE: "/api/ProductIssueReports/{id}/complete",
+    REJECT: "/api/ProductIssueReports/{id}/reject",
   },
   SHIPPING: {
     CALCULATE_FEE: "/api/Shipping/calculate-fee",

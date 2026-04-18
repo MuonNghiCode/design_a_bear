@@ -367,32 +367,39 @@ export default function OrdersTab() {
                                       <span className="text-[#9CA3AF]">
                                         Bảo hành:
                                       </span>
-                                      <span
-                                        className={`px-2 py-1 rounded-md text-[10px] ${
+                                      {(() => {
+                                        const status =
                                           reportedItemMap[item.orderItemId]
-                                            .status === "CLOSED"
-                                            ? "bg-[#4ECDC4]/20 text-[#4ECDC4]"
-                                            : reportedItemMap[item.orderItemId]
-                                                  .status === "RESOLVED"
-                                              ? "bg-[#1D4ED8]/20 text-[#1D4ED8]"
-                                              : reportedItemMap[
-                                                    item.orderItemId
-                                                  ].status === "PROCESSING"
-                                                ? "bg-[#7C5CFC]/20 text-[#7C5CFC]"
-                                                : "bg-[#FF8C42]/20 text-[#FF8C42]"
-                                        }`}
-                                      >
-                                        {reportedItemMap[item.orderItemId]
-                                          .status === "CLOSED"
-                                          ? "Đã đóng"
-                                          : reportedItemMap[item.orderItemId]
-                                                .status === "RESOLVED"
-                                            ? "Đã có hướng xử lý"
-                                            : reportedItemMap[item.orderItemId]
-                                                  .status === "PROCESSING"
-                                              ? "Đang xử lý"
-                                              : "Chờ tiếp nhận"}
-                                      </span>
+                                            .status;
+                                        let style =
+                                          "bg-[#FF8C42]/20 text-[#FF8C42]";
+                                        let label = "Chờ tiếp nhận";
+
+                                        if (status === "CLOSED") {
+                                          style =
+                                            "bg-[#4ECDC4]/20 text-[#4ECDC4]";
+                                          label = "Đã đóng";
+                                        } else if (status === "RESOLVED") {
+                                          style =
+                                            "bg-[#1D4ED8]/20 text-[#1D4ED8]";
+                                          label = "Đã có hướng xử lý";
+                                        } else if (status === "REJECTED") {
+                                          style = "bg-red-100 text-red-600";
+                                          label = "Từ chối";
+                                        } else if (status === "PROCESSING") {
+                                          style =
+                                            "bg-[#7C5CFC]/20 text-[#7C5CFC]";
+                                          label = "Đang xử lý";
+                                        }
+
+                                        return (
+                                          <span
+                                            className={`px-2 py-1 rounded-md text-[10px] ${style}`}
+                                          >
+                                            {label}
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                   ) : (
                                     <button

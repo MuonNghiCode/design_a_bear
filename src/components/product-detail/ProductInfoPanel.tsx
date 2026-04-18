@@ -181,7 +181,6 @@ export default function ProductInfoPanel({
   const { addItem } = useCart();
   const toast = useToast();
   const [addingToCart, setAddingToCart] = useState(false);
-
   const [selectedAccessories, setSelectedAccessories] = useState<
     PersonalizationRule[]
   >([]);

@@ -14,3 +14,7 @@ export interface ResolveProductIssueRequest {
 export interface CompleteProductIssueRequest {
   finalNotes?: string;
 }
+
+export interface RejectProductIssueRequest {
+  reason: string;
+}

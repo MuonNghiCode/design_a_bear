@@ -210,6 +210,15 @@ export type UpdatePersonalizationGroupRequest =
 
 /* ── Personalization Rule API Requests ── */
 
+export interface GetPersonalizationRulesAdminRequest {
+  pageIndex?: number;
+  pageSize?: number;
+  baseProductId?: string;
+  addonProductId?: string;
+  groupId?: string;
+  ruleType?: string;
+}
+
 export interface CreatePersonalizationRuleRequest {
   baseProductId: string;
   groupId: string;

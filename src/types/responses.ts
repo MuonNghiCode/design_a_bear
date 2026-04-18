@@ -439,7 +439,8 @@ export type ProductIssueStatus =
   | "PENDING"
   | "PROCESSING"
   | "RESOLVED"
-  | "CLOSED";
+  | "CLOSED"
+  | "REJECTED";
 
 export interface ProductIssueReport {
   reportId: string;

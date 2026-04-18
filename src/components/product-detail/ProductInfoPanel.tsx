@@ -161,7 +161,6 @@ interface Props {
   variants?: ProductVariant[];
   selectedVariant: ProductVariant | null;
   onSelectVariant: (v: ProductVariant) => void;
-  personalizationRules?: PersonalizationRule[];
   quantity: number;
   setQuantity: (q: number) => void;
 }
@@ -181,7 +180,6 @@ export default function ProductInfoPanel({
   const { addItem } = useCart();
   const toast = useToast();
   const [addingToCart, setAddingToCart] = useState(false);
-
   const [selectedAccessories, setSelectedAccessories] = useState<
     PersonalizationRule[]
   >([]);

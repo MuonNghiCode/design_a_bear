@@ -10,8 +10,9 @@ import { GiPawPrint } from "react-icons/gi";
 const TABS = [
   { key: "PENDING", label: "Chờ lấy đơn" },
   { key: "PROCESSING", label: "Đang xử lý" },
-  { key: "RESOLVED", label: "Đã có hướng XL" },
-  { key: "CLOSED", label: "Hoàn tất (Đóng)" },
+  { key: "RESOLVED", label: "Đã có hướng xử lý" },
+  { key: "CLOSED", label: "Hoàn tất" },
+  { key: "REJECTED", label: "Từ chối" },
 ];
 
 export default function IssuesTable() {
@@ -22,22 +23,22 @@ export default function IssuesTable() {
   const [selectedIssue, setSelectedIssue] = useState<ProductIssueReport | null>(
     null,
   );
-  const [actionType, setActionType] = useState<"resolve" | "complete" | null>(
-    null,
-  );
+  const [actionType, setActionType] = useState<
+    "resolve" | "complete" | "reject" | null
+  >(null);
 
   const { success, error } = useToast();
 
   const fetchIssues = async () => {
     try {
       setLoading(true);
-      const res = await productIssueService.getIssuesByStatus(tab, {
+      const res = await productIssueService.getAllIssues({
+        status: tab,
         pageIndex: 1,
-        pageSize: 50, // Get enough for one view
+        pageSize: 50,
       });
 
       if (res.isSuccess && res.value) {
-        // Handle both Array and PaginatedResponse structures
         const data = Array.isArray(res.value)
           ? res.value
           : (res.value as any).items || [];
@@ -238,6 +239,17 @@ export default function IssuesTable() {
                             Hoàn tất
                           </button>
                         )}
+                        {(tab === "PENDING" || tab === "PROCESSING") && (
+                          <button
+                            onClick={() => {
+                              setSelectedIssue(issue);
+                              setActionType("reject");
+                            }}
+                            className="text-[11px] font-black bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-xl transition-all"
+                          >
+                            Từ chối
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -274,7 +286,7 @@ function IssueDetailModal({
   onSuccess,
 }: {
   issue: ProductIssueReport;
-  actionType: "resolve" | "complete" | null;
+  actionType: "resolve" | "complete" | "reject" | null;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -282,6 +294,7 @@ function IssueDetailModal({
   const [staffNotes, setStaffNotes] = useState("");
   const [repairNotes, setRepairNotes] = useState("");
   const [finalNotes, setFinalNotes] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { success, error } = useToast();
 
@@ -313,6 +326,20 @@ function IssueDetailModal({
           onSuccess();
         } else {
           error(res.error?.description || "Lỗi hoàn tất");
+        }
+      } else if (actionType === "reject") {
+        if (!rejectReason.trim()) {
+          error("Vui lòng nhập lý do từ chối");
+          return;
+        }
+        const res = await productIssueService.rejectIssue(issue.reportId, {
+          reason: rejectReason,
+        });
+        if (res.isSuccess || res.value === null) {
+          success("Đã từ chối báo cáo bảo hành");
+          onSuccess();
+        } else {
+          error(res.error?.description || "Lỗi từ chối báo cáo");
         }
       }
     } catch (err: any) {
@@ -450,6 +477,26 @@ function IssueDetailModal({
                   rows={3}
                   className="w-full bg-[#F4F7FF] text-[#1A1A2E] text-sm rounded-xl px-4 py-2.5 outline-none"
                   placeholder="Ví dụ: Đã thay thế thành công, gửi lại qua bưu điện báo số hiệu XXXX"
+                />
+              </div>
+            </div>
+          )}
+
+          {actionType === "reject" && (
+            <div className="space-y-4">
+              <h4 className="font-black text-red-600 mb-3">
+                Từ chối tiếp nhận
+              </h4>
+              <div>
+                <label className="block text-xs font-bold text-[#1A1A2E] mb-1">
+                  Lý do từ chối <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={4}
+                  className="w-full bg-[#F4F7FF] text-[#1A1A2E] text-sm rounded-xl px-4 py-2.5 outline-none font-semibold border-2 border-transparent focus:border-red-200 transition-all"
+                  placeholder="Nhập lý do tại sao không tiếp nhận yêu cầu này..."
                 />
               </div>
             </div>

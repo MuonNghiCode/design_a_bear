@@ -84,6 +84,8 @@ export default function ProductIssuesTab() {
         };
       case "CLOSED":
         return { label: "Hoàn tất", classes: "bg-[#4ECDC4]/20 text-[#4ECDC4]" };
+      case "REJECTED":
+        return { label: "Từ chối", classes: "bg-red-100 text-red-600" };
       default:
         return { label: status, classes: "bg-gray-200 text-gray-700" };
     }

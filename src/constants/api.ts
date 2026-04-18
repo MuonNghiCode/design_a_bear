@@ -103,6 +103,15 @@ export const API_ENDPOINTS = {
   REPORTS: {
     REVENUE: "/api/Reports/revenue",
   },
+  PRODUCT_ISSUE_REPORTS: {
+    BASE: "/api/ProductIssueReports",
+    GET_BY_ID: "/api/ProductIssueReports/{id}",
+    MY_REPORTS: "/api/ProductIssueReports/my",
+    BY_STATUS: "/api/ProductIssueReports/status/{status}",
+    ASSIGN: "/api/ProductIssueReports/{id}/assign",
+    RESOLVE: "/api/ProductIssueReports/{id}/resolve",
+    COMPLETE: "/api/ProductIssueReports/{id}/complete",
+  },
   SHIPPING: {
     CALCULATE_FEE: "/api/Shipping/calculate-fee",
   },

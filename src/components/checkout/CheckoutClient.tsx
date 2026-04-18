@@ -203,6 +203,11 @@ export default function CheckoutClient() {
             defaultForm.provinceName = defAddr.city || "";
             defaultForm.districtName = defAddr.state || "";
             setAddresses(addressRes.value);
+
+            if (defAddr.addressId) {
+              setResolvedAddressId(defAddr.addressId);
+              calculateFee(defAddr.addressId);
+            }
           }
         } catch (e) {}
 
@@ -260,7 +265,8 @@ export default function CheckoutClient() {
       addresses.find((a) => {
         return (
           a.fullName.trim().toLowerCase() === normalizedCurrent.fullName &&
-          normalizePhoneNumber(a.phoneNumber) === normalizedCurrent.phoneNumber &&
+          normalizePhoneNumber(a.phoneNumber) ===
+            normalizedCurrent.phoneNumber &&
           (a.email || "").trim().toLowerCase() === normalizedCurrent.email &&
           a.line1.trim().toLowerCase() === normalizedCurrent.line1 &&
           (a.line2 || "").trim().toLowerCase() === normalizedCurrent.line2 &&
@@ -306,8 +312,9 @@ export default function CheckoutClient() {
   };
 
   const calculateFee = async (addrId: string) => {
+    if (!addrId || isCalculatingShipping) return;
     const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
-    if (!cartId || !addrId) return;
+    if (!cartId) return;
 
     try {
       setIsCalculatingShipping(true);
@@ -319,15 +326,39 @@ export default function CheckoutClient() {
 
       if (res.isSuccess && res.value?.fee?.fee !== undefined) {
         setShippingFee(res.value.fee.fee);
+      } else {
+        setShippingFee(0);
       }
     } catch (error) {
       console.error("Lỗi tính phí vận chuyển:", error);
-      // Fallback to 0 or a fixed amount if needed? 
-      // For now keep at 0 or current.
+      setShippingFee(0);
     } finally {
       setIsCalculatingShipping(false);
     }
   };
+
+  useEffect(() => {
+    if (step !== 1 || loadingInitial) return;
+
+    const timer = setTimeout(() => {
+      const result = deliverySchema.safeParse(form);
+      if (result.success) {
+        (async () => {
+          try {
+            const addrId = await getOrResolveAddressId();
+            if (addrId && addrId !== resolvedAddressId) {
+              setResolvedAddressId(addrId);
+              await calculateFee(addrId);
+            }
+          } catch (e) {
+            toast.error("Đã có lỗi xảy ra : " + e);
+          }
+        })();
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [form, step, loadingInitial, resolvedAddressId]);
 
   const goNext = useCallback(() => {
     if (step === 1) {
@@ -346,7 +377,6 @@ export default function CheckoutClient() {
       }
       setShowDeliveryErrors(false);
 
-      // Transitioning from Step 1 -> Step 2: Resolve address and calculate fee
       (async () => {
         try {
           setSubmitting(true);
@@ -365,14 +395,11 @@ export default function CheckoutClient() {
 
     if (step < 3) transition(step + 1, 1);
     else {
-      // Place order via API
       setSubmitting(true);
       (async () => {
         try {
-          // 1. Resolve shipping address
           const addrId = await getOrResolveAddressId();
 
-          // 2. Create Order
           const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
           if (!cartId) throw new Error("Chưa có giỏ hàng.");
 
@@ -404,7 +431,6 @@ export default function CheckoutClient() {
               25,
             );
 
-            // 3. Call create-payment
             const createPaymentRes = await paymentService.createPayment({
               orderId,
               itemName: "Design A Bear",
@@ -471,7 +497,6 @@ export default function CheckoutClient() {
               throw new Error("Thiếu paymentCode/orderCode từ create-payment");
             }
 
-            // 4. Call confirm-payment
             const confirmPaymentRes =
               await paymentService.confirmPayment(paymentCode);
 
@@ -485,7 +510,6 @@ export default function CheckoutClient() {
             setOrderDetails(orderRes.value);
             toast.success("Đặt hàng thành công!");
 
-            // Animation out then show success
             gsap.to(contentRef.current, {
               scale: 0.96,
               opacity: 0,
@@ -535,7 +559,6 @@ export default function CheckoutClient() {
     else router.back();
   }, [step, transition, router]);
 
-  /*  Entrance animation  */
   useEffect(() => {
     gsap.fromTo(
       contentRef.current,
@@ -544,7 +567,6 @@ export default function CheckoutClient() {
     );
   }, []);
 
-  /* Empty cart redirect */
   if (totalItems === 0 && !orderPlaced) {
     if (loadingInitial) return <div className="min-h-screen bg-[#F4F7FF]" />; // prevent flicker
 
@@ -769,7 +791,7 @@ export default function CheckoutClient() {
         </div>
       </div>
 
-      {/* RIGHT PANEL â€” Order Summary*/}
+      {/* RIGHT PANEL Order Summary*/}
       <div
         className="hidden lg:flex flex-col shrink-0 sticky top-0 h-screen overflow-hidden"
         style={{ width: 400 }}

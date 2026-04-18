@@ -225,12 +225,12 @@ export default function CartDrawer() {
 
   if (!isOpen) return null;
 
-  const shippingLeft = FREE_SHIP_THRESHOLD - totalPrice;
-  const freeShipping = shippingLeft <= 0;
-  const shippingBarWidth = Math.min(
-    (totalPrice / FREE_SHIP_THRESHOLD) * 100,
-    100,
-  );
+  // const shippingLeft = FREE_SHIP_THRESHOLD - totalPrice;
+  // const freeShipping = shippingLeft <= 0;
+  // const shippingBarWidth = Math.min(
+  //   (totalPrice / FREE_SHIP_THRESHOLD) * 100,
+  //   100,
+  // );
 
   return (
     <div
@@ -300,7 +300,7 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        {/* ── Free shipping progress bar ── */}
+        {/* ── Free shipping progress bar - Tạm thời ẩn ──
         {totalItems > 0 && (
           <div
             className="px-6 py-3 shrink-0"
@@ -343,6 +343,7 @@ export default function CartDrawer() {
             </div>
           </div>
         )}
+        */}
 
         {/* ── Items list ── */}
         <div ref={itemsRef} className="flex-1 overflow-y-auto">
@@ -509,11 +510,8 @@ export default function CartDrawer() {
                 <span style={{ color: "#6B7280" }} className="font-semibold">
                   Vận chuyển
                 </span>
-                <span
-                  className="font-bold"
-                  style={{ color: freeShipping ? "#4ECDC4" : "#1A1A2E" }}
-                >
-                  {freeShipping ? "Miễn phí" : "Tính khi thanh toán"}
+                <span className="font-bold" style={{ color: "#1A1A2E" }}>
+                  Tính khi thanh toán
                 </span>
               </div>
             </div>

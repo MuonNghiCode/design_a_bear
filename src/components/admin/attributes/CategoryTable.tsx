@@ -90,7 +90,7 @@ const CategoryTable = ({ onOpenCreate, onOpenEdit }: CategoryTableProps) => {
             <tbody className="text-sm">
               {categories.length === 0 ? (
                 <tr>
-                  <td
+                   <td
                     colSpan={3}
                     className="text-center py-10 font-bold text-[#6B7280]"
                   >

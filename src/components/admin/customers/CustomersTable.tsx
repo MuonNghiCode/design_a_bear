@@ -19,6 +19,7 @@ import { userService } from "@/services/user.service";
 import { useToast } from "@/contexts/ToastContext";
 import { useDebounce } from "@/hooks";
 import type { UserDetail } from "@/types";
+import { formatDate } from "@/utils/date";
 
 // ── Status config ──────────────────────────────────────
 type ApiUserStatus = "Active" | "Pending" | "Inactive" | "Banned";
@@ -127,15 +128,6 @@ export default function CustomersTable() {
 
   const getInitial = (fullName: string) =>
     fullName?.trim().charAt(0).toUpperCase() || "?";
-
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
 
   const handleBlockToggle = async (user: UserDetail) => {
     try {

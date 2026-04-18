@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:7002";
+  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -91,7 +91,15 @@ export const API_ENDPOINTS = {
     BASE: "/api/Builds",
   },
   PROMOTIONS: {
-    VALIDATE: "/api/Promotions/validate", // POST
+    GET_ALL: "/api/Promotions",
+    GET_ACTIVE: "/api/Promotions/active",
+    GET_BY_ID: "/api/Promotions",
+    GET_BY_CODE: "/api/Promotions/code",
+    CREATE: "/api/Promotions",
+    UPDATE: "/api/Promotions",
+    DELETE: "/api/Promotions",
+    VALIDATE: "/api/Promotions/validate",
+    APPLY: "/api/Promotions/apply",
   },
   PAYMENTS: {
     CREATE: "/api/Payments/create-payment", // POST

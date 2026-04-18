@@ -2,10 +2,12 @@ import BaseApiService from "@/api/base";
 import { API_ENDPOINTS } from "@/constants";
 import type {
   ValidatePromotionRequest,
+  ApplyPromotionRequest,
   CreatePaymentRequest,
 } from "@/types/requests";
 import type {
   PromotionResponse,
+  PromotionApplyResponse,
   CreatePaymentResponse,
   ConfirmPaymentResponse,
 } from "@/types/responses";
@@ -18,6 +20,17 @@ class PaymentService extends BaseApiService {
     req: ValidatePromotionRequest
   ): Promise<PromotionResponse> {
     return this.post(API_ENDPOINTS.PROMOTIONS.VALIDATE, req, {
+      withCredentials: false,
+    });
+  }
+
+  /**
+   * Apply promotion to get structured discount data
+   */
+  async applyPromotion(
+    req: ApplyPromotionRequest
+  ): Promise<PromotionApplyResponse> {
+    return this.post(API_ENDPOINTS.PROMOTIONS.APPLY, req, {
       withCredentials: false,
     });
   }

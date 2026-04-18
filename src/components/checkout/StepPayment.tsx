@@ -1,53 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import { IoSparklesOutline, IoCheckmark, IoLockClosed } from "react-icons/io5";
+import { IoSparklesOutline, IoCheckmark, IoLockClosed, IoCloseCircle } from "react-icons/io5";
 import { PAYMENT_OPTIONS } from "./checkout.atoms";
-import { paymentService } from "@/services/payment.service";
+
+interface AppliedCoupon {
+  code: string;
+  productDiscount: number;
+  shippingDiscount: number;
+  totalDiscount: number;
+  discountType: string;
+}
 
 export function StepPayment({
   method,
   onChange,
-  coupon,
-  onCouponChange,
-  couponApplied,
-  onCouponApplied,
-  discount,
+  couponInput,
+  onCouponInputChange,
+  appliedCoupons,
+  onApplyCoupon,
+  onRemoveCoupon,
+  totalDiscount,
+  totalPrice,
+  shippingFee,
   isLoading,
 }: {
   method: string;
   onChange: (m: string) => void;
-  coupon: string;
-  onCouponChange: (c: string) => void;
-  couponApplied: boolean;
-  onCouponApplied: (v: boolean) => void;
-  discount: number;
+  couponInput: string;
+  onCouponInputChange: (c: string) => void;
+  appliedCoupons: AppliedCoupon[];
+  onApplyCoupon: () => void;
+  onRemoveCoupon: (code: string) => void;
+  totalDiscount: number;
+  totalPrice: number;
+  shippingFee: number;
   isLoading?: boolean;
 }) {
-  const [validatingCoupon, setValidatingCoupon] = useState(false);
-
-  const handleApplyCoupon = async () => {
-    if (!coupon.trim()) {
-      alert("Vui lòng nhập mã khuyến mãi");
-      return;
-    }
-
-    setValidatingCoupon(true);
-    try {
-      const res = await paymentService.validatePromotion({ code: coupon });
-      if (res.isSuccess) {
-        onCouponApplied(true);
-        alert("Áp dụng khuyến mãi thành công!");
-      } else {
-        alert(res.error?.description || "Mã khuyến mãi không hợp lệ");
-      }
-    } catch (error: any) {
-      alert(error.message || "Lỗi xác thực mã khuyến mãi");
-    } finally {
-      setValidatingCoupon(false);
-    }
-  };
-
   return (
     <div className="space-y-5 relative">
       {/* Watermark */}
@@ -84,56 +73,90 @@ export function StepPayment({
                 Mã khuyến mãi
               </h3>
               <p className="text-xs" style={{ color: "#9CA3AF" }}>
-                Có mã? Nhập vào để nhận ưu đãi
+                Có thể áp dụng nhiều mã cùng lúc
               </p>
             </div>
           </div>
 
+          {/* Input to add new code */}
           <div className="flex gap-2">
             <input
               type="text"
-              value={coupon}
-              onChange={(e) => onCouponChange(e.target.value.toUpperCase())}
-              disabled={couponApplied || validatingCoupon || isLoading}
+              value={couponInput}
+              onChange={(e) => onCouponInputChange(e.target.value.toUpperCase())}
+              disabled={isLoading}
               placeholder="VD: SUMMER2024"
               className="flex-1 px-4 py-3 rounded-2xl text-sm outline-none transition-all disabled:opacity-50"
               style={{
                 border: "1.5px solid #E5E7EB",
-                backgroundColor: couponApplied ? "#F8FAFF" : "#FFFFFF",
+                backgroundColor: "#FFFFFF",
               }}
-              onKeyPress={(e) => {
-                if (e.key === "Enter" && !couponApplied) {
-                  handleApplyCoupon();
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && couponInput.trim()) {
+                  onApplyCoupon();
                 }
               }}
             />
             <button
-              onClick={handleApplyCoupon}
-              disabled={couponApplied || validatingCoupon || isLoading}
+              onClick={onApplyCoupon}
+              disabled={!couponInput.trim() || isLoading}
               className="px-6 py-3 rounded-2xl font-bold text-sm transition-all disabled:opacity-50"
               style={{
-                backgroundColor: couponApplied ? "#4ECDC4" : "#17409A",
+                backgroundColor: "#17409A",
                 color: "white",
               }}
             >
-              {validatingCoupon ? "..." : couponApplied ? "✓" : "Áp dụng"}
+              {isLoading ? "..." : "Thêm"}
             </button>
           </div>
 
-          {couponApplied && discount > 0 && (
-            <div
-              className="mt-2 rounded-2xl p-3 flex items-center justify-between"
-              style={{
-                backgroundColor: "rgba(78,205,196,0.08)",
-                border: "1px solid #4ECDC4",
-              }}
-            >
-              <span className="text-xs font-bold" style={{ color: "#4ECDC4" }}>
-                Giảm giá
-              </span>
-              <span className="text-sm font-black" style={{ color: "#4ECDC4" }}>
-                -{discount.toLocaleString("vi-VN")} đ
-              </span>
+          {/* Applied coupons list */}
+          {appliedCoupons.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {appliedCoupons.map((c) => (
+                <div
+                  key={c.code}
+                  className="rounded-2xl p-3 flex items-center justify-between"
+                  style={{
+                    backgroundColor: "rgba(78,205,196,0.08)",
+                    border: "1px solid #4ECDC4",
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ backgroundColor: "#4ECDC420", color: "#4ECDC4" }}>
+                      {c.code}
+                    </span>
+                    <span className="text-xs" style={{ color: "#6B7280" }}>
+                      {c.discountType === "SHIPPING" || c.discountType === "SHIPPING_FIXED"
+                        ? `Giảm ship: -${c.shippingDiscount.toLocaleString("vi-VN")}đ`
+                        : `Giảm giá: -${c.productDiscount.toLocaleString("vi-VN")}đ`}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => onRemoveCoupon(c.code)}
+                    className="text-red-400 hover:text-red-600 transition-colors"
+                    disabled={isLoading}
+                  >
+                    <IoCloseCircle size={18} />
+                  </button>
+                </div>
+              ))}
+
+              {/* Total discount summary */}
+              <div
+                className="rounded-2xl p-3 flex items-center justify-between"
+                style={{
+                  backgroundColor: "rgba(78,205,196,0.12)",
+                  border: "1.5px solid #4ECDC4",
+                }}
+              >
+                <span className="text-xs font-bold" style={{ color: "#4ECDC4" }}>
+                  Tổng giảm ({appliedCoupons.length} mã)
+                </span>
+                <span className="text-sm font-black" style={{ color: "#4ECDC4" }}>
+                  -{totalDiscount.toLocaleString("vi-VN")} đ
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -261,10 +284,10 @@ export function StepPayment({
             </p>
             <div className="space-y-1.5">
               {[
-                ["Ngân hàng", "Vietcombank"],
-                ["Số tài khoản", "1023 4567 8910"],
-                ["Chủ tài khoản", "DESIGN A BEAR CO., LTD"],
-                ["Nội dung", "DAB — [Tên của bạn]"],
+                ["Ngân hàng", "Ngan Hang Quan Doi - MB"],
+                ["Số tài khoản", "0938xxxxxx"],
+                ["Chủ tài khoản", "NGUYEN MINH TRI"],
+                ["Nội dung", "DAB — [Mã đơn hàng]"],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between">
                   <span className="text-xs" style={{ color: "#9CA3AF" }}>

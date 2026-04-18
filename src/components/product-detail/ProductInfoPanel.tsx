@@ -7,7 +7,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { type ProductItem } from "@/types/products";
 import { useCart } from "@/contexts/CartContext";
 import {
-  type ProductVariant,
   type PersonalizationRule,
 } from "@/types/responses";
 import { buildService } from "@/services/build.service";
@@ -158,22 +157,20 @@ const DELIVERY_INFO = [
 
 interface Props {
   product: ProductItem;
-  variants?: ProductVariant[];
-  selectedVariant: ProductVariant | null;
-  onSelectVariant: (v: ProductVariant) => void;
   personalizationRules?: PersonalizationRule[];
   quantity: number;
   setQuantity: (q: number) => void;
+  selectedAccessories: PersonalizationRule[];
+  setSelectedAccessories: React.Dispatch<React.SetStateAction<PersonalizationRule[]>>;
 }
 
 export default function ProductInfoPanel({
   product,
-  variants = [],
-  selectedVariant,
-  onSelectVariant,
   personalizationRules = [],
   quantity,
   setQuantity,
+  selectedAccessories,
+  setSelectedAccessories,
 }: Props) {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
@@ -182,12 +179,8 @@ export default function ProductInfoPanel({
   const toast = useToast();
   const [addingToCart, setAddingToCart] = useState(false);
 
-  const [selectedAccessories, setSelectedAccessories] = useState<
-    PersonalizationRule[]
-  >([]);
-
   // Calculate total price
-  const basePrice = selectedVariant ? selectedVariant.price : product.price;
+  const basePrice = product.price;
   const accessoriesPrice = selectedAccessories.reduce(
     (acc, rule) => acc + (rule.addonProduct.price || 0),
     0,
@@ -217,13 +210,8 @@ export default function ProductInfoPanel({
     try {
       setAddingToCart(true);
 
-      const baseVariantId = selectedVariant
-        ? selectedVariant.variantId
-        : product.id;
-      const variantLabel = selectedVariant?.variantName?.trim();
-      const itemName = variantLabel
-        ? `${product.name} (${variantLabel})`
-        : product.name;
+      const productId = product.id;
+      const itemName = product.name;
       let targetBuildId: string | null = null;
 
       // 1. If user selected accessories, CREATE A BUILD FIRST
@@ -239,13 +227,11 @@ export default function ProductInfoPanel({
 
         const buildRes = await buildService.createBuild({
           customerId,
-          baseVariantId,
+          baseProductId: productId,
           buildName: `Thiết kế ${product.name}`,
           personalizationNote: "Mua kèm phụ kiện",
           buildComponents: selectedAccessories.map((acc) => ({
-            optionVariantId:
-              acc.addonProduct.variants?.[0]?.variantId ||
-              acc.addonProduct.productId,
+            optionProductId: acc.addonProduct.productId,
           })),
         });
 
@@ -257,9 +243,8 @@ export default function ProductInfoPanel({
       // 2. ONLY 1 AddToCart REQUEST is needed! We send the buildId.
       await addItem(
         {
-          id: baseVariantId,
+          id: productId,
           name: itemName,
-          variantName: variantLabel,
           description:
             selectedAccessories.length > 0
               ? `Combo Gấu + ${selectedAccessories.length} Phụ kiện`
@@ -341,31 +326,6 @@ export default function ProductInfoPanel({
           {product.name}
         </h1>
       </div>
-
-      {/* ── Variants selector ── */}
-      {variants.length > 0 && (
-        <div className="space-y-3">
-          <p className="font-bold text-[#1A1A2E]">Phân loại:</p>
-          <div className="flex flex-wrap gap-3">
-            {variants.map((v) => {
-              const isSelected = selectedVariant?.variantId === v.variantId;
-              return (
-                <button
-                  key={v.variantId}
-                  onClick={() => onSelectVariant(v)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
-                    isSelected
-                      ? "border-[#17409A] bg-[#17409A] text-white shadow-md shadow-[#17409A]/20"
-                      : "border-gray-200 text-gray-600 hover:border-[#17409A]/50 hover:bg-[#F4F7FF]"
-                  }`}
-                >
-                  {v.variantName}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ── Accessories Rules Checklist ── */}
       {personalizationRules.length > 0 && (

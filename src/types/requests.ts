@@ -122,13 +122,6 @@ export interface UpdateReplyReviewRequest {
   content: string;
 }
 
-export interface CreateProductVariantRequest {
-  sku: string;
-  variantName: string;
-  price: number;
-  currency: string;
-  imageUrl: string;
-}
 
 export interface CreateProductMediaRequest {
   url: string;
@@ -144,10 +137,18 @@ export interface CreateProductRequest {
   model3DUrl: string;
   isPersonalizable: boolean;
   isActive: boolean;
+  price: number;
+  sku: string;
+  weightGram: number;
   categoryIds: string[];
   characterIds: string[];
-  variants: CreateProductVariantRequest[];
   media: CreateProductMediaRequest[];
+  comboImages?: CreateProductComboImageRequest[];
+}
+
+export interface CreateProductComboImageRequest {
+  combinationKey: string;
+  imageUrl: string;
 }
 
 export type UpdateProductRequest = CreateProductRequest;
@@ -156,10 +157,10 @@ export type UpdateProductRequest = CreateProductRequest;
 
 export interface CreateBuildRequest {
   customerId: string | null;
-  baseVariantId: string;
+  baseProductId: string;
   buildName: string;
   personalizationNote: string;
-  buildComponents: { optionVariantId: string }[];
+  buildComponents: { optionProductId: string }[];
 }
 
 export interface CreateOrderFromCartRequest {
@@ -173,7 +174,7 @@ export interface CreateOrderFromCartRequest {
   shippingTotal: number;
   grandTotal: number;
   notes?: string;
-  promoCode?: string;
+  promoCodes?: string[];
 }
 
 /* ── Cart API Requests ── */
@@ -185,15 +186,13 @@ export interface CreateCartRequest {
 
 export interface AddToCartRequest {
   cartId: string;
-  variantId: string;
+  productId: string;
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
   productName?: string;
-  variantName?: string | null;
   productImageUrl?: string | null;
   productNameSnapshot?: string;
-  variantNameSnapshot?: string | null;
   productImageUrlSnapshot?: string | null;
 }
 
@@ -238,8 +237,33 @@ export interface UpdateOrderStatusRequest {
 
 /* ── Promotion & Payment Requests ── */
 
+export interface CreatePromotionRequest {
+  code: string;
+  discountType: string;
+  value: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  minOrderAmount: number;
+  maxUsageCount: number | null;
+  maxUsagePerUser: number | null;
+  description: string | null;
+}
+
+export type UpdatePromotionRequest = CreatePromotionRequest;
+
 export interface ValidatePromotionRequest {
   code: string;
+  userId?: string;
+  orderAmount?: number;
+  shippingAmount?: number;
+}
+
+export interface ApplyPromotionRequest {
+  code: string;
+  userId: string;
+  orderAmount: number;
+  shippingAmount: number;
 }
 
 export interface CreatePaymentRequest {

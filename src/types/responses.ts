@@ -172,16 +172,6 @@ export interface GetProductsResponseData {
   items: ProductListItem[];
 }
 
-export interface ProductVariant {
-  variantId: string;
-  productId: string;
-  sku: string;
-  variantName: string;
-  price: number;
-  currency: string;
-  isSoldOut: boolean;
-  imageUrl: string | null;
-}
 
 export interface ProductCategory {
   categoryId: string;
@@ -227,6 +217,43 @@ export interface ReviewReply {
   createdAt: string;
 }
 
+export interface Product {
+  productId: string;
+  name: string;
+  slug: string;
+  productType: string; // BASE_BEAR, ACCESSORY, COMPLETE_SET
+  description?: string;
+  isPersonalizable: boolean;
+  isActive: boolean;
+  price: number;
+  sku: string;
+  weightGram: number;
+  createdAt: string;
+  updatedAt: string;
+  media: ProductMedia[];
+}
+
+export interface ProductDetail extends Product {
+  categories: ProductCategory[];
+  characters: CharacterItem[];
+  model3DUrl?: string;
+  reviews?: ProductReview[];
+  comboImages: ProductComboImage[];
+}
+
+export interface ProductComboImage {
+  comboId: string;
+  combinationKey: string;
+  imageUrl: string;
+}
+
+export interface ProductListResponseData {
+  items: Product[];
+  totalCount: number;
+  pageIndex: number;
+  pageSize: number;
+}
+
 export interface GetProductReviewsResponseData {
   pageIndex: number;
   pageSize: number;
@@ -237,31 +264,12 @@ export interface GetProductReviewsResponseData {
   items: ProductReview[];
 }
 
-export interface ProductDetail {
-  productId: string;
-  name: string;
-  slug: string;
-  productType: string;
-  description: string;
-  isPersonalizable: boolean;
-  isActive: boolean;
-  price: number;
-  createdAt: string;
-  updatedAt: string;
-  model3DUrl: string | null;
-  media: ProductMedia[];
-  variants: ProductVariant[];
-  categories: ProductCategory[];
-  characters?: CharacterItem[];
-  reviews: ProductReview[];
-}
-
 /* ── Cart API Responses ── */
 
 export interface CartItem {
   cartItemId: string;
   cartId: string;
-  variantId: string;
+  productId: string;
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
@@ -375,8 +383,33 @@ export interface AddressDetail {
   createdAt: string;
 }
 
+export interface Promotion {
+  promotionId: string;
+  code: string;
+  discountType: string;
+  value: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  minOrderAmount: number;
+  maxUsageCount: number | null;
+  usageCount: number;
+  maxUsagePerUser: number | null;
+  description: string | null;
+}
+
 export interface PromotionResponseData {
-  // value is empty array as per backend spec
+  items: Promotion[];
+  totalCount: number;
+  pageIndex: number;
+  pageSize: number;
+}
+
+export interface PromotionApplyResponseData {
+  productDiscount: number;
+  shippingDiscount: number;
+  totalDiscount: number;
+  discountType: string;
 }
 
 export interface CreatePaymentResponseData {
@@ -480,6 +513,7 @@ export type CreatePersonalizationRuleResponse = ApiResponse<PersonalizationRule>
 export type UpdatePersonalizationRuleResponse = ApiResponse<null>;
 export type DeletePersonalizationRuleResponse = ApiResponse<null>;
 export type PromotionResponse = ApiResponse<PromotionResponseData>;
+export type PromotionApplyResponse = ApiResponse<PromotionApplyResponseData>;
 export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
 export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;
 export type MediaUploadResponse = ApiResponse<MediaUploadData>;

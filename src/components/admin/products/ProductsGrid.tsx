@@ -23,7 +23,8 @@ import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
 import { type GetProductsRequest } from "@/types";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
-import type { ProductListItem } from "@/types";
+import type { ProductListItem, ProductDetail } from "@/types";
+import { productService } from "@/services/product.service";
 
 import CreateProductModal from "./CreateProductModal";
 import EditProductModal from "./EditProductModal";
@@ -419,6 +420,8 @@ export default function ProductsGrid() {
   const debouncedSearch = useDebounce(search, 350);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selected, setSelected] = useState<ProductAdmin | null>(null);
+  const [detailedProduct, setDetailedProduct] = useState<ProductDetail | null>(null);
+  const [isFetchingDetail, setIsFetchingDetail] = useState(false);
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(
@@ -456,6 +459,27 @@ export default function ProductsGrid() {
   useEffect(() => {
     fetchProducts({ pageIndex: 1, pageSize: 50 });
   }, [fetchProducts]);
+
+  // Fetch full details when a product is selected for viewing
+  useEffect(() => {
+    if (selected) {
+      (async () => {
+        setIsFetchingDetail(true);
+        try {
+          const res = await productService.getProductById(selected.id);
+          if (res.isSuccess && res.value) {
+            setDetailedProduct(res.value);
+          }
+        } catch (err) {
+          console.error("Failed to fetch product details", err);
+        } finally {
+          setIsFetchingDetail(false);
+        }
+      })();
+    } else {
+      setDetailedProduct(null);
+    }
+  }, [selected]);
 
   const mappedData = useMemo(() => {
     if (!data?.items) return [];
@@ -741,37 +765,47 @@ export default function ProductsGrid() {
               >
                 <MdClose className="text-lg" />
               </button>
-              <span
-                className="absolute bottom-3 right-4 text-[9px] font-black px-2.5 py-1 rounded-full"
-                style={{
-                  color: STATUS_CFG[selected.status].color,
-                  backgroundColor: STATUS_CFG[selected.status].bg,
-                }}
-              >
-                {STATUS_CFG[selected.status].label}
-              </span>
+              
+              <div className="absolute bottom-3 right-4 flex items-center gap-2">
+                {isFetchingDetail && (
+                  <div className="w-3 h-3 border-2 border-[#17409A]/20 border-t-[#17409A] rounded-full animate-spin" />
+                )}
+                <span
+                  className="text-[9px] font-black px-2.5 py-1 rounded-full"
+                  style={{
+                    color: STATUS_CFG[selected.status].color,
+                    backgroundColor: STATUS_CFG[selected.status].bg,
+                  }}
+                >
+                  {STATUS_CFG[selected.status].label}
+                </span>
+              </div>
             </div>
 
             {/* Content */}
-            <div className="p-5">
-              {selected.badge && (
-                <span
-                  className="text-[9px] font-black px-2 py-0.5 rounded-full mb-1.5 inline-block"
-                  style={{
-                    color: selected.badgeColor,
-                    backgroundColor: selected.badgeColor + "18",
-                  }}
-                >
-                  {selected.badge}
-                </span>
-              )}
-              <p className="text-[#1A1A2E] font-black text-xl mb-0.5">
-                {selected.name}
-              </p>
-              <p className="text-[#17409A] font-black text-2xl mb-4">
-                {formatPrice(selected.price)}
-              </p>
+            <div className="p-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              {/* Basic Info */}
+              <div className="mb-4">
+                {selected.badge && (
+                  <span
+                    className="text-[9px] font-black px-2 py-0.5 rounded-full mb-1.5 inline-block"
+                    style={{
+                      color: selected.badgeColor,
+                      backgroundColor: selected.badgeColor + "18",
+                    }}
+                  >
+                    {selected.badge}
+                  </span>
+                )}
+                <p className="text-[#1A1A2E] font-black text-xl mb-0.5">
+                  {selected.name}
+                </p>
+                <p className="text-[#17409A] font-black text-2xl">
+                  {formatPrice(selected.price)}
+                </p>
+              </div>
 
+              {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="bg-[#F8F9FF] rounded-xl p-3 text-center">
                   <p className="text-[#9CA3AF] text-[9px] font-black tracking-wide mb-0.5">
@@ -804,10 +838,11 @@ export default function ProductsGrid() {
                 </div>
               </div>
 
+              {/* Stock Bar */}
               {selected.status === "active" && selected.stock > 0 && (
-                <div>
+                <div className="mb-6">
                   <div className="flex justify-between text-[10px] font-semibold text-[#9CA3AF] mb-1.5">
-                    <span>Tồn kho</span>
+                    <span>Tỷ lệ tồn kho</span>
                     <span>
                       {Math.min(100, Math.round((selected.stock / 80) * 100))}%
                     </span>
@@ -824,6 +859,48 @@ export default function ProductsGrid() {
                   </div>
                 </div>
               )}
+
+              {/* IMAGE MATRIX (Detailed View Only) */}
+              {detailedProduct &&
+                detailedProduct.productType === "BASE_BEAR" &&
+                detailedProduct.comboImages &&
+                detailedProduct.comboImages.length > 0 && (
+                  <div className="mt-6 pt-5 border-t border-[#F4F7FF]">
+                    <p className="text-[10px] font-black text-[#17409A] uppercase tracking-widest mb-3">
+                      Ma trận tổ hợp ảnh ({detailedProduct.comboImages.length})
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {detailedProduct.comboImages.map((ci) => (
+                        <div
+                          key={ci.comboId || ci.combinationKey}
+                          className="bg-[#F8F9FF] p-1.5 rounded-xl border border-white flex flex-col items-center gap-1.5"
+                        >
+                          <div className="w-full aspect-square relative rounded-lg overflow-hidden bg-white border border-[#17409A]/5">
+                            <Image
+                              src={ci.imageUrl}
+                              alt={ci.combinationKey}
+                              fill
+                              className="object-contain p-1"
+                            />
+                          </div>
+                          <p className="text-[8px] font-bold text-[#1A1A2E] text-center line-clamp-2 px-1 pb-1">
+                            {ci.combinationKey
+                              .split("|")
+                              .map((id) => id.substring(0, 4))
+                              .join(" + ")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              
+              {!detailedProduct && isFetchingDetail && (
+                <div className="py-8 flex flex-col items-center justify-center gap-2">
+                   <div className="w-6 h-6 border-3 border-[#17409A]/10 border-t-[#17409A] rounded-full animate-spin" />
+                   <p className="text-[10px] font-bold text-[#9CA3AF]">Đang tải chi tiết...</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -833,6 +910,7 @@ export default function ProductsGrid() {
       {isCreateModalOpen && (
         <CreateProductModal
           onClose={() => setCreateModalOpen(false)}
+          onSuccess={() => fetchProducts({ pageIndex: 1, pageSize: 50 })}
           onSubmit={async (payload) => {
             const response = await createProduct(payload);
             if (response) {

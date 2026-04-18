@@ -56,23 +56,6 @@ export default function ProductCard({
     try {
       const detailRes = await productService.getProductById(id);
       if (detailRes.isSuccess && detailRes.value) {
-        const firstAvailableVariant =
-          detailRes.value.variants.find((v) => !v.isSoldOut) ??
-          detailRes.value.variants[0];
-
-        if (firstAvailableVariant?.variantId) {
-          return {
-            variantId: firstAvailableVariant.variantId,
-            unitPriceSnapshot:
-              firstAvailableVariant.price > 0
-                ? firstAvailableVariant.price
-                : detailRes.value.price > 0
-                  ? detailRes.value.price
-                  : fallbackPrice,
-            variantName: firstAvailableVariant.variantName,
-          };
-        }
-
         return {
           variantId: detailRes.value.productId,
           unitPriceSnapshot:

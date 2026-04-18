@@ -103,3 +103,95 @@ Admins can now create and manage shipping-specific incentives.
 
 - **Method Mismatch**: Fixed 405 Method Not Allowed error in promotion validation by ensuring `POST` is used for validation and application endpoints.
 - **Cart Drawer Animation**: Ensured items added to the cart appear at the top for better user feedback.
+
+# BE
+
+# Tài liệu Kỹ thuật: Quy trình Tổ hợp Sản phẩm & Cá nhân hóa (OVERHAUL REQUIRED)
+
+> [!CAUTION]
+> **CẢNH BÁO ĐỎ: TỔNG ĐẠI TU HỆ THỐNG BIẾN THỂ (PRODUCT VARIANTS REMOVAL)**
+> Hệ thống vừa thực hiện một thay đổi kiến trúc cực lớn: **Loại bỏ hoàn toàn thực thể ProductVariant**.
+>
+> - Toàn bộ dữ liệu Giá (Price), SKU, Cân nặng (Weight) hiện đã được đưa trực tiếp vào thực thể **Product**.
+> - **Frontend Team cần cập nhật lại toàn bộ logic gọi API:** Không còn `VariantId`, thay vào đó hãy sử dụng `ProductId`.
+> - Các API Cart, Order, Inventory đều đã chuyển sang dùng `ProductId`.
+
+---
+
+## 1. Logic Tổ hợp Hình ảnh (Product Combo Images)
+
+Hệ thống sử dụng cơ chế **Combination Key** để xác định hình ảnh hiển thị cho một bộ phối gấu bông và phụ kiện cụ thể.
+
+### 1.1. Cách tạo Combination Key
+
+Để đảm bảo tính duy nhất và không phụ thuộc vào thứ tự chọn của người dùng, Key được tạo theo quy tắc:
+
+1.  Lấy danh sách ID (Guid) của tất cả các phụ kiện đã chọn.
+2.  **LOẠI TRỪ** các phụ kiện có loại là `AI_PROCESSOR` (vì loại này không có logic hình ảnh).
+3.  **Sắp xếp (Sort)** danh sách ID còn lại theo thứ tự tăng dần.
+4.  Nối các ID bằng dấu gạch đứng `|`.
+
+**Ví dụ:**
+
+- Phụ kiện A (ID: `1111...`) + Phụ kiện B (ID: `2222...`) + AI Processor (ID: `9999...`)
+- Key: `1111...|2222...` (ID của AI Processor bị loại bỏ khỏi key)
+
+### 1.2. Thuật toán tìm kiếm hình ảnh
+
+Backend cung cấp API để Frontend truy vấn ảnh dựa trên `base_product_id` và `combination_key`:
+
+- Sử dụng `ProductComboImageRepository` để truy vấn trong bảng `product_combo_images`.
+- Nếu một tổ hợp hợp lệ nhưng không có ảnh trong DB, Backend sẽ trả về ảnh mặc định của Gấu Base.
+
+---
+
+## 2. Phụ kiện AI Processor (Thay thế Smart Chip cũ)
+
+Hệ thống đã loại bỏ logic "SmartChipPrice" trong Product và chuyển sang sử dụng một thực thể phụ kiện độc lập.
+
+### 2.1. Logic nghiệp vụ
+
+- **Tên**: AI Processor (hoặc tương đương).
+- **Product Type**: `AI_PROCESSOR`.
+- **Giá cố định**: **999,000 VND**.
+- **Tính chất**: Là một phụ kiện tùy chọn (Accessory) nhưng **không tham gia** vào logic tổ hợp hình ảnh.
+
+### 2.2. Hướng dẫn Frontend
+
+Để triển khai luồng chọn AI trong UI:
+
+- **Hiển thị**: Coi AI Processor như một phụ kiện đặc biệt trong danh sách phụ kiện.
+- **Thêm vào giỏ hàng**:
+  - Không còn field `includes_smart_chip`.
+  - Thêm AI Processor vào giỏ hàng như một item độc lập hoặc một component trong Build.
+- **Tổng tiền**: Hệ thống sẽ tự động tính toán dựa trên `Product.Price`.
+
+---
+
+## 3. Quy trình Cá nhân hóa & Sản xuất (Production Jobs)
+
+Mỗi con gấu thực tế (theo số lượng `Quantity`) sẽ có một quy trình sản xuất riêng.
+
+### 3.1. Phân tách Job
+
+- Khi đơn hàng được xác nhận, mỗi `OrderItem` sẽ sinh ra các `ProductionJob` tương ứng với số lượng trong item đó.
+- Mỗi Job đại diện cho **1 đơn vị sản phẩm vật lý**.
+
+### 3.2. Số Serial & Dữ liệu
+
+- **Serial Number**: Định dạng `SN-{yyyyMMdd}-{8_ký_tự_ngẫu_nhiên}`.
+- **Print Data**: Lưu trữ JSON bao gồm ghi chú cá nhân hóa và các thành phần trong Build.
+
+---
+
+## 4. Đặc tả API mới (Breaking Changes)
+
+| Chức năng         | API Cũ (Dùng Variant)                   | API Mới (Dùng Product)                             |
+| :---------------- | :-------------------------------------- | :------------------------------------------------- |
+| Thêm giỏ hàng     | `{ "variantId": "...", "quantity": 1 }` | `{ "productId": "...", "quantity": 1 }`            |
+| Chi tiết sản phẩm | Có mảng `variants`                      | Dùng trực tiếp `price`, `sku`, `weightGram` ở root |
+| Kho hàng          | Truy vấn theo `variantId`               | Truy vấn theo `productId`                          |
+| Luật combo        | Dựa trên `variant`                      | Dựa trên `product`                                 |
+
+> [!IMPORTANT]
+> Toàn bộ logic Frontend liên quan đến "Biến thể" cần được xóa bỏ để đơn giản hóa giao diện. Hệ thống hiện tại chỉ còn: **Sản phẩm chính + Các phụ kiện kèm theo**.

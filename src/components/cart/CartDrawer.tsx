@@ -225,12 +225,12 @@ export default function CartDrawer() {
 
   if (!isOpen) return null;
 
-  const shippingLeft = FREE_SHIP_THRESHOLD - totalPrice;
-  const freeShipping = shippingLeft <= 0;
-  const shippingBarWidth = Math.min(
-    (totalPrice / FREE_SHIP_THRESHOLD) * 100,
-    100,
-  );
+  // const shippingLeft = FREE_SHIP_THRESHOLD - totalPrice;
+  // const freeShipping = shippingLeft <= 0;
+  // const shippingBarWidth = Math.min(
+  //   (totalPrice / FREE_SHIP_THRESHOLD) * 100,
+  //   100,
+  // );
 
   return (
     <div
@@ -300,7 +300,7 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        {/* ── Free shipping progress bar ── */}
+        {/* ── Free shipping progress bar - Tạm thời ẩn ──
         {totalItems > 0 && (
           <div
             className="px-6 py-3 shrink-0"
@@ -343,6 +343,7 @@ export default function CartDrawer() {
             </div>
           </div>
         )}
+        */}
 
         {/* ── Items list ── */}
         <div ref={itemsRef} className="flex-1 overflow-y-auto">
@@ -352,7 +353,7 @@ export default function CartDrawer() {
             <div className="p-4 space-y-3">
               {items.map((item) => (
                 <div
-                  key={item.product.id}
+                  key={item.cartItemId}
                   className="cart-item-row group flex gap-4 p-4 rounded-2xl transition-all duration-200"
                   style={{
                     border: "1.5px solid #E5E7EB",
@@ -414,7 +415,7 @@ export default function CartDrawer() {
 
                       {/* Remove button */}
                       <button
-                        onClick={() => removeItem(item.product.id)}
+                        onClick={() => removeItem(item.cartItemId)}
                         className="shrink-0 w-7 h-7 rounded-xl flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
                         style={{ backgroundColor: "#FFF0F0", color: "#FF6B6B" }}
                         aria-label="Xóa sản phẩm"
@@ -442,7 +443,7 @@ export default function CartDrawer() {
                       >
                         <button
                           onClick={() =>
-                            updateQuantity(item.product.id, item.quantity - 1)
+                            updateQuantity(item.cartItemId, item.quantity - 1)
                           }
                           className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110"
                           style={{
@@ -462,7 +463,7 @@ export default function CartDrawer() {
                         </span>
                         <button
                           onClick={() =>
-                            updateQuantity(item.product.id, item.quantity + 1)
+                            updateQuantity(item.cartItemId, item.quantity + 1)
                           }
                           className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110"
                           style={{ backgroundColor: "#17409A", color: "white" }}
@@ -476,6 +477,7 @@ export default function CartDrawer() {
                 </div>
               ))}
             </div>
+
           )}
         </div>
 
@@ -509,11 +511,8 @@ export default function CartDrawer() {
                 <span style={{ color: "#6B7280" }} className="font-semibold">
                   Vận chuyển
                 </span>
-                <span
-                  className="font-bold"
-                  style={{ color: freeShipping ? "#4ECDC4" : "#1A1A2E" }}
-                >
-                  {freeShipping ? "Miễn phí" : "Tính khi thanh toán"}
+                <span className="font-bold" style={{ color: "#1A1A2E" }}>
+                  Tính khi thanh toán
                 </span>
               </div>
             </div>

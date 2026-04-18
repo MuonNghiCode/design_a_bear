@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProductDetailApi } from "@/hooks/useProductDetailApi";
 import { useReviewApi } from "@/hooks/useReviewApi";
 import type { ProductReview } from "@/types";
+import { formatDateTime } from "@/utils/date";
 
 type StatusStyle = { label: string; fg: string; bg: string };
 
@@ -18,17 +19,6 @@ const STATUS_STYLES: Record<string, StatusStyle> = {
   PUBLISHED: { label: "Đã duyệt", fg: "#4ECDC4", bg: "#4ECDC418" },
   REJECTED: { label: "Từ chối", fg: "#FF6B9D", bg: "#FF6B9D18" },
 };
-
-function formatDate(dateText: string) {
-  const date = new Date(dateText);
-  return date.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function canModifyReview(status: string) {
   return status !== "PUBLISHED" && status !== "REJECTED";
@@ -206,7 +196,7 @@ export default function ReviewsTab() {
                   `Sản phẩm #${r.productId.slice(-6)}`}
               </p>
               <span className="text-[#9CA3AF] text-[10px] font-semibold">
-                {formatDate(r.createdAt)}
+                {formatDateTime(r.createdAt)}
               </span>
             </div>
 

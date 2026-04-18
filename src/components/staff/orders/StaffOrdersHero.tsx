@@ -26,8 +26,8 @@ export default function StaffOrdersHero({
   const processing = orders.filter(
     (o) => o.status?.toUpperCase() === "PROCESSING",
   ).length;
-  const completed = orders.filter((o) =>
-    ["COMPLETED", "DELIVERED"].includes(o.status?.toUpperCase()),
+  const completed = orders.filter(
+    (o) => o.status?.toUpperCase() === "COMPLETED",
   ).length;
   const refunded = orders.filter(
     (o) => o.status?.toUpperCase() === "REFUNDED",

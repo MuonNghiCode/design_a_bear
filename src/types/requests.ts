@@ -128,6 +128,7 @@ export interface CreateProductVariantRequest {
   price: number;
   currency: string;
   imageUrl: string;
+  weightGram: number;
 }
 
 export interface CreateProductMediaRequest {
@@ -208,6 +209,15 @@ export type UpdatePersonalizationGroupRequest =
   CreatePersonalizationGroupRequest;
 
 /* ── Personalization Rule API Requests ── */
+
+export interface GetPersonalizationRulesAdminRequest {
+  pageIndex?: number;
+  pageSize?: number;
+  baseProductId?: string;
+  addonProductId?: string;
+  groupId?: string;
+  ruleType?: string;
+}
 
 export interface CreatePersonalizationRuleRequest {
   baseProductId: string;

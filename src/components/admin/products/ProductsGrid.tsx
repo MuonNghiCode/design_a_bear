@@ -27,6 +27,7 @@ import type { ProductListItem } from "@/types";
 
 import CreateProductModal from "./CreateProductModal";
 import EditProductModal from "./EditProductModal";
+import ProductDetailModal from "./ProductDetailModal";
 
 type ViewMode = "grid" | "table";
 type CategoryFilter = "all" | "bear" | "accessory";
@@ -418,7 +419,9 @@ export default function ProductsGrid() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [selected, setSelected] = useState<ProductAdmin | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null,
+  );
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(
@@ -631,7 +634,7 @@ export default function ProductsGrid() {
                   <ProductCard
                     key={p.id}
                     p={p}
-                    onView={setSelected}
+                    onView={(p) => setSelectedProductId(p.id)}
                     onEdit={(p) => setEditingProductId(p.id)}
                     onDelete={handleDelete}
                     isDeleting={isDeleting && deletingProduct?.id === p.id}
@@ -666,7 +669,7 @@ export default function ProductsGrid() {
                     key={p.id}
                     p={p}
                     index={i}
-                    onView={setSelected}
+                    onView={(p) => setSelectedProductId(p.id)}
                     onEdit={(p) => setEditingProductId(p.id)}
                     onDelete={handleDelete}
                     isDeleting={isDeleting && deletingProduct?.id === p.id}
@@ -707,126 +710,15 @@ export default function ProductsGrid() {
       </div>
 
       {/* Product detail modal */}
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setSelected(null)}
-          />
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
-            {/* Image header */}
-            <div
-              className="relative flex items-center justify-center py-6"
-              style={{ backgroundColor: selected.badgeColor + "18" }}
-            >
-              <div
-                className="absolute top-0 left-0 right-0 h-0.5"
-                style={{ backgroundColor: selected.badgeColor }}
-              />
-              <Image
-                src={selected.imageUrl}
-                alt={selected.name}
-                width={120}
-                height={120}
-                className="object-contain drop-shadow-lg"
-              />
-              {selected.popular && (
-                <span className="absolute top-3 left-4 bg-[#FFD93D] text-[#1A1A2E] text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                  <MdStar className="text-xs" /> HOT
-                </span>
-              )}
-              <button
-                onClick={() => setSelected(null)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-xl flex items-center justify-center bg-white/70 text-[#6B7280] hover:text-[#1A1A2E] transition-all"
-              >
-                <MdClose className="text-lg" />
-              </button>
-              <span
-                className="absolute bottom-3 right-4 text-[9px] font-black px-2.5 py-1 rounded-full"
-                style={{
-                  color: STATUS_CFG[selected.status].color,
-                  backgroundColor: STATUS_CFG[selected.status].bg,
-                }}
-              >
-                {STATUS_CFG[selected.status].label}
-              </span>
-            </div>
-
-            {/* Content */}
-            <div className="p-5">
-              {selected.badge && (
-                <span
-                  className="text-[9px] font-black px-2 py-0.5 rounded-full mb-1.5 inline-block"
-                  style={{
-                    color: selected.badgeColor,
-                    backgroundColor: selected.badgeColor + "18",
-                  }}
-                >
-                  {selected.badge}
-                </span>
-              )}
-              <p className="text-[#1A1A2E] font-black text-xl mb-0.5">
-                {selected.name}
-              </p>
-              <p className="text-[#17409A] font-black text-2xl mb-4">
-                {formatPrice(selected.price)}
-              </p>
-
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="bg-[#F8F9FF] rounded-xl p-3 text-center">
-                  <p className="text-[#9CA3AF] text-[9px] font-black tracking-wide mb-0.5">
-                    TỒN KHO
-                  </p>
-                  <p className="text-[#1A1A2E] font-black text-base">
-                    {selected.stock}
-                  </p>
-                </div>
-                <div className="bg-[#F8F9FF] rounded-xl p-3 text-center">
-                  <p className="text-[#9CA3AF] text-[9px] font-black tracking-wide mb-0.5">
-                    ĐÃ BÁN
-                  </p>
-                  <p className="text-[#1A1A2E] font-black text-base">
-                    {selected.sold}
-                  </p>
-                </div>
-                <div className="bg-[#F8F9FF] rounded-xl p-3 text-center">
-                  <p className="text-[#9CA3AF] text-[9px] font-black tracking-wide mb-0.5">
-                    ĐÁNH GIÁ
-                  </p>
-                  {selected.rating > 0 ? (
-                    <p className="text-[#FFD93D] font-black text-base flex items-center justify-center gap-0.5">
-                      <MdStar className="text-xs" />
-                      {selected.rating}
-                    </p>
-                  ) : (
-                    <p className="text-[#D1D5DB] font-black text-base">—</p>
-                  )}
-                </div>
-              </div>
-
-              {selected.status === "active" && selected.stock > 0 && (
-                <div>
-                  <div className="flex justify-between text-[10px] font-semibold text-[#9CA3AF] mb-1.5">
-                    <span>Tồn kho</span>
-                    <span>
-                      {Math.min(100, Math.round((selected.stock / 80) * 100))}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.min(100, Math.round((selected.stock / 80) * 100))}%`,
-                        backgroundColor:
-                          selected.stock <= 10 ? "#FF8C42" : "#4ECDC4",
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {selectedProductId && (
+        <ProductDetailModal
+          productId={selectedProductId}
+          onClose={() => setSelectedProductId(null)}
+          onEdit={(id) => {
+            setSelectedProductId(null);
+            setEditingProductId(id);
+          }}
+        />
       )}
 
       {/* Create Product Modal */}

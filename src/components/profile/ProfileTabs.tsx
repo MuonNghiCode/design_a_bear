@@ -6,16 +6,19 @@ import {
   IoHeartOutline,
   IoStarOutline,
   IoShieldCheckmarkOutline,
+  IoConstructOutline,
 } from "react-icons/io5";
 import OrdersTab from "./tabs/OrdersTab";
 import WishlistTab from "./tabs/WishlistTab";
 import ReviewsTab from "./tabs/ReviewsTab";
 import SecurityTab from "./tabs/SecurityTab";
+import ProductIssuesTab from "./tabs/ProductIssuesTab";
 
 const TABS = [
   { key: "orders", label: "Đơn hàng", icon: IoBagOutline },
   { key: "wishlist", label: "Yêu thích", icon: IoHeartOutline },
   { key: "reviews", label: "Đánh giá", icon: IoStarOutline },
+  { key: "issues", label: "Bảo hành", icon: IoConstructOutline },
   { key: "security", label: "Bảo mật", icon: IoShieldCheckmarkOutline },
 ];
 
@@ -60,6 +63,7 @@ export default function ProfileTabs({
         {tab === "orders" && <OrdersTab />}
         {tab === "wishlist" && <WishlistTab />}
         {tab === "reviews" && <ReviewsTab />}
+        {tab === "issues" && <ProductIssuesTab />}
         {tab === "security" && <SecurityTab onLogout={onLogout} />}
       </div>
     </div>

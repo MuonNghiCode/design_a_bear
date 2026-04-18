@@ -38,7 +38,6 @@ const BACKEND_STATUSES: { value: string; label: string }[] = [
   { value: "READY_FOR_PICKUP", label: "Sẵn sàng lấy hàng" },
   { value: "SHIPPING", label: "Đang giao" },
   { value: "COMPLETED", label: "Hoàn thành" },
-  { value: "DELIVERED", label: "Đã giao" },
   { value: "CANCELLED", label: "Đã hủy" },
   { value: "REFUNDED", label: "Đã hoàn tiền" },
 ];
@@ -102,7 +101,6 @@ const API_STATUS_TO_UI: Record<string, OrderStatus> = {
   READY_FOR_PICKUP: "ready_for_pickup",
   SHIPPING: "shipping",
   COMPLETED: "completed",
-  DELIVERED: "completed",
   CANCELLED: "cancelled",
   REFUNDED: "refunded",
 };

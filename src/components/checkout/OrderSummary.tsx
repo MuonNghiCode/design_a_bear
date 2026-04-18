@@ -19,6 +19,7 @@ interface OrderSummaryProps {
   onApplyCoupon: () => void;
   couponApplied: boolean;
   step: number;
+  isCalculatingShipping?: boolean;
 }
 
 export function OrderSummary({
@@ -29,10 +30,11 @@ export function OrderSummary({
   onCouponChange,
   onApplyCoupon,
   couponApplied,
+  isCalculatingShipping = false,
 }: OrderSummaryProps) {
   const { items, totalItems, totalPrice } = useCart();
-  const freeShip = totalPrice >= FREE_SHIP;
-  const barWidth = Math.min((totalPrice / FREE_SHIP) * 100, 100);
+  // const freeShip = totalPrice >= FREE_SHIP;
+  // const barWidth = Math.min((totalPrice / FREE_SHIP) * 100, 100);
 
   return (
     <div
@@ -59,7 +61,7 @@ export function OrderSummary({
         </p>
       </div>
 
-      {/* Free-ship progress */}
+      {/* Free-ship progress - Tạm thời ẩn theo yêu cầu
       <div
         className="mx-7 mt-5 mb-4 p-4 rounded-2xl shrink-0"
         style={{ backgroundColor: "#F4F7FF" }}
@@ -96,12 +98,13 @@ export function OrderSummary({
           />
         </div>
       </div>
+      */}
 
       {/* Items list */}
       <div className="flex-1 overflow-y-auto px-7 space-y-3 pb-4">
         {items.map((item) => (
           <div
-            key={item.product.id}
+            key={item.cartItemId}
             className="flex gap-3.5 items-center py-3"
             style={{ borderBottom: "1px solid #F3F4F6" }}
           >
@@ -209,7 +212,11 @@ export function OrderSummary({
             ["Tạm tính", fmt(totalPrice)],
             [
               "Phí vận chuyển",
-              shippingFee === 0 ? "Miễn phí" : fmt(shippingFee),
+              isCalculatingShipping
+                ? "Đang tính..."
+                : shippingFee === 0
+                  ? "Miễn phí"
+                  : fmt(shippingFee),
             ],
             ...(discount > 0 ? [["Giảm giá", `−${fmt(discount)}`]] : []),
           ].map(([k, v]) => (

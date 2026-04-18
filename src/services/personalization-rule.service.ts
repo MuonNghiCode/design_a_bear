@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "@/constants";
 import type {
   CreatePersonalizationRuleRequest,
   UpdatePersonalizationRuleRequest,
+  GetPersonalizationRulesAdminRequest,
   GetPersonalizationRulesAdminResponse,
   GetPersonalizationRuleResponse,
   CreatePersonalizationRuleResponse,
@@ -11,10 +12,16 @@ import type {
 } from "@/types";
 
 class PersonalizationRuleService extends BaseApiService {
-  async getRules(): Promise<GetPersonalizationRulesAdminResponse> {
-    return this.get(API_ENDPOINTS.PERSONALIZATION_RULES.BASE, undefined, {
-      withCredentials: false,
-    });
+  async getRules(
+    params?: GetPersonalizationRulesAdminRequest,
+  ): Promise<GetPersonalizationRulesAdminResponse> {
+    return this.get(
+      API_ENDPOINTS.PERSONALIZATION_RULES.BASE,
+      params as Record<string, unknown>,
+      {
+        withCredentials: false,
+      },
+    );
   }
 
   async getRuleById(id: string): Promise<GetPersonalizationRuleResponse> {

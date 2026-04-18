@@ -6,6 +6,7 @@ import type {
   CreateProductIssueRequest,
   ResolveProductIssueRequest,
   CompleteProductIssueRequest,
+  RejectProductIssueRequest,
 } from "@/types";
 
 class ProductIssueService extends BaseApiService {

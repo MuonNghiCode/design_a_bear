@@ -161,6 +161,7 @@ interface Props {
   variants?: ProductVariant[];
   selectedVariant: ProductVariant | null;
   onSelectVariant: (v: ProductVariant) => void;
+  personalizationRules?: PersonalizationRule[];
   quantity: number;
   setQuantity: (q: number) => void;
 }

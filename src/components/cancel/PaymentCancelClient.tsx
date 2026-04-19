@@ -140,23 +140,23 @@ export default function PaymentCancelClient() {
         <div className="mt-7 flex flex-wrap gap-3">
           <Link
             href="/checkout"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#17409A]/20"
             style={{ backgroundColor: "#17409A", color: "#FFFFFF" }}
           >
-            <IoRefreshOutline />
-            Thử thanh toán lại
+            <IoRefreshOutline className="text-lg" />
+            Thử lại với đơn hàng mới
           </Link>
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95 border-2"
             style={{
-              border: "2px solid #17409A",
+              borderColor: "#17409A",
               color: "#17409A",
               backgroundColor: "#FFFFFF",
             }}
           >
-            <IoBagHandleOutline />
-            Tiếp tục mua sắm
+            <IoBagHandleOutline className="text-lg" />
+            Về trang sản phẩm
           </Link>
           <Link
             href="/"

@@ -84,8 +84,11 @@ class BaseApiService {
                 if (error.response?.status === 401 && !isPublicEndpoint) {
                     console.error('[API 401]', error.config?.method?.toUpperCase(), error.config?.url, '→ Token expired or invalid role.');
                     if (typeof window !== 'undefined') {
+                        const isAdminPage = window.location.pathname.startsWith('/admin');
                         localStorage.removeItem(STORAGE_KEYS.TOKEN);
                         localStorage.removeItem(STORAGE_KEYS.USER);
+                        // Redirect to auth page instead of homepage; keep admin on /auth to re-login
+                        window.location.href = isAdminPage ? '/auth' : '/';
                     }
                 }
                 return Promise.reject(error);

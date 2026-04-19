@@ -9,8 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 import { productService } from "@/services/product.service";
-import { favoriteService } from "@/services/favorite.service";
-
 
 type CartPayload = {
   variantId: string;
@@ -51,34 +49,8 @@ export default function ProductCard({
   const router = useRouter();
   const [imgSrc, setImgSrc] = useState(image || "/teddy_bear.png");
   const [addingToCart, setAddingToCart] = useState(false);
-  const [togglingFavorite, setTogglingFavorite] = useState(false);
-
-  const handleToggleFavorite = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!isAuthenticated) {
-      router.push("/auth");
-      return;
-    }
-
-    try {
-      setTogglingFavorite(true);
-      const res = await favoriteService.toggleFavorite(id);
-      if (res.isSuccess) {
-        toast.success(res.value.message);
-      } else {
-        toast.error(res.error?.description || "Không thể cập nhật yêu thích");
-      }
-    } catch (err) {
-      toast.error("Đã có lỗi xảy ra");
-    } finally {
-      setTogglingFavorite(false);
-    }
-  };
 
   const resolveCartPayload = async (): Promise<CartPayload> => {
-
     const fallbackPrice = price > 0 ? price : 1;
 
     try {
@@ -243,12 +215,14 @@ export default function ProductCard({
             </button>
 
             <button
-              className={`w-11 h-11 rounded-xl bg-white/20 hover:bg-[#FF6B9D] text-white backdrop-blur-sm flex items-center justify-center transition-all duration-200 ${togglingFavorite ? "opacity-50 cursor-not-allowed" : ""}`}
+              className="w-11 h-11 rounded-xl bg-white/20 hover:bg-[#FF6B9D] text-white backdrop-blur-sm flex items-center justify-center transition-all duration-200"
               aria-label="Yêu thích"
-              onClick={handleToggleFavorite}
-              disabled={togglingFavorite}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
             >
-              <IoHeartOutline className={`text-xl ${togglingFavorite ? "animate-pulse" : ""}`} />
+              <IoHeartOutline className="text-xl" />
             </button>
           </div>
         </div>

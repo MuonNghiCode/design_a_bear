@@ -367,14 +367,12 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </div>
 
               {/* Wishlist - Hidden on small mobile */}
-              <Link
-                href="/favorites"
+              <button
                 className="hidden sm:block text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110"
                 aria-label="Yêu thích"
               >
                 <IoHeartOutline className="text-2xl" />
-              </Link>
-
+              </button>
 
               {/* Cart - Always visible */}
               <button
@@ -457,7 +455,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                           Đơn hàng
                         </Link>
                         <Link
-                          href="/favorites"
+                          href="/profile?tab=wishlist"
                           onClick={() => setShowUserMenu(false)}
                           className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
                         >
@@ -677,7 +675,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </Link>
             )}
             <Link
-              href="/favorites"
+              href="/wishlist"
               onClick={() => setShowMobileMenu(false)}
               className="flex items-center gap-3 text-gray-800 hover:text-blue-600 transition-colors"
             >

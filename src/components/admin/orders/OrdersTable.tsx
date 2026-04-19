@@ -138,6 +138,7 @@ export default function OrdersTable() {
         setSelected(res.value);
       } else {
         console.error("Failed to fetch order details", res.error);
+        toastError(res.error?.description || "Không thể tải chi tiết đơn hàng");
         const localData = data?.items.find((o) => o.orderId === orderId);
         if (localData) setSelected(localData);
       }
@@ -145,8 +146,9 @@ export default function OrdersTable() {
       if (addressRes?.isSuccess && addressRes.value) {
         setSelectedAddress(addressRes.value);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toastError(e.message || "Đã có lỗi xảy ra khi tải dữ liệu");
       // Fallback
       const localData = data?.items.find((o) => o.orderId === orderId);
       if (localData) setSelected(localData);

@@ -137,6 +137,10 @@ export const API_ENDPOINTS = {
     BASE: "/api/Locations",
     BY_ID: "/api/Locations/{id}",
   },
+  FAVORITES: {
+    BASE: "/api/Favorites",
+    TOGGLE: "/api/Favorites/toggle",
+  },
 } as const;
 
 export const HTTP_METHOD = {

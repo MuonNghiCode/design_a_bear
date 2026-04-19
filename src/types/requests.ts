@@ -289,3 +289,7 @@ export interface GetRevenueReportRequest {
   startDate: string;
   endDate: string;
 }
+
+export interface ToggleFavoriteRequest {
+  productId: string;
+}

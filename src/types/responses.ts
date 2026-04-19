@@ -568,3 +568,26 @@ export type GetOrderDetailResponse = ApiResponse<Order>;
 export type CreateOrderResponse = ApiResponse<Order>;
 export type LogoutResponse = ApiResponse<LogoutResponseData>;
 export type LoginResponse = ApiResponse<LoginResponseData>;
+
+export interface FavoriteResponse {
+  favoriteId: string;
+  productId: string;
+  productName: string;
+  productImageUrl?: string;
+  productPrice: number;
+  createdAt: string;
+}
+
+export interface GetMyFavoritesResponseData {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: FavoriteResponse[];
+}
+
+export type GetMyFavoritesResponse = ApiResponse<GetMyFavoritesResponseData>;
+export type ToggleFavoriteResponse = ApiResponse<{ isAdded: boolean; message: string }>;
+

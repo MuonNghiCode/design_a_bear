@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { MdClose } from "react-icons/md";
-import type { UpdateProductRequest } from "@/types/requests";
+import { useState, useEffect, useMemo } from "react";
+import { MdClose, MdCloudUpload, MdOutlineAddPhotoAlternate, MdAddPhotoAlternate, MdDeleteOutline } from "react-icons/md";
+import type { CreateProductComboImageRequest, UpdateProductRequest } from "@/types/requests";
+import type { PersonalizationRule } from "@/types/responses";
 import { productService } from "@/services/product.service";
 import CustomDropdown from "@/components/shared/CustomDropdown";
 import { useTaxonomyApi } from "@/hooks";
@@ -8,16 +9,6 @@ import { useToast } from "@/contexts/ToastContext";
 import { mediaService } from "@/services/media.service";
 import { generateSlug } from "@/utils/string";
 import { formatDate } from "@/utils/date";
-import { formatInputAsCurrency } from "@/utils/currency";
-import { MdAddPhotoAlternate, MdDeleteOutline } from "react-icons/md";
-
-type VariantForm = {
-  sku: string;
-  variantName: string;
-  price: string;
-  imageUrl: string;
-  weightGram: string;
-};
 
 interface Props {
   productId: string;
@@ -42,100 +33,71 @@ export default function EditProductModal({
     model3DUrl: "",
     isPersonalizable: false,
     isActive: true,
-    imageUrl: "",
+    price: "",
+    sku: "",
+    weightGram: "",
     createdAt: "",
     media: [] as { url: string; altText: string; sortOrder: number }[],
   });
-  const [variants, setVariants] = useState<VariantForm[]>([
-    {
-      sku: "",
-      variantName: "Mặc định",
-      price: "",
-      imageUrl: "",
-      weightGram: "",
-    },
-  ]);
+  
+  const [personalizationRules, setPersonalizationRules] = useState<PersonalizationRule[]>([]);
+  const [comboImages, setComboImages] = useState<CreateProductComboImageRequest[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>(
-    [],
-  );
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
+  
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [variantUploadFiles, setVariantUploadFiles] = useState<
-    Record<number, File | null>
-  >({});
+  const [matrixUploadFiles, setMatrixUploadFiles] = useState<Record<string, File | null>>({});
+
   const {
     loading: taxonomyLoading,
     categories,
     characters,
     fetchTaxonomy,
   } = useTaxonomyApi();
+  
+  const isBaseBear = formData.productType === "BASE_BEAR";
   const isAccessory = formData.productType === "ACCESSORY";
 
   useEffect(() => {
     fetchTaxonomy();
   }, [fetchTaxonomy]);
 
+  // Fetch product data and rules
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         setIsFetching(true);
-        const res = await productService.getProductById(productId);
-        if (mounted && res && res.isSuccess && res.value) {
-          const p = res.value;
-          const defaultVariant = p.variants?.[0];
-          const defaultMedia = p.media?.[0];
-          const productCharacters = Array.isArray(
-            (p as { characters?: { characterId: string }[] }).characters,
-          )
-            ? ((p as { characters?: { characterId: string }[] }).characters ??
-              [])
-            : [];
+        const [productRes, rulesRes] = await Promise.all([
+          productService.getProductById(productId),
+          productService.getPersonalizationRules(productId)
+        ]);
 
+        if (mounted && productRes && productRes.isSuccess && productRes.value) {
+          const p = productRes.value;
           setFormData({
             name: p.name || "",
             slug: p.slug || "",
-            productType:
-              p.productType === "ACCESSORY" ? "ACCESSORY" : "BASE_BEAR",
+            productType: p.productType,
             description: p.description || "",
             model3DUrl: p.model3DUrl || "",
             isPersonalizable: p.isPersonalizable || false,
             isActive: p.isActive,
-            imageUrl: defaultMedia?.url || "",
+            price: p.price?.toString() || "",
+            sku: p.sku || "",
+            weightGram: p.weightGram?.toString() || "",
             createdAt: p.createdAt || "",
             media: p.media || [],
           });
 
-          setVariants(
-            p.variants?.length
-              ? p.variants.map((v) => ({
-                  sku: v.sku || "",
-                  variantName: v.variantName || "",
-                  price: formatInputAsCurrency(v.price),
-                  imageUrl: v.imageUrl || defaultMedia?.url || "",
-                  weightGram: v.weightGram?.toString() || "",
-                }))
-              : [
-                  {
-                    sku: defaultVariant?.sku || "",
-                    variantName: defaultVariant?.variantName || "Mặc định",
-                    price: formatInputAsCurrency(defaultVariant?.price || 0),
-                    imageUrl:
-                      defaultVariant?.imageUrl || defaultMedia?.url || "",
-                    weightGram: defaultVariant?.weightGram?.toString() || "",
-                  },
-                ],
-          );
-          setSelectedCategoryIds(
-            (p.categories || []).map((c) => c.categoryId).slice(0, 1),
-          );
-          setSelectedCharacterIds(
-            productCharacters
-              .map((c) => c.characterId)
-              .filter(Boolean)
-              .slice(0, 1),
-          );
+          setSelectedCategoryIds((p.categories || []).map((c) => c.categoryId));
+          setSelectedCharacterIds((p.characters || []).map((c) => c.characterId));
+          setComboImages(p.comboImages || []);
+        }
+
+        if (mounted && rulesRes && rulesRes.isSuccess && rulesRes.value) {
+          setPersonalizationRules(rulesRes.value);
         }
       } catch (err) {
         console.error("Failed to load product details", err);
@@ -143,197 +105,149 @@ export default function EditProductModal({
         if (mounted) setIsFetching(false);
       }
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [productId]);
 
-  const handleVariantChange = (
-    index: number,
-    field: keyof VariantForm,
-    value: string,
-  ) => {
-    setVariants((prev) => {
-      const next = [...prev];
-      next[index] = {
-        ...next[index],
-        [field]: field === "price" ? formatInputAsCurrency(value) : value,
-      };
-      return next;
-    });
-  };
+  // ── Combination Matrix Logic ──
+  const availableAccessories = useMemo(() => {
+    if (!isBaseBear) return [];
+    return personalizationRules
+      .filter(rule => {
+        const type = (rule.addonProduct.productType || "").toUpperCase();
+        const name = (rule.addonProduct.name || "").toUpperCase();
+        return type !== "AI_PROCESSOR" && !name.includes("AI PROCESSOR");
+      })
+      .map(rule => ({
+        id: rule.addonProduct.productId,
+        name: rule.addonProduct.name
+      }));
+  }, [personalizationRules, isBaseBear]);
 
-  const handleProductTypeChange = (nextType: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      productType: nextType,
-      ...(nextType === "ACCESSORY"
-        ? {
-            model3DUrl: "",
-            isPersonalizable: false,
-            isActive: true,
-            imageUrl: "",
-          }
-        : {}),
-    }));
-
-    if (nextType === "ACCESSORY") {
-      setSelectedCategoryIds([]);
-      setSelectedCharacterIds([]);
-      setUploadFile(null);
-      setVariantUploadFiles({});
-      setVariants((prev) => [
-        {
-          sku: prev[0]?.sku || "",
-          variantName: prev[0]?.variantName || "Mặc định",
-          price: prev[0]?.price || "",
-          imageUrl: prev[0]?.imageUrl || "",
-          weightGram: prev[0]?.weightGram || "",
-        },
-      ]);
+  const allCombinations = useMemo(() => {
+    const results: string[][] = [[]];
+    for (const acc of availableAccessories) {
+      const currentLength = results.length;
+      for (let i = 0; i < currentLength; i++) {
+        results.push([...results[i], acc.id]);
+      }
     }
-  };
+    const combinations = results.filter(combo => combo.length > 0);
+    return combinations.map(combo => ({
+      key: combo.sort((a, b) => a.localeCompare(b)).join("|"),
+      label: combo.map(id => availableAccessories.find(a => a.id === id)?.name).join(" + ")
+    }));
+  }, [availableAccessories]);
 
-  const addVariant = () => {
-    setVariants((prev) => [
-      ...prev,
-      {
-        sku: "",
-        variantName: "",
-        price: "",
-        imageUrl: formData.imageUrl,
-        weightGram: "",
-      },
-    ]);
-  };
-
-  const removeVariant = (index: number) => {
-    setVariants((prev) => {
-      if (prev.length <= 1) return prev;
-      return prev.filter((_, i) => i !== index);
-    });
-  };
-
-  const randomSku = () => {
-    const part = Math.random().toString(36).slice(2, 8).toUpperCase();
-    return `SKU-${part}`;
-  };
+  useEffect(() => {
+    if (allCombinations.length > 0) {
+      setComboImages(prev => {
+        const next = [...prev];
+        allCombinations.forEach(combo => {
+          if (!next.find(ci => ci.combinationKey === combo.key)) {
+            next.push({ combinationKey: combo.key, imageUrl: "" });
+          }
+        });
+        return next;
+      });
+    }
+  }, [allCombinations]);
 
   const handleUploadImage = async () => {
     if (!uploadFile) return;
     setIsUploadingImage(true);
     try {
-      const res = await mediaService.uploadMedia(uploadFile, "uploads");
-      if (!res.isSuccess || !res.value?.publicUrl) {
-        throw new Error(res.error?.description || "Upload ảnh thất bại");
-      }
-
-      const uploadedUrl = res.value.publicUrl;
-      setFormData((prev) => ({ ...prev, imageUrl: uploadedUrl }));
-      setVariants((prev) =>
-        prev.map((variant) => ({
-          ...variant,
-          imageUrl: uploadedUrl,
-        })),
-      );
+      const res = await mediaService.uploadMedia(uploadFile, "products");
+      if (!res.isSuccess || !res.value?.publicUrl) throw new Error("Upload thất bại");
+      const newMedia = {
+        url: res.value.publicUrl,
+        altText: formData.name,
+        sortOrder: formData.media.length + 1
+      };
+      setFormData(prev => ({ 
+        ...prev, 
+        media: [...prev.media, newMedia] 
+      }));
       setUploadFile(null);
-      toast.success("Upload ảnh thành công");
+      toast.success("Thêm ảnh thành công");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload ảnh thất bại");
+      toast.error("Lỗi upload: " + (err instanceof Error ? err.message : ""));
     } finally {
       setIsUploadingImage(false);
     }
   };
 
-  const handleUploadVariantImage = async (index: number) => {
-    const file = variantUploadFiles[index];
+  const handleUploadMatrixImage = async (key: string) => {
+    const file = matrixUploadFiles[key];
     if (!file) return;
     setIsUploadingImage(true);
     try {
-      const res = await mediaService.uploadMedia(file, "uploads");
-      if (!res.isSuccess || !res.value?.publicUrl) {
-        throw new Error(res.error?.description || "Upload ảnh thất bại");
-      }
-      handleVariantChange(index, "imageUrl", res.value.publicUrl);
-      setVariantUploadFiles((prev) => ({ ...prev, [index]: null }));
-      toast.success("Upload ảnh variant thành công");
+      const res = await mediaService.uploadMedia(file, "combos");
+      if (!res.isSuccess || !res.value?.publicUrl) throw new Error("Upload thất bại");
+      const url = res.value.publicUrl;
+      setComboImages(prev => {
+        const idx = prev.findIndex(ci => ci.combinationKey === key);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], imageUrl: url };
+          return next;
+        }
+        return [...prev, { combinationKey: key, imageUrl: url }];
+      });
+      setMatrixUploadFiles(prev => ({ ...prev, [key]: null }));
+      toast.success("Upload ảnh tổ hợp thành công");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload ảnh thất bại");
+      toast.error("Lỗi upload: " + (err instanceof Error ? err.message : ""));
     } finally {
       setIsUploadingImage(false);
     }
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-
-    if (name === "price") {
-      setFormData((prev) => ({
+    setFormData(prev => {
+      const next = {
         ...prev,
-        [name]: formatInputAsCurrency(value),
-      }));
-      return;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    }));
+        [name]: type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
+      };
+      if (name === "name") {
+        next.slug = generateSlug(value);
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const slugBase = generateSlug(formData.name);
-
-    const normalizedVariants = variants
-      .map((v, idx) => ({
-        sku: v.sku.trim() || randomSku(),
-        variantName: v.variantName.trim() || `Biến thể ${idx + 1}`,
-        price: Number(v.price.replace(/\D/g, "")) || 0,
-        currency: "VND",
-        imageUrl: v.imageUrl.trim() || formData.imageUrl.trim(),
-        weightGram: Number(v.weightGram) || 0,
-      }))
-      .filter((v) => v.price > 0);
-
-    if (normalizedVariants.length === 0) {
-      toast.error("Cần ít nhất 1 biến thể có giá lớn hơn 0.");
-      return;
+    
+    if (isBaseBear && allCombinations.length > 0) {
+      const missing = allCombinations.find(combo => {
+        const ci = comboImages.find(x => x.combinationKey === combo.key);
+        return !ci || !ci.imageUrl;
+      });
+      if (missing) {
+        toast.error(`Thiếu ảnh cho tổ hợp: ${missing.label}. Vui lòng kiểm tra lại các quy tắc phụ kiện.`);
+        return;
+      }
     }
-
-    if (!isAccessory && selectedCategoryIds.length !== 1) {
-      toast.error("Vui lòng chọn đúng 1 category cho sản phẩm.");
-      return;
-    }
-
-    if (!isAccessory && selectedCharacterIds.length !== 1) {
-      toast.error("Vui lòng chọn đúng 1 character cho sản phẩm.");
-      return;
-    }
-
-    const variantsToSubmit = isAccessory
-      ? normalizedVariants.slice(0, 1)
-      : normalizedVariants;
-
-    const mediaUrl = isAccessory
-      ? (variantsToSubmit[0]?.imageUrl || "").trim()
-      : formData.imageUrl.trim();
 
     const payload: UpdateProductRequest = {
       name: formData.name,
-      slug: formData.slug || slugBase,
+      slug: formData.slug || generateSlug(formData.name),
       productType: formData.productType,
       description: formData.description,
-      model3DUrl: isAccessory ? "" : formData.model3DUrl,
-      isPersonalizable: isAccessory ? false : formData.isPersonalizable,
-      isActive: isAccessory ? true : formData.isActive,
-      categoryIds: isAccessory ? [] : selectedCategoryIds,
-      characterIds: isAccessory ? [] : selectedCharacterIds,
-      variants: variantsToSubmit,
+      model3DUrl: formData.model3DUrl,
+      isPersonalizable: formData.isPersonalizable,
+      isActive: formData.isActive,
+      price: Number(formData.price),
+      sku: formData.sku,
+      weightGram: Number(formData.weightGram),
+      categoryIds: selectedCategoryIds,
+      characterIds: selectedCharacterIds,
       media: formData.media,
+      comboImages: isBaseBear ? comboImages.map(ci => ({
+        combinationKey: ci.combinationKey,
+        imageUrl: ci.imageUrl
+      })) : [],
     };
 
     const ok = await onSubmit(payload);
@@ -343,21 +257,14 @@ export default function EditProductModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-      <div className="relative bg-[#F4F7FF] rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="relative bg-[#F4F7FF] rounded-3xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
         <div className="px-6 py-5 border-b border-white/50 bg-white/50 flex items-center justify-between shrink-0">
           <div>
-            <h2 className="text-xl font-black text-[#1A1A2E]">
-              Chỉnh sửa sản phẩm
-            </h2>
+            <h2 className="text-xl font-black text-[#1A1A2E]">Chỉnh sửa sản phẩm</h2>
             <div className="flex items-center gap-3 mt-0.5">
-              <p className="text-xs font-semibold text-[#6B7280]">
-                Cập nhật thông tin chi tiết
-              </p>
+              <p className="text-xs font-semibold text-[#6B7280]">Mô hình sản phẩm phẳng</p>
               {formData.createdAt && (
                 <span className="text-[10px] font-bold bg-[#17409A]/10 text-[#17409A] px-2 py-0.5 rounded-md">
                   Ngày tạo: {formatDate(formData.createdAt)}
@@ -365,422 +272,171 @@ export default function EditProductModal({
               )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white text-[#9CA3AF] hover:text-[#1A1A2E] shadow-sm hover:shadow-md transition-all"
-          >
+          <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white text-[#9CA3AF] hover:text-[#1A1A2E] shadow-sm hover:shadow-md transition-all">
             <MdClose className="text-xl" />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto custom-scrollbar relative">
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
           {isFetching ? (
             <div className="h-64 flex flex-col items-center justify-center gap-3">
               <div className="w-8 h-8 border-4 border-[#17409A]/20 border-t-[#17409A] rounded-full animate-spin" />
-              <p className="text-sm font-semibold text-[#6B7280]">
-                Đang tải dữ liệu gốc...
-              </p>
+              <p className="text-sm font-semibold text-[#6B7280]">Đang tải dữ liệu...</p>
             </div>
           ) : (
-            <form
-              id="editProductForm"
-              onSubmit={handleSubmit}
-              className="space-y-5"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                    Tên sản phẩm *
-                  </label>
-                  <input
-                    required
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
-                  />
+            <form id="editProductForm" onSubmit={handleSubmit} className="space-y-6">
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <p className="text-xs font-black text-[#17409A] uppercase tracking-widest">Thông tin cơ bản</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Tên sản phẩm *</label>
+                    <input required name="name" value={formData.name} onChange={handleChange} className="w-full bg-[#F9FAFB] text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Slug *</label>
+                    <input required name="slug" value={formData.slug} onChange={handleChange} className="w-full bg-[#F9FAFB] text-xs font-bold text-[#17409A] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">SKU *</label>
+                    <input required name="sku" value={formData.sku} onChange={handleChange} className="w-full bg-[#F9FAFB] text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Giá bán *</label>
+                    <input required type="number" name="price" value={formData.price} onChange={handleChange} className="w-full bg-[#F9FAFB] text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Cân nặng (Gram) *</label>
+                    <input required type="number" name="weightGram" value={formData.weightGram} onChange={handleChange} className="w-full bg-[#F9FAFB] text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Loại sản phẩm *</label>
+                    <CustomDropdown options={[{ label: "Gấu", value: "BASE_BEAR" }, { label: "Phụ kiện", value: "ACCESSORY" }]} value={formData.productType} onChange={(v) => setFormData(p => ({ ...p, productType: v }))} buttonClassName="w-full bg-[#F9FAFB] text-sm font-semibold p-3 rounded-xl flex justify-between items-center" />
+                  </div>
                 </div>
+              </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                    Loại sản phẩm *
-                  </label>
-                  <CustomDropdown
-                    options={[
-                      { label: "Gấu", value: "BASE_BEAR" },
-                      { label: "Phụ kiện", value: "ACCESSORY" },
-                    ]}
-                    value={formData.productType}
-                    onChange={handleProductTypeChange}
-                    buttonClassName="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm flex items-center justify-between"
-                    chevronClassName="text-[#9CA3AF] transition-transform"
-                    menuClassName="absolute z-30 mt-2 w-full rounded-xl border border-[#E5E7EB] bg-white shadow-xl py-1"
-                  />
-                </div>
-
-                {!isAccessory && (
-                  <div className="col-span-full space-y-3">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                      Bộ sưu tập Media (Gallery) *
-                    </label>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Bộ sưu tập Media</label>
+                    <div className="grid grid-cols-3 gap-2 mb-4">
                       {formData.media.map((m, idx) => (
-                        <div
-                          key={idx}
-                          className="group relative aspect-square rounded-2xl bg-white border border-[#E5E7EB] overflow-hidden shadow-sm hover:shadow-md transition-all"
-                        >
-                          <img
-                            src={m.url}
-                            alt={m.altText}
-                            className="w-full h-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                media: prev.media.filter((_, i) => i !== idx),
-                              }));
-                            }}
-                            className="absolute top-1 right-1 w-7 h-7 flex items-center justify-center rounded-lg bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                          >
-                            <MdDeleteOutline className="text-lg" />
+                        <div key={idx} className="group relative aspect-square rounded-xl bg-gray-50 border overflow-hidden">
+                          <img src={m.url} className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => setFormData(p => ({ ...p, media: p.media.filter((_, i) => i !== idx) }))} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <MdDeleteOutline size={20} />
                           </button>
                         </div>
                       ))}
-
-                      <div className="aspect-square rounded-2xl border-2 border-dashed border-[#D7DEEF] bg-white hover:bg-[#F8F9FF] transition-all flex flex-col items-center justify-center gap-2 relative">
-                        <MdAddPhotoAlternate className="text-2xl text-[#6B7280]" />
-                        <span className="text-[10px] font-bold text-[#6B7280]">
-                          Thêm ảnh
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            setIsUploadingImage(true);
-                            try {
-                              const res = await mediaService.uploadMedia(
-                                file,
-                                "uploads",
-                              );
-                              if (res.isSuccess && res.value?.publicUrl) {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  media: [
-                                    ...prev.media,
-                                    {
-                                      url: res.value!.publicUrl!,
-                                      altText: formData.name,
-                                      sortOrder: prev.media.length + 1,
-                                    },
-                                  ],
-                                }));
-                                toast.success("Thêm ảnh thành công");
-                              }
-                            } catch (err) {
-                              toast.error("Upload ảnh thất bại");
-                            } finally {
-                              setIsUploadingImage(false);
-                            }
-                          }}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
+                      <div className="aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 relative hover:bg-gray-50 transition-colors">
+                        {isUploadingImage ? <div className="animate-spin w-5 h-5 border-2 border-[#17409A] border-t-transparent rounded-full" /> : <MdAddPhotoAlternate className="text-gray-400" />}
+                        <span className="text-[8px] font-bold text-gray-400">Thêm ảnh</span>
+                        <input type="file" onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)} className="absolute inset-0 opacity-0 cursor-pointer" />
                       </div>
                     </div>
+                    {uploadFile && !isUploadingImage && (
+                      <button type="button" onClick={handleUploadImage} className="w-full py-2 bg-[#17409A] text-white rounded-lg text-xs font-bold">Upload "{uploadFile.name}"</button>
+                    )}
                   </div>
-                )}
-
-                {!isAccessory && (
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                      Model 3D URL
-                    </label>
-                    <input
-                      name="model3DUrl"
-                      value={formData.model3DUrl}
-                      onChange={handleChange}
-                      placeholder="https://..."
-                      className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
-                    />
+                  
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                     <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Cấu hình & Hiển thị</label>
+                     <div className="space-y-3">
+                       <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Mô tả sản phẩm..." rows={4} className="w-full bg-[#F9FAFB] text-sm p-3 rounded-xl border-none outline-none resize-none" />
+                       <div className="flex flex-wrap gap-4 pt-1">
+                          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="w-4 h-4 rounded text-[#17409A]" /><span className="text-xs font-bold text-[#1A1A2E]">Hiển thị</span></label>
+                          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" name="isPersonalizable" checked={formData.isPersonalizable} onChange={handleChange} className="w-4 h-4 rounded text-[#7C5CFC]" /><span className="text-xs font-bold text-[#1A1A2E]">Hỗ trợ Custom</span></label>
+                       </div>
+                     </div>
                   </div>
-                )}
-
-                {!isAccessory && (
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                      Categories *
-                    </label>
-                    <CustomDropdown
-                      options={categories.map((category) => ({
-                        label: category.name,
-                        value: category.categoryId,
-                      }))}
-                      value={selectedCategoryIds[0] || ""}
-                      onChange={(value) =>
-                        setSelectedCategoryIds(value ? [value] : [])
-                      }
-                      placeholder={
-                        taxonomyLoading ? "Đang tải..." : "Chọn 1 category"
-                      }
-                      disabled={taxonomyLoading || categories.length === 0}
-                      buttonClassName="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border border-[#E5E7EB] transition-all flex items-center justify-between"
-                    />
-                  </div>
-                )}
-
-                {!isAccessory && (
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                      Characters
-                    </label>
-                    <CustomDropdown
-                      options={characters.map((character) => ({
-                        label: character.name,
-                        value: character.characterId,
-                      }))}
-                      value={selectedCharacterIds[0] || ""}
-                      onChange={(value) =>
-                        setSelectedCharacterIds(value ? [value] : [])
-                      }
-                      placeholder={
-                        taxonomyLoading ? "Đang tải..." : "Chọn 1 character"
-                      }
-                      disabled={taxonomyLoading || characters.length === 0}
-                      buttonClassName="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border border-[#E5E7EB] transition-all flex items-center justify-between"
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                    Biến thể (Variants) *
-                  </label>
-                  {!isAccessory && (
-                    <button
-                      type="button"
-                      onClick={addVariant}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#17409A]/10 text-[#17409A] hover:bg-[#17409A]/20 transition-colors"
-                    >
-                      + Thêm biến thể
-                    </button>
-                  )}
                 </div>
 
-                {variants.map((variant, index) => (
-                  <div
-                    key={`${variant.sku || "new"}-${index}`}
-                    className="rounded-2xl bg-white/80 border border-[#E5E7EB] p-4 space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black bg-[#E5E7EB] text-[#6B7280] px-2 py-0.5 rounded-lg">
-                        SKU: {variant.sku || "Tự động tạo"}
-                      </span>
-                      {!isAccessory && variants.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeVariant(index)}
-                          className="text-[#C43D6B] hover:text-red-600 transition-colors"
-                        >
-                          <MdDeleteOutline className="text-lg" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-[#9CA3AF] uppercase pl-1">
-                          Tên biến thể
-                        </label>
-                        <input
-                          value={variant.variantName}
-                          onChange={(e) =>
-                            handleVariantChange(
-                              index,
-                              "variantName",
-                              e.target.value,
-                            )
-                          }
-                          placeholder="Màu sắc, kích thước..."
-                          className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20 shadow-sm"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-[#9CA3AF] uppercase pl-1">
-                          Giá (VND)
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={variant.price}
-                            onChange={(e) =>
-                              handleVariantChange(
-                                index,
-                                "price",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Giá"
-                            className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 pr-12 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20 shadow-sm"
-                          />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#9CA3AF]">
-                            VND
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-[#9CA3AF] uppercase pl-1">
-                          Cân nặng (Gram)
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={variant.weightGram}
-                            onChange={(e) =>
-                              handleVariantChange(
-                                index,
-                                "weightGram",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Khối lượng"
-                            className="w-full min-w-0 bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-3 pr-12 py-2.5 outline-none border border-[#E5E7EB] focus:border-[#17409A]/20 shadow-sm"
-                          />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#9CA3AF]">
-                            Gr
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-[auto_1fr] items-center gap-3 bg-[#F4F7FF]/50 p-2 rounded-xl border border-dashed border-[#D7DEEF]">
-                      <div className="w-12 h-12 rounded-lg bg-white overflow-hidden border border-[#E5E7EB]">
-                        {variant.imageUrl ? (
-                          <img
-                            src={variant.imageUrl}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[#9CA3AF]">
-                            <MdAddPhotoAlternate />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            setVariantUploadFiles((prev) => ({
-                              ...prev,
-                              [index]: e.target.files?.[0] ?? null,
-                            }))
-                          }
-                          className="hidden"
-                          id={`variant-upload-${index}`}
-                        />
-                        <label
-                          htmlFor={`variant-upload-${index}`}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#17409A] text-white hover:bg-[#0E2A66] cursor-pointer shadow-sm active:scale-95 transition-all"
-                        >
-                          {variantUploadFiles[index]
-                            ? "Đã chọn file"
-                            : "Chọn ảnh"}
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => handleUploadVariantImage(index)}
-                          disabled={
-                            !variantUploadFiles[index] || isUploadingImage
-                          }
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-[#17409A] border border-[#17409A] hover:bg-[#F4F7FF] disabled:opacity-50 transition-all font-bold"
-                        >
-                          Tải lên
-                        </button>
-                        <input
-                          value={variant.imageUrl}
-                          readOnly
-                          placeholder="Chưa có ảnh"
-                          className="flex-1 min-w-0 bg-transparent text-[10px] text-[#6B7280] outline-none border-none truncate"
-                        />
-                      </div>
+                <div className="space-y-4">
+                  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Phân loại (Categories & Characters)</label>
+                    <div className="space-y-3">
+                      <CustomDropdown 
+                        options={categories.map(c => ({ label: c.name, value: c.categoryId }))} 
+                        value={selectedCategoryIds[0] || ""} 
+                        onChange={v => setSelectedCategoryIds(v ? [v] : [])} 
+                        placeholder="Chọn Category"
+                        buttonClassName="w-full bg-[#F9FAFB] text-sm font-semibold p-3 rounded-xl flex justify-between items-center" 
+                      />
+                      <CustomDropdown 
+                        options={characters.map(c => ({ label: c.name, value: c.characterId }))} 
+                        value={selectedCharacterIds[0] || ""} 
+                        onChange={v => setSelectedCharacterIds(v ? [v] : [])} 
+                        placeholder="Chọn Character"
+                        buttonClassName="w-full bg-[#F9FAFB] text-sm font-semibold p-3 rounded-xl flex justify-between items-center" 
+                      />
                     </div>
                   </div>
-                ))}
+
+                  {!isAccessory && (
+                    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-1.5">
+                      <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Model 3D URL</label>
+                      <input name="model3DUrl" value={formData.model3DUrl} onChange={handleChange} placeholder="https://..." className="w-full bg-[#F9FAFB] text-sm font-semibold p-3 rounded-xl border-none outline-none" />
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                  Mô tả chi tiết
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm resize-none"
-                />
-              </div>
+              {isBaseBear && formData.isPersonalizable && (
+                <div className="bg-white p-6 rounded-2xl border border-[#17409A]/10 shadow-lg space-y-5">
+                  <div className="bg-[#17409A]/5 border border-[#17409A]/10 p-4 rounded-xl flex items-start gap-3">
+                    <div className="bg-[#17409A] text-white p-1 rounded-lg shrink-0 mt-0.5">
+                      <MdOutlineAddPhotoAlternate className="text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-bold text-[#17409A] leading-tight">Cấu hình ma trận ảnh phụ kiện</p>
+                      <p className="text-[10px] font-semibold text-[#17409A]/80 leading-relaxed">
+                        Chỉnh sửa liên kết tại <strong className="underline">Personalization Rules</strong>. Hệ thống tự tạo ma trận dựa trên các phụ kiện được gán.
+                      </p>
+                    </div>
+                  </div>
 
-              {!isAccessory && (
-                <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-2">
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      name="isActive"
-                      checked={formData.isActive}
-                      onChange={handleChange}
-                      className="w-4 h-4 rounded text-[#17409A] focus:ring-[#17409A]"
-                    />
-                    <span className="text-sm font-bold text-[#1A1A2E] group-hover:text-[#17409A] transition-colors">
-                      Đang bán (Active)
-                    </span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-black text-[#1A1A2E] flex items-center gap-2">Ma trận tổ hợp ảnh <span className="px-2 py-0.5 bg-[#FF6B9D] text-white text-[10px] rounded-full">{allCombinations.length}</span></p>
+                    </div>
+                  </div>
 
-                  <label className="flex items-center gap-2 cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      name="isPersonalizable"
-                      checked={formData.isPersonalizable}
-                      onChange={handleChange}
-                      className="w-4 h-4 rounded text-[#7C5CFC] focus:ring-[#7C5CFC]"
-                    />
-                    <span className="text-sm font-bold text-[#1A1A2E] group-hover:text-[#7C5CFC] transition-colors">
-                      Có thể Gắn Phụ kiện / Voice
-                    </span>
-                  </label>
+                  {allCombinations.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {allCombinations.map((combo) => {
+                        const ci = comboImages.find(x => x.combinationKey === combo.key);
+                        const file = matrixUploadFiles[combo.key];
+                        return (
+                          <div key={combo.key} className={`p-4 rounded-xl border-2 transition-all ${ci?.imageUrl ? 'border-green-100 bg-green-50/30' : 'border-dashed border-gray-200 bg-gray-50/50'}`}>
+                            <p className="text-[10px] font-bold text-[#1A1A2E] mb-2 truncate" title={combo.label}>{combo.label}</p>
+                            <div className="flex items-center gap-3">
+                              <div className="w-14 h-14 rounded-lg bg-white border flex items-center justify-center overflow-hidden shrink-0">
+                                {ci?.imageUrl ? <img src={ci.imageUrl} className="w-full h-full object-cover" /> : <MdCloudUpload className="text-gray-300" />}
+                              </div>
+                              <div className="flex-1 space-y-2">
+                                <input type="file" onChange={(e) => setMatrixUploadFiles(p => ({ ...p, [combo.key]: e.target.files?.[0] ?? null }))} className="block w-full text-[9px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[9px] file:font-semibold file:bg-violet-50 file:text-violet-700" />
+                                <button type="button" onClick={() => handleUploadMatrixImage(combo.key)} disabled={!file || isUploadingImage} className="w-full py-1 bg-[#17409A] text-white rounded-lg text-[9px] font-bold">Upload</button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-8 border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center text-center px-6">
+                       <p className="text-xs font-semibold text-[#9CA3AF]">Gấu chưa có phụ kiện liên kết nên không có ma trận ảnh.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </form>
           )}
         </div>
 
-        <div className="px-6 py-4 bg-white shrink-0 flex items-center justify-end gap-3 transition-opacity">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting || isFetching}
-            className="px-6 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E5E7EB] transition-colors disabled:opacity-50"
-          >
-            Hủy bỏ
-          </button>
-          <button
-            type="submit"
-            form="editProductForm"
-            disabled={isSubmitting || isFetching}
-            className="px-8 py-3 rounded-2xl text-sm font-bold text-white bg-[#17409A] hover:bg-[#0E2A66] shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center gap-2"
-          >
-            {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+        <div className="px-6 py-4 bg-white shrink-0 flex items-center justify-end gap-3">
+          <button type="button" onClick={onClose} disabled={isSubmitting || isFetching} className="px-6 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E5E7EB] disabled:opacity-50">Hủy</button>
+          <button type="submit" form="editProductForm" disabled={isSubmitting || isFetching} className="px-8 py-3 rounded-2xl text-sm font-bold text-white bg-[#17409A] hover:bg-[#0E2A66] shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center gap-2">
+            {isSubmitting ? "Đang xử lý..." : "Lưu thay đổi"}
           </button>
         </div>
       </div>

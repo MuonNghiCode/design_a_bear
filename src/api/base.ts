@@ -11,7 +11,7 @@ class BaseApiService {
     constructor(baseURL: string = API_BASE_URL) {
         this.api = axios.create({
             baseURL,
-            withCredentials: true,
+            withCredentials: false,
             headers: {
                 'Content-Type': 'application/json',
             }
@@ -82,10 +82,13 @@ class BaseApiService {
                     url.includes('/google-complete-profile');
 
                 if (error.response?.status === 401 && !isPublicEndpoint) {
+                    console.error('[API 401]', error.config?.method?.toUpperCase(), error.config?.url, '→ Token expired or invalid role.');
                     if (typeof window !== 'undefined') {
+                        const isAdminPage = window.location.pathname.startsWith('/admin');
                         localStorage.removeItem(STORAGE_KEYS.TOKEN);
                         localStorage.removeItem(STORAGE_KEYS.USER);
-                        window.location.href = '/';
+                        // Redirect to auth page instead of homepage; keep admin on /auth to re-login
+                        window.location.href = isAdminPage ? '/auth' : '/';
                     }
                 }
                 return Promise.reject(error);

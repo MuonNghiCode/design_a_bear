@@ -5,19 +5,29 @@ import {
   IoGiftOutline,
   IoShieldCheckmarkOutline,
   IoLockClosedOutline,
+  IoCloseCircle,
 } from "react-icons/io5";
 import { useCart } from "@/contexts/CartContext";
 import { PawPrint, fmt } from "./checkout.atoms";
 import { FREE_SHIP } from "./checkout.config";
 
+interface AppliedCoupon {
+  code: string;
+  productDiscount: number;
+  shippingDiscount: number;
+  totalDiscount: number;
+  discountType: string;
+}
+
 interface OrderSummaryProps {
   shippingFee: number;
   discount: number;
   finalTotal: number;
-  coupon: string;
-  onCouponChange: (v: string) => void;
+  couponInput: string;
+  onCouponInputChange: (v: string) => void;
   onApplyCoupon: () => void;
-  couponApplied: boolean;
+  appliedCoupons: AppliedCoupon[];
+  onRemoveCoupon: (code: string) => void;
   step: number;
   isCalculatingShipping?: boolean;
 }
@@ -26,10 +36,11 @@ export function OrderSummary({
   shippingFee,
   discount,
   finalTotal,
-  coupon,
-  onCouponChange,
+  couponInput,
+  onCouponInputChange,
   onApplyCoupon,
-  couponApplied,
+  appliedCoupons,
+  onRemoveCoupon,
   isCalculatingShipping = false,
 }: OrderSummaryProps) {
   const { items, totalItems, totalPrice } = useCart();
@@ -157,48 +168,65 @@ export function OrderSummary({
       </div>
 
       {/* Coupon input */}
-      {!couponApplied && (
-        <div className="px-7 mb-4 shrink-0">
-          <div
-            className="flex gap-2 items-center rounded-2xl px-4 py-3"
-            style={{
-              backgroundColor: "#F4F7FF",
-              border: "1.5px dashed #17409A40",
-            }}
-          >
-            <IoGiftOutline
-              className="text-base shrink-0"
-              style={{ color: "#9CA3AF" }}
-            />
-            <input
-              value={coupon}
-              onChange={(e) => onCouponChange(e.target.value.toUpperCase())}
-              placeholder="Mã giảm giá"
-              className="flex-1 text-sm bg-transparent outline-none"
-              style={{ color: "#1A1A2E", fontFamily: "'Nunito', sans-serif" }}
-            />
-            {coupon.length > 0 && (
-              <button
-                onClick={onApplyCoupon}
-                className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 shrink-0"
-                style={{ backgroundColor: "#17409A", color: "white" }}
-              >
-                Áp dụng
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {couponApplied && (
+      <div className="px-7 mb-4 shrink-0">
         <div
-          className="mx-7 mb-4 px-4 py-2.5 rounded-2xl flex items-center gap-2 shrink-0"
-          style={{ backgroundColor: "rgba(78,205,196,0.12)" }}
+          className="flex gap-2 items-center rounded-2xl px-4 py-3"
+          style={{
+            backgroundColor: "#F4F7FF",
+            border: "1.5px dashed #17409A40",
+          }}
         >
-          <IoGiftOutline style={{ color: "#4ECDC4" }} />
-          <p className="text-xs font-bold" style={{ color: "#4ECDC4" }}>
-            Mã <b>{coupon}</b> — Giảm {fmt(50_000)}
-          </p>
+          <IoGiftOutline
+            className="text-base shrink-0"
+            style={{ color: "#9CA3AF" }}
+          />
+          <input
+            value={couponInput}
+            onChange={(e) => onCouponInputChange(e.target.value.toUpperCase())}
+            placeholder="Mã giảm giá"
+            className="flex-1 text-sm bg-transparent outline-none"
+            style={{ color: "#1A1A2E", fontFamily: "'Nunito', sans-serif" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && couponInput.trim()) {
+                onApplyCoupon();
+              }
+            }}
+          />
+          {couponInput.length > 0 && (
+            <button
+              onClick={onApplyCoupon}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 shrink-0"
+              style={{ backgroundColor: "#17409A", color: "white" }}
+            >
+              Thêm
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Applied coupons */}
+      {appliedCoupons.length > 0 && (
+        <div className="px-7 mb-4 space-y-1.5 shrink-0">
+          {appliedCoupons.map((c) => (
+            <div
+              key={c.code}
+              className="px-4 py-2 rounded-2xl flex items-center justify-between"
+              style={{ backgroundColor: "rgba(78,205,196,0.12)" }}
+            >
+              <div className="flex items-center gap-2">
+                <IoGiftOutline style={{ color: "#4ECDC4" }} />
+                <p className="text-xs font-bold" style={{ color: "#4ECDC4" }}>
+                  <b>{c.code}</b> — Giảm {fmt(c.totalDiscount)}
+                </p>
+              </div>
+              <button
+                onClick={() => onRemoveCoupon(c.code)}
+                className="text-red-400 hover:text-red-600 transition-colors"
+              >
+                <IoCloseCircle size={16} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

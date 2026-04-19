@@ -1,13 +1,12 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { type ProductDetail } from "@/types";
 import { type ProductItem } from "@/types/products";
 import {
   type PersonalizationRule,
-  type ProductVariant,
 } from "@/types/responses";
 import ProductImageSection from "./ProductImageSection";
 import ProductInfoPanel from "./ProductInfoPanel";
@@ -31,7 +30,7 @@ function mapDetailToItem(p: ProductDetail): ProductItem {
     id: p.productId,
     name: p.name,
     description: p.description || p.name,
-    price: p.variants?.[0]?.price ?? p.price,
+    price: p.price,
     image: images[0] || "/teddy_bear.png",
     images: images.length > 0 ? images : undefined,
     category:
@@ -53,11 +52,35 @@ export default function ProductDetailClient({
   personalizationRules = [],
 }: ProductDetailClientProps) {
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
-    product.variants?.length > 0 ? product.variants[0] : null,
-  );
+  const [selectedAccessories, setSelectedAccessories] = useState<
+    PersonalizationRule[]
+  >([]);
   const heroRef = useRef<HTMLDivElement>(null);
   const productItem = mapDetailToItem(product);
+
+  // ── Combination Image Logic ──
+  const combinationKey = useMemo(() => {
+    // Sort IDs alphabetically and join with |
+    // EXCLUDING AI_PROCESSOR from image combination key (per requirement)
+    // NOTE: ruleType is always "ACCESSORY", so we must check addonProduct.productType
+    return selectedAccessories
+      .filter((rule) => {
+        const type = (rule.addonProduct.productType || "").toUpperCase();
+        const name = (rule.addonProduct.name || "").toUpperCase();
+        return type !== "AI_PROCESSOR" && !name.includes("AI PROCESSOR");
+      })
+      .map((rule) => rule.addonProduct.productId)
+      .sort((a, b) => a.localeCompare(b))
+      .join("|");
+  }, [selectedAccessories]);
+
+  const activeComboImage = useMemo(() => {
+    if (!product.comboImages || product.comboImages.length === 0) return null;
+    return (
+      product.comboImages.find((ci) => ci.combinationKey === combinationKey)
+        ?.imageUrl || null
+    );
+  }, [product.comboImages, combinationKey]);
 
   useEffect(() => {
     if (!heroRef.current) return;
@@ -87,18 +110,17 @@ export default function ProductDetailClient({
           <div className="pd-img-enter w-full lg:w-[55%]">
             <ProductImageSection
               product={productItem}
-              selectedVariant={selectedVariant}
+              overrideMainImage={activeComboImage}
             />
           </div>
           <div className="pd-info-enter w-full lg:w-[45%] lg:sticky lg:top-28">
             <ProductInfoPanel
               product={productItem}
-              variants={product.variants}
-              selectedVariant={selectedVariant}
-              onSelectVariant={setSelectedVariant}
               personalizationRules={personalizationRules}
               quantity={quantity}
               setQuantity={setQuantity}
+              selectedAccessories={selectedAccessories}
+              setSelectedAccessories={setSelectedAccessories}
             />
           </div>
         </div>
@@ -114,7 +136,6 @@ export default function ProductDetailClient({
       {/* ── Reviews (dùng data thực từ API) ── */}
       <ProductReviews
         productId={product.productId}
-        productVariantIds={product.variants?.map((v) => v.variantId) ?? []}
         accentColor={productItem.badgeColor || "#17409A"}
         reviews={product.reviews}
       />

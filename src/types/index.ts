@@ -6,5 +6,6 @@ export * from "./customize";
 export * from "./story";
 export * from "./shipping";
 export * from "./productIssue";
+export * from "./inventory";
 
 

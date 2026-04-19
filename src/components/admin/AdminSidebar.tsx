@@ -33,6 +33,7 @@ const EXPANDABLE_SECTIONS = [
     children: [
       { label: "Đơn hàng", href: "/admin/orders" },
       { label: "Khách hàng", href: "/admin/customers" },
+      { label: "Mã giảm giá", href: "/admin/promotions" },
       { label: "Nhân viên", href: "/admin/staff" },
     ],
   },
@@ -41,6 +42,7 @@ const EXPANDABLE_SECTIONS = [
     label: "Danh mục sản phẩm",
     children: [
       { label: "Sản phẩm", href: "/admin/products" },
+      { label: "Kho hàng", href: "/admin/inventory" },
       { label: "Thuộc tính", href: "/admin/attributes" },
       { label: "Nhóm tùy chỉnh", href: "/admin/personalization-groups" },
     ],

@@ -107,7 +107,7 @@ export function useCartApi() {
     }, []);
 
     const handleAddToCart = useCallback(
-        async (variantId: string, quantity: number, unitPrice: number, buildId: string | null = null): Promise<CartItem> => {
+        async (productId: string, quantity: number, unitPrice: number, buildId: string | null = null): Promise<CartItem> => {
             let cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
 
             // Check if cart exists and is valid
@@ -136,7 +136,7 @@ export function useCartApi() {
 
             return await addItemToCart({
                 cartId,
-                variantId,
+                productId,
                 buildId,
                 quantity,
                 unitPriceSnapshot: unitPrice

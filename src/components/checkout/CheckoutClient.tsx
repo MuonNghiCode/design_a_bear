@@ -48,8 +48,10 @@ export default function CheckoutClient() {
     note: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [coupon, setCoupon] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupons, setAppliedCoupons] = useState<
+    { code: string; productDiscount: number; shippingDiscount: number; totalDiscount: number; discountType: string }[]
+  >([]);
   const [agreed, setAgreed] = useState(false);
   const [showDeliveryErrors, setShowDeliveryErrors] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -57,7 +59,7 @@ export default function CheckoutClient() {
     () => "DAB" + Math.random().toString(36).slice(2, 8).toUpperCase(),
   );
 
-  const [orderDetails, setOrderDetails] = useState<any>(null); // Save response order for SuccessScreen
+  const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -75,9 +77,12 @@ export default function CheckoutClient() {
     null,
   );
 
-  // const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
-  const DISCOUNT = couponApplied ? 50_000 : 0;
-  const FINAL_TOTAL = totalPrice + shippingFee - DISCOUNT;
+  // Calculated from applied coupons
+  const totalProductDiscount = appliedCoupons.reduce((sum, c) => sum + c.productDiscount, 0);
+  const totalShippingDiscount = appliedCoupons.reduce((sum, c) => sum + c.shippingDiscount, 0);
+  const DISCOUNT = totalProductDiscount + totalShippingDiscount;
+  const FINAL_TOTAL = totalPrice + (shippingFee - totalShippingDiscount) - totalProductDiscount;
+  const couponApplied = appliedCoupons.length > 0;
 
   useEffect(() => {
     closeCart();
@@ -156,6 +161,83 @@ export default function CheckoutClient() {
 
     handlePaymentReturn();
   }, [searchParams, clearCart, toast]);
+
+  const handleApplyCoupon = async () => {
+    const input = couponInput.trim();
+    if (!input) {
+      toast.error("Vui lòng nhập mã khuyến mãi");
+      return;
+    }
+
+    // Split by comma, space or semicolon
+    const codes = input
+      .split(/[,\s;]+/)
+      .map((c) => c.trim().toUpperCase())
+      .filter((c) => c !== "");
+
+    if (codes.length === 0) {
+      toast.error("Vui lòng nhập mã khuyến mãi hợp lệ");
+      return;
+    }
+
+    setSubmitting(true);
+    let successCount = 0;
+
+    try {
+      const userObj = localStorage.getItem(STORAGE_KEYS.USER);
+      const userId = userObj ? JSON.parse(userObj).id : null;
+
+      for (const code of codes) {
+        // Check for duplicate in already applied list
+        if (appliedCoupons.some((c) => c.code === code)) {
+          toast.info(`Mã ${code} đã được áp dụng rồi.`);
+          continue;
+        }
+
+        try {
+          const res = await paymentService.applyPromotion({
+            code,
+            userId,
+            orderAmount: totalPrice,
+            shippingAmount: shippingFee,
+          });
+
+          if (res.isSuccess && res.value) {
+            setAppliedCoupons((prev) => [
+              ...prev,
+              {
+                code,
+                productDiscount: res.value.productDiscount,
+                shippingDiscount: res.value.shippingDiscount,
+                totalDiscount: res.value.totalDiscount,
+                discountType: res.value.discountType,
+              },
+            ]);
+            successCount++;
+            toast.success(`Áp dụng mã ${code} thành công!`);
+          } else {
+            toast.error(
+              `Mã ${code}: ${res.error?.description || "Không hợp lệ"}`,
+            );
+          }
+        } catch (err) {
+          toast.error(`Mã ${code}: Lỗi kết nối`);
+        }
+      }
+
+      if (successCount > 0) {
+        setCouponInput("");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi xử thực mã khuyến mãi");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemoveCoupon = (codeToRemove: string) => {
+    setAppliedCoupons((prev) => prev.filter((c) => c.code !== codeToRemove));
+  };
 
   // Fetch initial profile & address data
   useEffect(() => {
@@ -416,7 +498,7 @@ export default function CheckoutClient() {
             shippingTotal: shippingFee,
             grandTotal: FINAL_TOTAL,
             notes: form.note || "Order from Design a Bear",
-            promoCode: couponApplied ? coupon : undefined,
+            promoCodes: couponApplied ? appliedCoupons.map((c) => c.code) : undefined,
           };
 
           const orderRes = await orderService.createOrderFromCart(
@@ -549,7 +631,7 @@ export default function CheckoutClient() {
     shippingFee,
     FINAL_TOTAL,
     couponApplied,
-    coupon,
+    appliedCoupons,
     toast,
     totalItems,
   ]);
@@ -715,11 +797,14 @@ export default function CheckoutClient() {
                     <StepPayment
                       method={paymentMethod}
                       onChange={setPaymentMethod}
-                      coupon={coupon}
-                      onCouponChange={setCoupon}
-                      couponApplied={couponApplied}
-                      onCouponApplied={setCouponApplied}
-                      discount={DISCOUNT}
+                      couponInput={couponInput}
+                      onCouponInputChange={setCouponInput}
+                      appliedCoupons={appliedCoupons}
+                      onApplyCoupon={handleApplyCoupon}
+                      onRemoveCoupon={handleRemoveCoupon}
+                      totalDiscount={DISCOUNT}
+                      totalPrice={totalPrice}
+                      shippingFee={shippingFee}
                       isLoading={submitting}
                     />
                   )}
@@ -801,10 +886,11 @@ export default function CheckoutClient() {
           isCalculatingShipping={isCalculatingShipping}
           discount={DISCOUNT}
           finalTotal={FINAL_TOTAL}
-          coupon={coupon}
-          onCouponChange={setCoupon}
-          onApplyCoupon={() => setCouponApplied(true)}
-          couponApplied={couponApplied}
+          couponInput={couponInput}
+          onCouponInputChange={setCouponInput}
+          onApplyCoupon={handleApplyCoupon}
+          appliedCoupons={appliedCoupons}
+          onRemoveCoupon={handleRemoveCoupon}
           step={step}
         />
       </div>

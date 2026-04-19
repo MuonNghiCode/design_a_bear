@@ -19,8 +19,6 @@ function formatPrice(price: number) {
   return price.toLocaleString("vi-VN") + " đ";
 }
 
-const FREE_SHIP_THRESHOLD = 500_000;
-
 /* Bear paw SVG decoration */
 function PawPrint({
   className,
@@ -51,7 +49,6 @@ function PawPrint({
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 px-8 py-16 text-center">
-      {/* Bear illustration */}
       <div
         className="w-28 h-28 rounded-3xl flex items-center justify-center shadow-lg"
         style={{ backgroundColor: "#F4F7FF", border: "2px solid #E5E7EB" }}
@@ -63,22 +60,16 @@ function EmptyState() {
           fill="none"
           aria-hidden="true"
         >
-          {/* Bear body */}
           <ellipse cx="32" cy="38" rx="18" ry="16" fill="#D4A76A" />
-          {/* Bear head */}
           <circle cx="32" cy="22" r="14" fill="#D4A76A" />
-          {/* Ears */}
           <circle cx="20" cy="11" r="6" fill="#D4A76A" />
           <circle cx="44" cy="11" r="6" fill="#D4A76A" />
           <circle cx="20" cy="11" r="3.5" fill="#C4956A" />
           <circle cx="44" cy="11" r="3.5" fill="#C4956A" />
-          {/* Face */}
           <circle cx="27" cy="20" r="2" fill="#4A3728" />
           <circle cx="37" cy="20" r="2" fill="#4A3728" />
           <ellipse cx="32" cy="25" rx="3" ry="2" fill="#4A3728" />
-          {/* Belly */}
           <ellipse cx="32" cy="40" rx="10" ry="9" fill="#E8C99A" />
-          {/* Arms */}
           <ellipse
             cx="14"
             cy="40"
@@ -95,7 +86,6 @@ function EmptyState() {
             fill="#D4A76A"
             transform="rotate(15 50 40)"
           />
-          {/* Bag */}
           <rect x="24" y="44" width="16" height="14" rx="3" fill="#17409A" />
           <path
             d="M27 44v-3a5 5 0 0 1 10 0v3"
@@ -150,7 +140,6 @@ export default function CartDrawer() {
   const backdropRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
 
-  /* ── Animation: open/close ── */
   const animateOpen = useCallback(() => {
     const tl = gsap.timeline();
     tl.fromTo(
@@ -164,7 +153,6 @@ export default function CartDrawer() {
       "-=0.2",
     );
 
-    // Stagger items in
     if (itemsRef.current) {
       const rowEls = itemsRef.current.querySelectorAll(".cart-item-row");
       if (rowEls.length) {
@@ -209,35 +197,25 @@ export default function CartDrawer() {
     };
   }, [isOpen, animateOpen]);
 
-  // Animate newly added items
   useEffect(() => {
     if (!isOpen || !itemsRef.current) return;
     const rows = itemsRef.current.querySelectorAll(".cart-item-row");
     if (rows.length) {
       gsap.fromTo(
-        rows[rows.length - 1],
+        rows[0],
         { x: 24, opacity: 0 },
         { x: 0, opacity: 1, duration: 0.35, ease: "power2.out" },
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length]);
 
   if (!isOpen) return null;
 
-  // const shippingLeft = FREE_SHIP_THRESHOLD - totalPrice;
-  // const freeShipping = shippingLeft <= 0;
-  // const shippingBarWidth = Math.min(
-  //   (totalPrice / FREE_SHIP_THRESHOLD) * 100,
-  //   100,
-  // );
-
   return (
     <div
-      className="fixed inset-0 z-200"
+      className="fixed inset-0 z-[200]"
       style={{ fontFamily: "'Nunito', sans-serif" }}
     >
-      {/* Backdrop */}
       <div
         ref={backdropRef}
         className="absolute inset-0"
@@ -249,22 +227,19 @@ export default function CartDrawer() {
         aria-label="Đóng giỏ hàng"
       />
 
-      {/* Drawer panel */}
       <div
         ref={drawerRef}
         className="absolute top-0 right-0 bottom-0 flex flex-col shadow-2xl"
         style={{
           width: "min(440px, 100vw)",
           backgroundColor: "#FFFFFF",
-          translate: "100% 0",
+          transform: "translateX(100%)",
         }}
       >
-        {/* ── Header ── */}
         <div
           className="relative flex items-center justify-between px-6 pt-6 pb-5 shrink-0"
           style={{ borderBottom: "1px solid #E5E7EB" }}
         >
-          {/* Decorative big count */}
           <span
             className="absolute right-20 top-1/2 -translate-y-1/2 text-[80px] font-black leading-none select-none pointer-events-none"
             style={{ color: "#F4F7FF", fontFamily: "'Nunito', sans-serif" }}
@@ -300,52 +275,6 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        {/* ── Free shipping progress bar - Tạm thời ẩn ──
-        {totalItems > 0 && (
-          <div
-            className="px-6 py-3 shrink-0"
-            style={{
-              backgroundColor: "#F4F7FF",
-              borderBottom: "1px solid #E5E7EB",
-            }}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold" style={{ color: "#6B7280" }}>
-                {freeShipping ? (
-                  <span style={{ color: "#4ECDC4" }}>
-                    Bạn được miễn phí vận chuyển!
-                  </span>
-                ) : (
-                  <>
-                    Thêm{" "}
-                    <span style={{ color: "#17409A" }} className="font-black">
-                      {formatPrice(shippingLeft)}
-                    </span>{" "}
-                    để miễn phí ship
-                  </>
-                )}
-              </span>
-              <span className="text-xs font-black" style={{ color: "#4ECDC4" }}>
-                Free
-              </span>
-            </div>
-            <div
-              className="h-1.5 rounded-full overflow-hidden"
-              style={{ backgroundColor: "#E5E7EB" }}
-            >
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${shippingBarWidth}%`,
-                  backgroundColor: freeShipping ? "#4ECDC4" : "#17409A",
-                }}
-              />
-            </div>
-          </div>
-        )}
-        */}
-
-        {/* ── Items list ── */}
         <div ref={itemsRef} className="flex-1 overflow-y-auto">
           {items.length === 0 ? (
             <EmptyState />
@@ -359,14 +288,7 @@ export default function CartDrawer() {
                     border: "1.5px solid #E5E7EB",
                     backgroundColor: "white",
                   }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.borderColor = "#17409A30")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.borderColor = "#E5E7EB")
-                  }
                 >
-                  {/* Product image */}
                   <Link
                     href={`/products/${item.product.id}`}
                     onClick={animateClose}
@@ -376,7 +298,7 @@ export default function CartDrawer() {
                       style={{ backgroundColor: "#F4F7FF" }}
                     >
                       <Image
-                        src={item.product.image}
+                        src={item.product.image || "/teddy_bear.png"}
                         alt={item.product.name}
                         width={80}
                         height={80}
@@ -385,7 +307,6 @@ export default function CartDrawer() {
                     </div>
                   </Link>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0 flex flex-col gap-2">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
@@ -413,9 +334,8 @@ export default function CartDrawer() {
                         </Link>
                       </div>
 
-                      {/* Remove button */}
                       <button
-                        onClick={() => removeItem(item.cartItemId)}
+                        onClick={() => item.cartItemId && removeItem(item.cartItemId)}
                         className="shrink-0 w-7 h-7 rounded-xl flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
                         style={{ backgroundColor: "#FFF0F0", color: "#FF6B6B" }}
                         aria-label="Xóa sản phẩm"
@@ -424,7 +344,6 @@ export default function CartDrawer() {
                       </button>
                     </div>
 
-                    {/* Price + Qty row */}
                     <div className="flex items-center justify-between">
                       <span
                         className="font-black text-sm"
@@ -433,7 +352,6 @@ export default function CartDrawer() {
                         {formatPrice(item.product.price * item.quantity)}
                       </span>
 
-                      {/* Qty controls */}
                       <div
                         className="flex items-center gap-1 rounded-2xl px-1 py-1"
                         style={{
@@ -443,7 +361,7 @@ export default function CartDrawer() {
                       >
                         <button
                           onClick={() =>
-                            updateQuantity(item.cartItemId, item.quantity - 1)
+                            item.cartItemId && updateQuantity(item.cartItemId, item.quantity - 1)
                           }
                           className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110"
                           style={{
@@ -463,7 +381,7 @@ export default function CartDrawer() {
                         </span>
                         <button
                           onClick={() =>
-                            updateQuantity(item.cartItemId, item.quantity + 1)
+                            item.cartItemId && updateQuantity(item.cartItemId, item.quantity + 1)
                           }
                           className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110"
                           style={{ backgroundColor: "#17409A", color: "white" }}
@@ -477,11 +395,9 @@ export default function CartDrawer() {
                 </div>
               ))}
             </div>
-
           )}
         </div>
 
-        {/* ── Footer / Order summary ── */}
         {items.length > 0 && (
           <div
             className="shrink-0 px-6 pt-4 pb-6 space-y-4"
@@ -490,14 +406,12 @@ export default function CartDrawer() {
               backgroundColor: "white",
             }}
           >
-            {/* Decorative divider */}
             <div className="flex items-center gap-2">
               {[0, 1, 2, 3, 4].map((i) => (
                 <PawPrint key={i} className="opacity-10" color="#17409A" />
               ))}
             </div>
 
-            {/* Subtotal */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span style={{ color: "#6B7280" }} className="font-semibold">
@@ -517,7 +431,6 @@ export default function CartDrawer() {
               </div>
             </div>
 
-            {/* Total */}
             <div
               className="flex items-center justify-between py-3 px-4 rounded-2xl"
               style={{ backgroundColor: "#F4F7FF" }}
@@ -536,7 +449,6 @@ export default function CartDrawer() {
               </span>
             </div>
 
-            {/* Checkout CTA */}
             <Link
               href="/checkout"
               onClick={animateClose}

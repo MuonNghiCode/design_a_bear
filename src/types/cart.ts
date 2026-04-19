@@ -9,14 +9,10 @@ export interface CartItem {
 
 export interface CartContextType {
   items: CartItem[];
-  addItem: (
-    product: ProductCardProps,
-    quantity?: number,
-    buildId?: string | null,
-  ) => void;
-  removeItem: (cartItemId: string) => void;
-  updateQuantity: (cartItemId: string, quantity: number) => void;
-  clearCart: () => void;
+  addItem: (product: ProductCardProps, quantity?: number, buildId?: string | null) => Promise<void>;
+  removeItem: (cartItemId: string) => Promise<void>;
+  updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   totalItems: number;
   totalPrice: number;
   isOpen: boolean;

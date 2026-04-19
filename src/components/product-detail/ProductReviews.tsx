@@ -379,11 +379,14 @@ function isCompletedOrderStatus(status?: string | null): boolean {
   );
 }
 
+const DEFAULT_REVIEWS: ProductReview[] = [];
+const DEFAULT_VARIANTS: string[] = [];
+
 export default function ProductReviews({
   productId,
-  productVariantIds = [],
+  productVariantIds = DEFAULT_VARIANTS,
   accentColor,
-  reviews = [],
+  reviews = DEFAULT_REVIEWS,
 }: Props) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [filterStar, setFilterStar] = useState<number>(0);

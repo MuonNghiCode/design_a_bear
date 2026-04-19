@@ -1,5 +1,5 @@
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:7002";
+  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -91,7 +91,15 @@ export const API_ENDPOINTS = {
     BASE: "/api/Builds",
   },
   PROMOTIONS: {
-    VALIDATE: "/api/Promotions/validate", // POST
+    GET_ALL: "/api/Promotions",
+    GET_ACTIVE: "/api/Promotions/active",
+    GET_BY_ID: "/api/Promotions",
+    GET_BY_CODE: "/api/Promotions/code",
+    CREATE: "/api/Promotions",
+    UPDATE: "/api/Promotions",
+    DELETE: "/api/Promotions",
+    VALIDATE: "/api/Promotions/validate",
+    APPLY: "/api/Promotions/apply",
   },
   PAYMENTS: {
     CREATE: "/api/Payments/create-payment", // POST
@@ -115,6 +123,19 @@ export const API_ENDPOINTS = {
   },
   SHIPPING: {
     CALCULATE_FEE: "/api/Shipping/calculate-fee",
+  },
+  INVENTORIES: {
+    BASE: "/api/Inventories",
+    BY_PRODUCT: "/api/Inventories/product/{productId}",
+    TOTAL_AVAILABLE: "/api/Inventories/product/{productId}/total",
+    ADJUST: "/api/Inventories/adjust",
+    RESERVE: "/api/Inventories/reserve",
+    RELEASE: "/api/Inventories/release",
+    BY_LOCATION_PRODUCT: "/api/Inventories/location/{locationId}/product/{productId}",
+  },
+  LOCATIONS: {
+    BASE: "/api/Locations",
+    BY_ID: "/api/Locations/{id}",
   },
 } as const;
 

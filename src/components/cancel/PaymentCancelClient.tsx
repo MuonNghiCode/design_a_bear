@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { paymentService } from "@/services/payment.service";
 import {
   IoAlertCircle,
   IoBagHandleOutline,
@@ -52,6 +53,30 @@ export default function PaymentCancelClient() {
     "";
   const transactionId = searchParams.get("id") || "";
   const gatewayCode = searchParams.get("code") || "";
+  const [isUpdating, setIsUpdating] = useState(true);
+  const [statusMessage, setStatusMessage] = useState("Đang đồng bộ trạng thái...");
+  
+  // Update DB status immediately when landing on this page
+  useEffect(() => {
+    if (orderCode) {
+      console.log(`[PaymentCancel] Initiating confirmPayment for orderCode: ${orderCode}`);
+      paymentService.confirmPayment(orderCode)
+        .then((res) => {
+          console.log("[PaymentCancel] Backend sync successful:", res);
+          setStatusMessage("Đã cập nhật trạng thái đơn hàng.");
+          setIsUpdating(false);
+        })
+        .catch((err) => {
+          console.error("[PaymentCancel] Backend sync failed:", err);
+          setStatusMessage("Không thể đồng bộ trạng thái tự động.");
+          setIsUpdating(false);
+        });
+    } else {
+      console.warn("[PaymentCancel] No orderCode found in URL.");
+      setIsUpdating(false);
+      setStatusMessage("Không tìm thấy mã đơn hàng.");
+    }
+  }, [orderCode]);
 
   const heading = useMemo(() => {
     if (cancel) return "Bạn đã hủy thanh toán";
@@ -100,6 +125,19 @@ export default function PaymentCancelClient() {
               {subText}
             </p>
           </div>
+        </div>
+
+        {/* Sync Status Bar */}
+        <div 
+          className="mt-6 px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-2"
+          style={{ 
+            backgroundColor: isUpdating ? "#E0F2FE" : "#F0FDF4", 
+            color: isUpdating ? "#0369A1" : "#15803D",
+            border: `1px solid ${isUpdating ? "#BAE6FD" : "#DCFCE7"}`
+          }}
+        >
+          <div className={`w-2 h-2 rounded-full ${isUpdating ? "animate-pulse" : ""}`} style={{ backgroundColor: isUpdating ? "#0EA5E9" : "#22C55E" }} />
+          {statusMessage}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-7">

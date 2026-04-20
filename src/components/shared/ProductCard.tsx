@@ -4,13 +4,12 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { IoHeartOutline, IoBagOutline } from "react-icons/io5";
+import { IoHeartOutline, IoBagOutline, IoHeart } from "react-icons/io5";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 import { productService } from "@/services/product.service";
-import { favoriteService } from "@/services/favorite.service";
-
+import { useFavorite } from "@/contexts/FavoriteContext";
 
 type CartPayload = {
   variantId: string;
@@ -28,6 +27,7 @@ export interface ProductCardProps {
   badge?: string;
   badgeColor?: string;
   href?: string;
+  availableStock?: number;
 }
 
 function formatPrice(price: number): string {
@@ -43,42 +43,30 @@ export default function ProductCard({
   badge,
   badgeColor = "#17409A",
   href,
+  availableStock,
 }: ProductCardProps) {
   const productLink = href || `/products/${id}`;
   const { isAuthenticated } = useAuth();
   const { addItem } = useCart();
-  const toast = useToast();
+  const { warning, success, error } = useToast();
   const router = useRouter();
+  const {
+    isFavorited,
+    toggleFavorite,
+    loading: favoriteLoading,
+  } = useFavorite();
   const [imgSrc, setImgSrc] = useState(image || "/teddy_bear.png");
   const [addingToCart, setAddingToCart] = useState(false);
-  const [togglingFavorite, setTogglingFavorite] = useState(false);
+
+  const favorited = isFavorited(id);
 
   const handleToggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (!isAuthenticated) {
-      router.push("/auth");
-      return;
-    }
-
-    try {
-      setTogglingFavorite(true);
-      const res = await favoriteService.toggleFavorite(id);
-      if (res.isSuccess) {
-        toast.success(res.value.message);
-      } else {
-        toast.error(res.error?.description || "Không thể cập nhật yêu thích");
-      }
-    } catch (err) {
-      toast.error("Đã có lỗi xảy ra");
-    } finally {
-      setTogglingFavorite(false);
-    }
+    await toggleFavorite(id);
   };
 
   const resolveCartPayload = async (): Promise<CartPayload> => {
-
     const fallbackPrice = price > 0 ? price : 1;
 
     try {
@@ -102,7 +90,17 @@ export default function ProductCard({
 
   const addProductToCart = async () => {
     if (!isAuthenticated) {
-      router.push("/auth");
+      warning(
+        "Bạn chưa đăng nhập nên không thể thêm vào giỏ hàng. Đang chuyển hướng đến trang đăng nhập...",
+      );
+      setTimeout(() => {
+        router.push("/auth");
+      }, 1500);
+      return false;
+    }
+    
+    if (availableStock !== undefined && availableStock <= 0) {
+      warning("Sản phẩm này hiện đang hết hàng.");
       return false;
     }
 
@@ -129,7 +127,7 @@ export default function ProductCard({
       );
       return true;
     } catch (err) {
-      toast.error(
+      error(
         "Thêm vào giỏ hàng thất bại: " +
           (err instanceof Error ? err.message : "Vui lòng thử lại"),
       );
@@ -145,7 +143,7 @@ export default function ProductCard({
 
     const added = await addProductToCart();
     if (added) {
-      toast.success(`Đã thêm "${name}" vào giỏ. Đang chuyển đến thanh toán...`);
+      success(`Đã thêm "${name}" vào giỏ. Đang chuyển đến thanh toán...`);
       router.push("/checkout");
     }
   };
@@ -156,7 +154,7 @@ export default function ProductCard({
 
     const added = await addProductToCart();
     if (added) {
-      toast.success(`Đã thêm "${name}" vào giỏ hàng!`);
+      success(`Đã thêm "${name}" vào giỏ hàng!`);
     }
   };
 
@@ -169,7 +167,7 @@ export default function ProductCard({
       }}
     >
       {/* ── Background Image (fills entire card) ── */}
-      <div className="relative aspect-3/4 overflow-hidden">
+      <div className={`relative aspect-3/4 overflow-hidden transition-all duration-300 ${availableStock === 0 ? "grayscale-70 opacity-90" : ""}`}>
         <Image
           src={imgSrc}
           alt={name}
@@ -180,13 +178,21 @@ export default function ProductCard({
           onError={() => setImgSrc("/teddy_bear.png")}
         />
 
-        {/* Badge góc trên phải */}
         {badge && (
           <div
-            className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-xs font-bold tracking-wide shadow-xl z-10"
+            className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-xs font-bold tracking-wide shadow-xl z-20"
             style={{ backgroundColor: badgeColor }}
           >
             {badge}
+          </div>
+        )}
+
+        {/* Hết hàng Badge */}
+        {availableStock === 0 && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-30 backdrop-blur-[2px]">
+            <div className="bg-[#FF6B9D] text-white px-6 py-2.5 rounded-2xl font-black text-sm tracking-widest shadow-2xl transform -rotate-12 border-2 border-white/30 animate-pulse">
+              HẾT HÀNG
+            </div>
           </div>
         )}
 
@@ -226,29 +232,45 @@ export default function ProductCard({
           <div className="flex items-center gap-2">
             {/* CTA Button */}
             <div
-              className="flex-1 bg-[#17409A] hover:bg-[#4A90E2] text-white font-bold text-sm text-center py-3 rounded-xl transition-all duration-200 group-hover:shadow-lg cursor-pointer"
-              onClick={handleBuyNow}
+              className={`flex-1 font-bold text-sm text-center py-3 rounded-xl transition-all duration-200 group-hover:shadow-lg cursor-pointer ${
+                availableStock === 0 
+                  ? "bg-gray-500/50 text-white/50 cursor-not-allowed" 
+                  : "bg-[#17409A] hover:bg-[#4A90E2] text-white"
+              }`}
+              onClick={availableStock === 0 ? undefined : handleBuyNow}
             >
-              {addingToCart ? "Đang xử lý..." : "Mua ngay"}
+              {addingToCart ? "Đang xử lý..." : availableStock === 0 ? "Hết hàng" : "Mua ngay"}
             </div>
 
             {/* Icon Buttons */}
             <button
-              className="w-11 h-11 rounded-xl bg-white/20 hover:bg-white text-white hover:text-[#17409A] backdrop-blur-sm flex items-center justify-center transition-all duration-200"
+              className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 ${
+                availableStock === 0
+                  ? "bg-gray-500/30 text-white/30 cursor-not-allowed"
+                  : "bg-white/20 hover:bg-white text-white hover:text-[#17409A]"
+              }`}
               aria-label="Thêm vào giỏ"
-              onClick={handleAddToCart}
-              disabled={addingToCart}
+              onClick={availableStock === 0 ? undefined : handleAddToCart}
+              disabled={addingToCart || availableStock === 0}
             >
               <IoBagOutline className="text-xl" />
             </button>
 
             <button
-              className={`w-11 h-11 rounded-xl bg-white/20 hover:bg-[#FF6B9D] text-white backdrop-blur-sm flex items-center justify-center transition-all duration-200 ${togglingFavorite ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 ${
+                favorited
+                  ? "bg-[#FF6B9D] text-white"
+                  : "bg-white/20 hover:bg-[#FF6B9D] text-white"
+              } ${favoriteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
               aria-label="Yêu thích"
               onClick={handleToggleFavorite}
-              disabled={togglingFavorite}
+              disabled={favoriteLoading}
             >
-              <IoHeartOutline className={`text-xl ${togglingFavorite ? "animate-pulse" : ""}`} />
+              {favorited ? (
+                <IoHeart className="text-xl animate-jump" />
+              ) : (
+                <IoHeartOutline className="text-xl" />
+              )}
             </button>
           </div>
         </div>

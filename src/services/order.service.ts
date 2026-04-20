@@ -51,6 +51,11 @@ class OrderService extends BaseApiService {
     );
     return this.put<null>(url, data, { withCredentials: false });
   }
+
+  async cancelOrder(orderId: string): Promise<ApiResponse<null>> {
+    const url = API_ENDPOINTS.ORDERS.CANCEL.replace("{orderId}", orderId);
+    return this.post<null>(url, {}, { withCredentials: false });
+  }
 }
 
 export const orderService = new OrderService();

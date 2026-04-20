@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
     GET_BY_USER: "/api/Orders/user/{userId}",
     GET_BY_ID: "/api/Orders/{orderId}",
     UPDATE_STATUS: "/api/Orders/{orderId}/status",
+    CANCEL: "/api/Orders/{orderId}/cancel",
     GET_ALL: "/api/Orders",
   },
   PRODUCTS: {

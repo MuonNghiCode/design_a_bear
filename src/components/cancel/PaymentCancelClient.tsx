@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useMemo, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { paymentService } from "@/services/payment.service";
+import { orderService } from "@/services/order.service";
+import { STORAGE_KEYS } from "@/constants";
 import {
   IoAlertCircle,
   IoBagHandleOutline,
@@ -54,28 +56,53 @@ export default function PaymentCancelClient() {
   const transactionId = searchParams.get("id") || "";
   const gatewayCode = searchParams.get("code") || "";
   const [isUpdating, setIsUpdating] = useState(true);
-  const [statusMessage, setStatusMessage] = useState("Đang đồng bộ trạng thái...");
-  
+  const [statusMessage, setStatusMessage] = useState(
+    "Đang đồng bộ trạng thái...",
+  );
+
   // Update DB status immediately when landing on this page
   useEffect(() => {
-    if (orderCode) {
-      console.log(`[PaymentCancel] Initiating confirmPayment for orderCode: ${orderCode}`);
-      paymentService.confirmPayment(orderCode)
-        .then((res) => {
-          console.log("[PaymentCancel] Backend sync successful:", res);
-          setStatusMessage("Đã cập nhật trạng thái đơn hàng.");
-          setIsUpdating(false);
-        })
-        .catch((err) => {
-          console.error("[PaymentCancel] Backend sync failed:", err);
-          setStatusMessage("Không thể đồng bộ trạng thái tự động.");
-          setIsUpdating(false);
-        });
-    } else {
-      console.warn("[PaymentCancel] No orderCode found in URL.");
-      setIsUpdating(false);
-      setStatusMessage("Không tìm thấy mã đơn hàng.");
-    }
+    const syncStatus = async () => {
+      try {
+        setIsUpdating(true);
+
+        // 1. Get detailed order data from localStorage
+        const pendingOrder = localStorage.getItem(
+          STORAGE_KEYS.PENDING_PAYMENT_ORDER,
+        );
+        let orderIdToUpdate = "";
+
+        if (pendingOrder) {
+          try {
+            const parsed = JSON.parse(pendingOrder);
+            orderIdToUpdate = parsed?.orderDetails?.orderId || "";
+          } catch (e) {
+            console.error("[PaymentCancel] Error parsing pending order:", e);
+          }
+        }
+
+        // 2. Force status to CANCELLED to trigger backend stock release
+        if (orderIdToUpdate) {
+          console.log(`[PaymentCancel] Cancelling order ${orderIdToUpdate}...`);
+          await orderService.cancelOrder(orderIdToUpdate);
+        }
+
+        // 3. Confirm payment record with gateway code (legacy/sync purposes)
+        if (orderCode) {
+          await paymentService.confirmPayment(orderCode);
+        }
+
+        setStatusMessage("Đã cập nhật trạng thái và giải phóng hàng tồn kho.");
+        localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
+      } catch (err) {
+        console.error("[PaymentCancel] Sync failed:", err);
+        setStatusMessage("Đã xảy ra lỗi khi đồng bộ. Vui lòng liên hệ hỗ trợ.");
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+
+    syncStatus();
   }, [orderCode]);
 
   const heading = useMemo(() => {
@@ -128,15 +155,18 @@ export default function PaymentCancelClient() {
         </div>
 
         {/* Sync Status Bar */}
-        <div 
+        <div
           className="mt-6 px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-2"
-          style={{ 
-            backgroundColor: isUpdating ? "#E0F2FE" : "#F0FDF4", 
+          style={{
+            backgroundColor: isUpdating ? "#E0F2FE" : "#F0FDF4",
             color: isUpdating ? "#0369A1" : "#15803D",
-            border: `1px solid ${isUpdating ? "#BAE6FD" : "#DCFCE7"}`
+            border: `1px solid ${isUpdating ? "#BAE6FD" : "#DCFCE7"}`,
           }}
         >
-          <div className={`w-2 h-2 rounded-full ${isUpdating ? "animate-pulse" : ""}`} style={{ backgroundColor: isUpdating ? "#0EA5E9" : "#22C55E" }} />
+          <div
+            className={`w-2 h-2 rounded-full ${isUpdating ? "animate-pulse" : ""}`}
+            style={{ backgroundColor: isUpdating ? "#0EA5E9" : "#22C55E" }}
+          />
           {statusMessage}
         </div>
 

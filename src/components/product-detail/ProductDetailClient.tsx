@@ -5,9 +5,8 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { type ProductDetail } from "@/types";
 import { type ProductItem } from "@/types/products";
-import {
-  type PersonalizationRule,
-} from "@/types/responses";
+import { type PersonalizationRule } from "@/types/responses";
+import { inventoryService } from "@/services/inventory.service";
 import ProductImageSection from "./ProductImageSection";
 import ProductInfoPanel from "./ProductInfoPanel";
 import ProductSpecs from "./ProductSpecs";
@@ -55,6 +54,10 @@ export default function ProductDetailClient({
   const [selectedAccessories, setSelectedAccessories] = useState<
     PersonalizationRule[]
   >([]);
+  const [availableStock, setAvailableStock] = useState<number | null>(null);
+  const [relatedStockMap, setRelatedStockMap] = useState<
+    Record<string, number>
+  >({});
   const heroRef = useRef<HTMLDivElement>(null);
   const productItem = mapDetailToItem(product);
 
@@ -81,6 +84,56 @@ export default function ProductDetailClient({
         ?.imageUrl || null
     );
   }, [product.comboImages, combinationKey]);
+
+  // ── Fetch Stock Quantity ──
+  useEffect(() => {
+    const fetchStock = async () => {
+      try {
+        const res = await inventoryService.getByProductId(product.productId);
+        if (res.isSuccess && res.value) {
+          // Sum quantityAvailable from all locations
+          const total = res.value.reduce(
+            (acc, inv) => acc + (inv.quantityAvailable || 0),
+            0,
+          );
+          setAvailableStock(total);
+        } else {
+          setAvailableStock(0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch stock:", err);
+        setAvailableStock(0);
+      }
+    };
+    fetchStock();
+  }, [product.productId]);
+
+  // ── Fetch Stock for Related Products ──
+  useEffect(() => {
+    if (related.length > 0) {
+      (async () => {
+        try {
+          const results = await Promise.all(
+            related.map(async (p) => {
+              const res = await inventoryService.getTotalAvailable(p.id);
+              return {
+                id: p.id,
+                total:
+                  res.isSuccess && res.value ? res.value.totalAvailable : 0,
+              };
+            }),
+          );
+          const newMap: Record<string, number> = {};
+          results.forEach((r) => {
+            newMap[r.id] = r.total;
+          });
+          setRelatedStockMap(newMap);
+        } catch (err) {
+          console.error("Failed to fetch related stock:", err);
+        }
+      })();
+    }
+  }, [related]);
 
   useEffect(() => {
     if (!heroRef.current) return;
@@ -121,6 +174,7 @@ export default function ProductDetailClient({
               setQuantity={setQuantity}
               selectedAccessories={selectedAccessories}
               setSelectedAccessories={setSelectedAccessories}
+              availableStock={availableStock}
             />
           </div>
         </div>
@@ -141,7 +195,14 @@ export default function ProductDetailClient({
       />
 
       {/* ── Related products ── */}
-      {related.length > 0 && <ProductRelated products={related} />}
+      {related.length > 0 && (
+        <ProductRelated
+          products={related.map((p) => ({
+            ...p,
+            availableStock: relatedStockMap[p.id],
+          }))}
+        />
+      )}
     </div>
   );
 }

@@ -6,12 +6,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { type ProductItem } from "@/types/products";
 import { useCart } from "@/contexts/CartContext";
-import {
-  type PersonalizationRule,
-} from "@/types/responses";
+import { type PersonalizationRule } from "@/types/responses";
 import { buildService } from "@/services/build.service";
 import { STORAGE_KEYS } from "@/constants";
 import { useToast } from "@/contexts/ToastContext";
+import { useFavorite } from "@/contexts/FavoriteContext";
 
 /* ── Inline SVG icons (no emoji, no react-icons) ── */
 function IconMinus() {
@@ -63,13 +62,13 @@ function IconCart() {
   );
 }
 
-function IconHeart() {
+function IconHeart({ filled }: { filled?: boolean }) {
   return (
     <svg
       width="20"
       height="20"
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
@@ -161,9 +160,11 @@ interface Props {
   quantity: number;
   setQuantity: (q: number) => void;
   selectedAccessories: PersonalizationRule[];
-  setSelectedAccessories: React.Dispatch<React.SetStateAction<PersonalizationRule[]>>;
+  setSelectedAccessories: React.Dispatch<
+    React.SetStateAction<PersonalizationRule[]>
+  >;
+  availableStock?: number | null;
 }
-
 export default function ProductInfoPanel({
   product,
   personalizationRules = [],
@@ -171,14 +172,25 @@ export default function ProductInfoPanel({
   setQuantity,
   selectedAccessories,
   setSelectedAccessories,
+  availableStock,
 }: Props) {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
-  const accent = product.badgeColor || "#17409A";
   const { addItem } = useCart();
-  const toast = useToast();
+  const { warning, success, error } = useToast();
+  const {
+    isFavorited,
+    toggleFavorite,
+    loading: favoriteLoading,
+  } = useFavorite();
   const [addingToCart, setAddingToCart] = useState(false);
+  const accent = product.badgeColor || "#17409A";
 
+  const favorited = isFavorited(product.id);
+
+  const handleToggleFavorite = async () => {
+    await toggleFavorite(product.id);
+  };
 
   // Calculate total price
   const basePrice = product.price;
@@ -204,7 +216,10 @@ export default function ProductInfoPanel({
 
   const addToCartInternal = async (goCheckout: boolean) => {
     if (!isAuthenticated) {
-      router.push("/auth");
+      warning("Vui lòng đăng nhập để thực hiện chức năng này");
+      setTimeout(() => {
+        router.push("/auth");
+      }, 1500);
       return;
     }
 
@@ -260,15 +275,15 @@ export default function ProductInfoPanel({
       );
 
       if (goCheckout) {
-        toast.success(
+        success(
           `Đã thêm "${product.name}" vào giỏ. Đang chuyển đến thanh toán...`,
         );
         router.push("/checkout");
       } else {
-        toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
+        success(`Đã thêm "${product.name}" vào giỏ hàng!`);
       }
     } catch (err) {
-      toast.error(
+      error(
         "Thêm vào giỏ hàng thất bại: " +
           (err instanceof Error ? err.message : "Vui lòng thử lại"),
       );
@@ -407,9 +422,19 @@ export default function ProductInfoPanel({
         <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#17409A]/10 text-[#17409A] tracking-wide">
           {CATEGORY_LABELS[product.category] || product.category}
         </span>
-        <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#4ECDC4]/20 text-[#4ECDC4] tracking-wide">
-          Còn hàng
-        </span>
+        {availableStock === null ? (
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500 tracking-wide animate-pulse">
+            Đang kiểm tra kho...
+          </span>
+        ) : availableStock > 0 ? (
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#4ECDC4]/20 text-[#059669] tracking-wide border border-[#4ECDC4]/30">
+            Sẵn có: {availableStock} sản phẩm
+          </span>
+        ) : (
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#FF6B9D]/15 text-[#FF6B9D] tracking-wide border border-[#FF6B9D]/30">
+            Hết hàng
+          </span>
+        )}
       </div>
 
       {(product.categories?.length || product.characters?.length) && (
@@ -456,7 +481,7 @@ export default function ProductInfoPanel({
       <div className="h-px bg-[#E5E7EB]" />
 
       {/* ── Quantity selector ── */}
-      <div>
+      <div className={availableStock !== null && availableStock <= 0 ? "opacity-40 grayscale pointer-events-none" : ""}>
         <p className="text-xs font-black tracking-[0.25em] uppercase text-[#1A1A2E] mb-3">
           Số lượng
         </p>
@@ -464,7 +489,10 @@ export default function ProductInfoPanel({
           <button
             type="button"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer"
+            disabled={quantity <= 1 || (availableStock !== null && availableStock <= 0)}
+            className={`w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer ${
+              (quantity <= 1 || (availableStock !== null && availableStock <= 0)) ? "opacity-30 cursor-not-allowed" : ""
+            }`}
             aria-label="Giảm số lượng"
           >
             <IconMinus />
@@ -477,13 +505,26 @@ export default function ProductInfoPanel({
           </div>
           <button
             type="button"
-            onClick={() => setQuantity(Math.min(10, quantity + 1))}
-            className="w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer"
+            onClick={() => setQuantity(Math.min(availableStock || 1, quantity + 1))}
+            disabled={availableStock !== null && (quantity >= availableStock || availableStock <= 0)}
+            className={`w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer ${
+              (availableStock !== null && (quantity >= availableStock || availableStock <= 0)) ? "opacity-30 cursor-not-allowed" : ""
+            }`}
             aria-label="Tăng số lượng"
           >
             <IconPlus />
           </button>
         </div>
+        {availableStock !== null && availableStock > 0 && availableStock < 5 && (
+          <p className="mt-2 text-xs font-bold" style={{ color: "#FF8C42" }}>
+            Chỉ còn {availableStock} sản phẩm cuối cùng!
+          </p>
+        )}
+        {availableStock === 0 && (
+          <p className="mt-2 text-xs font-bold text-[#FF6B9D]">
+            Sản phẩm hiện đang tạm hết hàng.
+          </p>
+        )}
       </div>
 
       {/* ── CTA Buttons ── */}
@@ -491,27 +532,35 @@ export default function ProductInfoPanel({
         <button
           type="button"
           onClick={handleBuyNow}
-          disabled={addingToCart}
-          className="flex-1 py-4 px-8 rounded-2xl text-white font-black text-base tracking-wide shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-          style={{ backgroundColor: accent }}
+          disabled={addingToCart || (availableStock !== null && availableStock <= 0)}
+          className={`flex-1 py-4 px-8 rounded-2xl text-white font-black text-base tracking-wide shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
+            availableStock !== null && availableStock <= 0 ? "bg-gray-400" : ""
+          }`}
+          style={{ backgroundColor: (availableStock !== null && availableStock <= 0) ? "#9CA3AF" : accent }}
         >
-          {addingToCart ? "Đang xử lý..." : "Mua ngay"}
+          {addingToCart ? "Đang xử lý..." : (availableStock !== null && availableStock <= 0) ? "Hết hàng" : "Mua ngay"}
         </button>
         <button
           type="button"
           onClick={onAddToCart}
-          disabled={addingToCart}
-          className="flex-1 py-4 px-8 rounded-2xl font-black text-base tracking-wide border-2 border-[#17409A] text-[#17409A] hover:bg-[#17409A] hover:text-white transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={addingToCart || (availableStock !== null && availableStock <= 0)}
+          className="flex-1 py-4 px-8 rounded-2xl font-black text-base tracking-wide border-2 border-[#17409A] text-[#17409A] hover:bg-[#17409A] hover:text-white transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
           <IconCart />
-          {addingToCart ? "Đang thêm..." : "Thêm vào giỏ"}
+          {addingToCart ? "Đang thêm..." : (availableStock !== null && availableStock <= 0) ? "Tạm hết hàng" : "Thêm vào giỏ"}
         </button>
         <button
           type="button"
-          className="w-14 h-14 rounded-2xl flex items-center justify-center border-2 border-[#E5E7EB] text-[#FF6B9D] hover:bg-[#FF6B9D] hover:text-white hover:border-[#FF6B9D] transition-all duration-300 hover:scale-[1.02] cursor-pointer shrink-0"
+          onClick={handleToggleFavorite}
+          disabled={favoriteLoading}
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer shrink-0 ${
+            favorited
+              ? "bg-[#FF6B9D] text-white border-[#FF6B9D]"
+              : "border-[#E5E7EB] text-[#FF6B9D] hover:bg-[#FF6B9D] hover:text-white hover:border-[#FF6B9D]"
+          } ${favoriteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           aria-label="Yêu thích"
         >
-          <IconHeart />
+          <IconHeart filled={favorited} />
         </button>
       </div>
 

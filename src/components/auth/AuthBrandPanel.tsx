@@ -17,37 +17,19 @@ export default function AuthBrandPanel() {
     <div className="hidden lg:flex relative z-10 flex-1 flex-col justify-between px-12 py-10">
       <PawDecoration />
 
-      {/* Logo + brand name + back button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 shrink-0">
-            <Image
-              src="/logo.webp"
-              alt="Design a Bear"
-              fill
-              className="object-contain"
-            />
-          </div>
-          <span className="text-white font-black text-xl tracking-wide">
-            Design a Bear
-          </span>
+      {/* Logo + brand name */}
+      <div className="flex items-center gap-3">
+        <div className="relative w-10 h-10 shrink-0">
+          <Image
+            src="/logo.webp"
+            alt="Design a Bear"
+            fill
+            className="object-contain"
+          />
         </div>
-
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-semibold transition-colors cursor-pointer"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.5}
-            className="w-4 h-4"
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          Quay lại
-        </button>
+        <span className="text-white font-black text-xl tracking-wide">
+          Design a Bear
+        </span>
       </div>
 
       {/* Bear mascot + decorative text + tagline */}

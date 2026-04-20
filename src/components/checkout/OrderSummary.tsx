@@ -30,6 +30,7 @@ interface OrderSummaryProps {
   onRemoveCoupon: (code: string) => void;
   step: number;
   isCalculatingShipping?: boolean;
+  stockErrors?: Record<string, string>;
 }
 
 export function OrderSummary({
@@ -42,6 +43,7 @@ export function OrderSummary({
   appliedCoupons,
   onRemoveCoupon,
   isCalculatingShipping = false,
+  stockErrors = {},
 }: OrderSummaryProps) {
   const { items, totalItems, totalPrice } = useCart();
   // const freeShip = totalPrice >= FREE_SHIP;
@@ -104,7 +106,7 @@ export function OrderSummary({
             className="h-full rounded-full transition-all duration-700"
             style={{
               width: `${barWidth}%`,
-              background: "linear-gradient(90deg, #4ECDC4, #45B7D1)",
+              background: "#4ECDC4",
             }}
           />
         </div>
@@ -155,14 +157,23 @@ export function OrderSummary({
                   {item.product.badge}
                 </span>
               )}
+
+              {/* Stock Error Message */}
+              {stockErrors[item.cartItemId] && (
+                <p className="text-[10px] font-bold text-[#FF6B9D] mt-1 animate-pulse">
+                  {stockErrors[item.cartItemId]}
+                </p>
+              )}
             </div>
 
-            <p
-              className="text-sm font-black shrink-0"
-              style={{ color: "#17409A" }}
-            >
-              {fmt(item.product.price * item.quantity)}
-            </p>
+            <div className="text-right shrink-0">
+              <p
+                className="text-sm font-black"
+                style={{ color: stockErrors[item.cartItemId] ? "#FF6B9D" : "#17409A" }}
+              >
+                {fmt(item.product.price * item.quantity)}
+              </p>
+            </div>
           </div>
         ))}
       </div>

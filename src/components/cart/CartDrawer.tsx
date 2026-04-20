@@ -10,6 +10,8 @@ import {
 } from "react-icons/io5";
 import gsap from "gsap";
 import { useCart } from "@/contexts/CartContext";
+import { inventoryService } from "@/services/inventory.service";
+import { useState } from "react";
 
 /* ────────────────────────────────────────────
    CartDrawer — Premium right-side drawer
@@ -136,6 +138,9 @@ export default function CartDrawer() {
     closeCart,
   } = useCart();
 
+  const [inventoryMap, setInventoryMap] = useState<Record<string, number>>({});
+  const [loadingStock, setLoadingStock] = useState(false);
+
   const drawerRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
@@ -197,17 +202,32 @@ export default function CartDrawer() {
     };
   }, [isOpen, animateOpen]);
 
+  // Fetch stock when drawer opens
   useEffect(() => {
-    if (!isOpen || !itemsRef.current) return;
-    const rows = itemsRef.current.querySelectorAll(".cart-item-row");
-    if (rows.length) {
-      gsap.fromTo(
-        rows[0],
-        { x: 24, opacity: 0 },
-        { x: 0, opacity: 1, duration: 0.35, ease: "power2.out" },
-      );
+    if (isOpen && items.length > 0) {
+      (async () => {
+        setLoadingStock(true);
+        try {
+          const results = await Promise.all(
+            items.map(async (item) => {
+              const res = await inventoryService.getByProductId(item.product.id);
+              const total = res.isSuccess && res.value
+                ? res.value.reduce((acc, inv) => acc + (inv.quantityAvailable || 0), 0)
+                : 0;
+              return { id: item.product.id, total };
+            })
+          );
+          const newMap: Record<string, number> = {};
+          results.forEach(r => { newMap[r.id] = r.total; });
+          setInventoryMap(newMap);
+        } catch (err) {
+          console.error("Failed to fetch cart stock:", err);
+        } finally {
+          setLoadingStock(false);
+        }
+      })();
     }
-  }, [items.length]);
+  }, [isOpen, items]);
 
   if (!isOpen) return null;
 
@@ -332,6 +352,25 @@ export default function CartDrawer() {
                             {item.product.name}
                           </p>
                         </Link>
+                        
+                        {/* Stock Status */}
+                        {!loadingStock && inventoryMap[item.product.id] !== undefined && (
+                          <div className="mt-1">
+                            {inventoryMap[item.product.id] <= 0 ? (
+                              <p className="text-[10px] font-bold text-[#FF6B9D] animate-pulse">
+                                Sản phẩm hiện đã hết hàng
+                              </p>
+                            ) : item.quantity > inventoryMap[item.product.id] ? (
+                              <p className="text-[10px] font-bold text-[#FF8C42]">
+                                Chỉ còn {inventoryMap[item.product.id]} sản phẩm sẵn có
+                              </p>
+                            ) : inventoryMap[item.product.id] < 5 ? (
+                               <p className="text-[10px] font-bold text-[#FF8C42]">
+                                Sắp hết hàng: Chỉ còn {inventoryMap[item.product.id]} chiếc
+                              </p>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
 
                       <button
@@ -383,7 +422,12 @@ export default function CartDrawer() {
                           onClick={() =>
                             item.cartItemId && updateQuantity(item.cartItemId, item.quantity + 1)
                           }
-                          className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110"
+                          disabled={!loadingStock && inventoryMap[item.product.id] !== undefined && item.quantity >= inventoryMap[item.product.id]}
+                          className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110 ${
+                            !loadingStock && inventoryMap[item.product.id] !== undefined && item.quantity >= inventoryMap[item.product.id]
+                              ? "opacity-30 cursor-not-allowed"
+                              : ""
+                          }`}
                           style={{ backgroundColor: "#17409A", color: "white" }}
                           aria-label="Tăng số lượng"
                         >
@@ -452,7 +496,11 @@ export default function CartDrawer() {
             <Link
               href="/checkout"
               onClick={animateClose}
-              className="w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5"
+              className={`w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 ${
+                items.some(item => !loadingStock && inventoryMap[item.product.id] !== undefined && inventoryMap[item.product.id] < item.quantity)
+                ? "opacity-50 cursor-not-allowed pointer-events-none"
+                : ""
+              }`}
               style={{
                 backgroundColor: "#17409A",
                 color: "white",

@@ -28,6 +28,7 @@ import { addressService } from "@/services/address.service";
 import { orderService } from "@/services/order.service";
 import { paymentService } from "@/services/payment.service";
 import { shippingService } from "@/services/shipping.service";
+import { inventoryService } from "@/services/inventory.service";
 import { STORAGE_KEYS } from "@/constants";
 import type { Address } from "@/types";
 import { normalizePhoneNumber } from "@/utils/address";
@@ -50,7 +51,13 @@ export default function CheckoutClient() {
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupons, setAppliedCoupons] = useState<
-    { code: string; productDiscount: number; shippingDiscount: number; totalDiscount: number; discountType: string }[]
+    {
+      code: string;
+      productDiscount: number;
+      shippingDiscount: number;
+      totalDiscount: number;
+      discountType: string;
+    }[]
   >([]);
   const [agreed, setAgreed] = useState(false);
   const [showDeliveryErrors, setShowDeliveryErrors] = useState(false);
@@ -60,14 +67,16 @@ export default function CheckoutClient() {
   );
 
   const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [stockErrors, setStockErrors] = useState<Record<string, string>>({});
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const isSubmittingRef = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { totalPrice, clearCart, totalItems, closeCart } = useCart();
+  const { items, totalPrice, clearCart, totalItems, closeCart } = useCart();
   const { isAuthenticated } = useAuth();
   const toast = useToast();
 
@@ -78,10 +87,17 @@ export default function CheckoutClient() {
   );
 
   // Calculated from applied coupons
-  const totalProductDiscount = appliedCoupons.reduce((sum, c) => sum + c.productDiscount, 0);
-  const totalShippingDiscount = appliedCoupons.reduce((sum, c) => sum + c.shippingDiscount, 0);
+  const totalProductDiscount = appliedCoupons.reduce(
+    (sum, c) => sum + c.productDiscount,
+    0,
+  );
+  const totalShippingDiscount = appliedCoupons.reduce(
+    (sum, c) => sum + c.shippingDiscount,
+    0,
+  );
   const DISCOUNT = totalProductDiscount + totalShippingDiscount;
-  const FINAL_TOTAL = totalPrice + (shippingFee - totalShippingDiscount) - totalProductDiscount;
+  const FINAL_TOTAL =
+    totalPrice + (shippingFee - totalShippingDiscount) - totalProductDiscount;
   const couponApplied = appliedCoupons.length > 0;
 
   useEffect(() => {
@@ -101,6 +117,12 @@ export default function CheckoutClient() {
     const handlePaymentReturn = async () => {
       try {
         setSubmitting(true);
+
+        // 1. Mark as CANCELLED if cancelled or failed to trigger backend stock release
+        if (cancel === "true" || (status && status.toUpperCase() !== "PAID")) {
+          // No manual stock release here, handled by status update below
+        }
+
         const pendingOrder = localStorage.getItem(
           STORAGE_KEYS.PENDING_PAYMENT_ORDER,
         );
@@ -109,18 +131,9 @@ export default function CheckoutClient() {
           if (pendingOrder) {
             try {
               const parsed = JSON.parse(pendingOrder);
-              if (parsed?.orderDetails?.orderId) {
-                await orderService.updateOrderStatus(
-                  parsed.orderDetails.orderId,
-                  {
-                    status: "CANCELLED",
-                    notes:
-                      cancel === "true"
-                        ? "Khách hàng hủy thanh toán"
-                        : `Thanh toán thất bại với trạng thái: ${status}`,
-                  },
-                );
-              }
+                if (parsed?.orderDetails?.orderId) {
+                  await orderService.cancelOrder(parsed.orderDetails.orderId);
+                }
             } catch {}
           }
           localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
@@ -147,6 +160,10 @@ export default function CheckoutClient() {
             setOrderDetails(parsed.orderDetails ?? null);
           } catch {}
           localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
+        }
+
+        if (orderPlaced) {
+          // Order placed successfully
         }
 
         setOrderPlaced(true);
@@ -246,6 +263,8 @@ export default function CheckoutClient() {
       router.push("/auth");
       return;
     }
+
+    // Initial load logic
 
     if (totalItems === 0) {
       setLoadingInitial(false);
@@ -442,7 +461,62 @@ export default function CheckoutClient() {
     return () => clearTimeout(timer);
   }, [form, step, loadingInitial, resolvedAddressId]);
 
+  /**
+   * Final validation of stock for all items in the cart before placing the order.
+   */
+  const validateCartStock = async (): Promise<boolean> => {
+    try {
+      setSubmitting(true);
+      setStockErrors({});
+      const newErrors: Record<string, string> = {};
+      let hasError = false;
+
+      // Check stock for each item in parallel
+      const stockResults = await Promise.all(
+        items.map(async (item) => {
+          const res = await inventoryService.getByProductId(item.product.id);
+          const totalAvailable =
+            res.isSuccess && res.value
+              ? res.value.reduce(
+                  (acc, inv) => acc + (inv.quantityAvailable || 0),
+                  0,
+                )
+              : 0;
+          return { item, totalAvailable };
+        }),
+      );
+
+      for (const { item, totalAvailable } of stockResults) {
+        if (totalAvailable <= 0) {
+          newErrors[item.cartItemId] = "Sản phẩm này hiện đã hết hàng.";
+          hasError = true;
+        } else if (item.quantity > totalAvailable) {
+          newErrors[item.cartItemId] =
+            `Chênh lệch tồn kho: Chỉ còn ${totalAvailable} sản phẩm.`;
+          hasError = true;
+        }
+      }
+
+      if (hasError) {
+        setStockErrors(newErrors);
+        toast.error(
+          "Có sản phẩm trong giỏ hàng không đủ tồn kho. Vui lòng kiểm tra lại.",
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Stock validation error:", error);
+      toast.error("Không thể xác thực tồn kho. Vui lòng thử lại.");
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const goNext = useCallback(() => {
+    if (submitting || isSubmittingRef.current) return;
+
     if (step === 1) {
       const result = deliverySchema.safeParse({
         name: form.name,
@@ -475,11 +549,28 @@ export default function CheckoutClient() {
       return;
     }
 
+    if (step === 2) {
+      (async () => {
+        const isValid = await validateCartStock();
+        if (isValid) {
+          transition(step + 1, 1);
+        }
+      })();
+      return;
+    }
+
     if (step < 3) transition(step + 1, 1);
     else {
-      setSubmitting(true);
       (async () => {
         try {
+          if (isSubmittingRef.current) return;
+          isSubmittingRef.current = true;
+          setSubmitting(true);
+
+          // ── Step 3: Skip manual reservation as backend handles it ──
+          console.log("[Checkout] Creating order (Backend will handle reservation)...");
+
+          // ── Proceed with Order Creation ──
           const addrId = await getOrResolveAddressId();
 
           const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
@@ -498,7 +589,9 @@ export default function CheckoutClient() {
             shippingTotal: shippingFee,
             grandTotal: FINAL_TOTAL,
             notes: form.note || "Order from Design a Bear",
-            promoCodes: couponApplied ? appliedCoupons.map((c) => c.code) : undefined,
+            promoCodes: couponApplied
+              ? appliedCoupons.map((c) => c.code)
+              : undefined,
           };
 
           const orderRes = await orderService.createOrderFromCart(
@@ -617,6 +710,7 @@ export default function CheckoutClient() {
         } catch (error: any) {
           toast.error(error.message || "Đã có lỗi xảy ra");
         } finally {
+          isSubmittingRef.current = false;
           setSubmitting(false);
         }
       })();
@@ -846,10 +940,7 @@ export default function CheckoutClient() {
                   disabled={(step === 3 && !agreed) || submitting}
                   className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-black text-white transition-all duration-200 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{
-                    background:
-                      step === 3 && !agreed
-                        ? "#D1D5DB"
-                        : "linear-gradient(135deg, #17409A 0%, #0E2A66 100%)",
+                    background: step === 3 && !agreed ? "#D1D5DB" : "#17409A",
                     boxShadow:
                       step === 3 && !agreed
                         ? "none"
@@ -892,6 +983,7 @@ export default function CheckoutClient() {
           appliedCoupons={appliedCoupons}
           onRemoveCoupon={handleRemoveCoupon}
           step={step}
+          stockErrors={stockErrors}
         />
       </div>
 
@@ -917,7 +1009,7 @@ export default function CheckoutClient() {
             disabled={(step === 3 && !agreed) || submitting}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black text-white transition-all duration-200 disabled:opacity-50"
             style={{
-              background: "linear-gradient(135deg, #17409A 0%, #4ECDC4 100%)",
+              background: "#17409A",
             }}
           >
             {submitting ? (

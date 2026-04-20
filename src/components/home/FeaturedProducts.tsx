@@ -7,8 +7,8 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { IoArrowForward } from "react-icons/io5";
 import ProductCard, { type ProductCardProps } from "../shared/ProductCard";
 import ProductCardSkeleton from "../shared/ProductCardSkeleton";
-import { useProductApi } from "@/hooks/useProductApi";
 import type { ProductListItem } from "@/types";
+import { inventoryService } from "@/services/inventory.service";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -38,12 +38,29 @@ export default function FeaturedProducts() {
 
   const { getProducts, loading } = useProductApi();
   const [products, setProducts] = useState<ProductCardProps[]>([]);
+  const [inventoryMap, setInventoryMap] = useState<Record<string, number>>({});
 
   // Fetch 4 sản phẩm mới nhất
   useEffect(() => {
     getProducts({ pageIndex: 1, pageSize: 4, sortBy: "newest" })
-      .then((data) => {
-        setProducts(data.items.map(mapToCardProps));
+      .then(async (data) => {
+        const cardProps = data.items.map(mapToCardProps);
+        setProducts(cardProps);
+        
+        // Fetch inventory for these 4 items
+        try {
+          const results = await Promise.all(
+            data.items.map(async (item) => {
+               const res = await inventoryService.getTotalAvailable(item.productId);
+               return { id: item.productId, total: res.isSuccess && res.value ? res.value.totalAvailable : 0 };
+            })
+          );
+          const newMap: Record<string, number> = {};
+          results.forEach(r => { newMap[r.id] = r.total; });
+          setInventoryMap(newMap);
+        } catch (err) {
+          console.error("Failed to sync featured stock:", err);
+        }
       })
       .catch(() => {
         // Giữ mảng rỗng nếu lỗi, không crash trang
@@ -220,7 +237,11 @@ export default function FeaturedProducts() {
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)
             : products.map((product) => (
-                <ProductCard key={product.id} {...product} />
+                <ProductCard 
+                  key={product.id} 
+                  {...product} 
+                  availableStock={inventoryMap[product.id]} 
+                />
               ))}
         </div>
 

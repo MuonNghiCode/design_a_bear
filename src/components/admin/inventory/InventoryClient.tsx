@@ -27,7 +27,9 @@ export default function InventoryClient() {
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"PRODUCTS" | "LOCATIONS">("PRODUCTS");
+  const [activeTab, setActiveTab] = useState<"PRODUCTS" | "LOCATIONS">(
+    "PRODUCTS",
+  );
   const [selectedProduct, setSelectedProduct] = useState<{
     id: string;
     name: string;
@@ -144,258 +146,258 @@ export default function InventoryClient() {
       {activeTab === "PRODUCTS" ? (
         <>
           {/* Search & Actions */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-5 rounded-3xl shadow-sm border border-white/50">
-        <div className="relative w-full md:w-96 group">
-          <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-[#17409A] transition-colors" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên sản phẩm, SKU..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-[#F4F7FF] rounded-2xl text-sm font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all"
-          />
-        </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-gray-100 text-[#1A1A2E] font-bold text-sm hover:bg-[#F4F7FF] transition-all shadow-sm">
-            <MdFilterList className="text-lg" /> Bộ lọc
-          </button>
-          <button
-            onClick={() => fetchData()}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#17409A] text-white font-bold text-sm hover:bg-[#0E2A66] transition-all shadow-lg shadow-[#17409A]/20"
-          >
-            Làm mới dữ liệu
-          </button>
-        </div>
-      </div>
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-5 rounded-3xl shadow-sm border border-white/50">
+            <div className="relative w-full md:w-96 group">
+              <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-[#17409A] transition-colors" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên sản phẩm, SKU..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-[#F4F7FF] rounded-2xl text-sm font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-gray-100 text-[#1A1A2E] font-bold text-sm hover:bg-[#F4F7FF] transition-all shadow-sm">
+                <MdFilterList className="text-lg" /> Bộ lọc
+              </button>
+              <button
+                onClick={() => fetchData()}
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#17409A] text-white font-bold text-sm hover:bg-[#0E2A66] transition-all shadow-lg shadow-[#17409A]/20"
+              >
+                Làm mới dữ liệu
+              </button>
+            </div>
+          </div>
 
-      {/* Inventory Grid */}
-      <div className="bg-white rounded-3xl overflow-hidden border border-white/50 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-[#F4F7FF]/50">
-                <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
-                  Sản phẩm
-                </th>
-                <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
-                  Tổng kho (Tồn thực)
-                </th>
-                <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
-                  Đang giữ (Khóa tạm)
-                </th>
-                <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
-                  Sẵn có (Khả dụng)
-                </th>
-                <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center w-40">
-                  Thao tác nhanh
-                </th>
-                <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-right">
-                  Cấu hình
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-5">
-                      <div className="h-10 w-40 bg-gray-100 rounded-xl" />
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <div className="ml-auto h-10 w-24 bg-gray-100 rounded-xl" />
-                    </td>
+          {/* Inventory Grid */}
+          <div className="bg-white rounded-3xl overflow-hidden border border-white/50 shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#F4F7FF]/50">
+                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
+                      Sản phẩm
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
+                      Tổng kho (Tồn thực)
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
+                      Đang giữ (Khóa tạm)
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
+                      Sẵn có (Khả dụng)
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center w-40">
+                      Thao tác nhanh
+                    </th>
+                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-right">
+                      Cấu hình
+                    </th>
                   </tr>
-                ))
-              ) : filteredProducts.length > 0 ? (
-                filteredProducts.map((p) => {
-                  const stats = getAggregate(p.productId);
-                  const isLow = stats.available < 5 && stats.available > 0;
-                  const isOut = stats.available <= 0;
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        <td className="px-6 py-5">
+                          <div className="h-10 w-40 bg-gray-100 rounded-xl" />
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <div className="ml-auto h-10 w-24 bg-gray-100 rounded-xl" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : filteredProducts.length > 0 ? (
+                    filteredProducts.map((p) => {
+                      const stats = getAggregate(p.productId);
+                      const availableValue = totals[p.productId] ?? 0;
+                      const isLow = availableValue < 5 && availableValue > 0;
+                      const isOut = availableValue <= 0;
 
-                  return (
-                    <tr
-                      key={p.productId}
-                      className="hover:bg-[#F4F7FF]/30 transition-colors group"
-                    >
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-[#F4F7FF] border border-white/50 overflow-hidden flex-shrink-0">
-                            <img
-                              src={p.imageUrl || "/teddy_bear.png"}
-                              alt={p.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-[#1A1A2E] group-hover:text-[#17409A] transition-colors">
-                              {p.name}
-                            </p>
-                            <p className="text-[10px] font-bold text-[#9CA3AF] uppercase">
-                              SKU: {p.sku || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <div className="flex flex-col items-center">
-                          <span className="text-sm font-black text-[#1A1A2E]">
-                            {stats.onHand}
-                          </span>
-                          <span className="text-[9px] font-bold text-[#9CA3AF] uppercase">
-                            Cái
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <div className="flex flex-col items-center">
-                          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100/50">
-                            <MdLockOutline className="text-sm" />
-                            <span className="text-sm font-black">
-                              {stats.reserved}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <div className="flex flex-col items-center">
-                          <div
-                            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full font-black text-sm border ${
-                              isOut
-                                ? "bg-red-50 text-red-600 border-red-100"
-                                : isLow
-                                  ? "bg-yellow-50 text-yellow-600 border-yellow-100"
-                                  : "bg-green-50 text-green-600 border-green-100"
-                            }`}
-                          >
-                            {totals[p.productId] ?? 0}
-                            {isOut && (
-                              <span className="text-[10px] ml-1">
-                                (Hết hàng)
-                              </span>
-                            )}
-                            {isLow && (
-                              <span className="text-[10px] ml-1">
-                                (Sắp hết)
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            title="Giữ hàng"
-                            onClick={() => {
-                              setReserveReleaseAction({
-                                productId: p.productId,
-                                productName: p.name,
-                                actionType: "RESERVE",
-                              });
-                            }}
-                            className="p-2 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white transition-all border border-orange-100"
-                          >
-                            <MdLockOutline className="text-lg" />
-                          </button>
-                          <button
-                            title="Giải phóng hàng giữ"
-                            onClick={() => {
-                              setReserveReleaseAction({
-                                productId: p.productId,
-                                productName: p.name,
-                                actionType: "RELEASE",
-                              });
-                            }}
-                            className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all border border-blue-100"
-                          >
-                            <MdHistory className="text-lg" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <button
-                          onClick={() =>
-                            setSelectedProduct({
-                              id: p.productId,
-                              name: p.name,
-                            })
-                          }
-                          className="px-4 py-2 rounded-xl bg-white border border-gray-100 text-[#1A1A2E] font-black text-xs hover:bg-[#17409A] hover:text-white hover:border-[#17409A] shadow-sm transition-all"
+                      return (
+                        <tr
+                          key={p.productId}
+                          className="hover:bg-[#F4F7FF]/30 transition-colors group"
                         >
-                          Điều chỉnh
-                        </button>
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-2xl bg-[#F4F7FF] border border-white/50 overflow-hidden flex-shrink-0">
+                                <img
+                                  src={p.imageUrl || "/teddy_bear.png"}
+                                  alt={p.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-black text-[#1A1A2E] group-hover:text-[#17409A] transition-colors">
+                                  {p.name}
+                                </p>
+                                <p className="text-[10px] font-bold text-[#9CA3AF] uppercase">
+                                  SKU: {p.sku || "N/A"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <div className="flex flex-col items-center">
+                              <span className="text-sm font-black text-[#1A1A2E]">
+                                {stats.onHand}
+                              </span>
+                              <span className="text-[9px] font-bold text-[#9CA3AF] uppercase">
+                                Cái
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <div className="flex flex-col items-center">
+                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100/50">
+                                <MdLockOutline className="text-sm" />
+                                <span className="text-sm font-black">
+                                  {stats.reserved}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <div className="flex flex-col items-center">
+                              <div
+                                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full font-black text-sm border ${
+                                  isOut
+                                    ? "bg-red-50 text-red-600 border-red-100"
+                                    : isLow
+                                      ? "bg-yellow-50 text-yellow-600 border-yellow-100"
+                                      : "bg-green-50 text-green-600 border-green-100"
+                                }`}
+                              >
+                                {totals[p.productId] ?? 0}
+                                {isOut && (
+                                  <span className="text-[10px] ml-1">
+                                    (Hết hàng)
+                                  </span>
+                                )}
+                                {isLow && (
+                                  <span className="text-[10px] ml-1">
+                                    (Sắp hết)
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                title="Giữ hàng"
+                                onClick={() => {
+                                  setReserveReleaseAction({
+                                    productId: p.productId,
+                                    productName: p.name,
+                                    actionType: "RESERVE",
+                                  });
+                                }}
+                                className="p-2 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white transition-all border border-orange-100"
+                              >
+                                <MdLockOutline className="text-lg" />
+                              </button>
+                              <button
+                                title="Giải phóng hàng giữ"
+                                onClick={() => {
+                                  setReserveReleaseAction({
+                                    productId: p.productId,
+                                    productName: p.name,
+                                    actionType: "RELEASE",
+                                  });
+                                }}
+                                className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all border border-blue-100"
+                              >
+                                <MdHistory className="text-lg" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <button
+                              onClick={() =>
+                                setSelectedProduct({
+                                  id: p.productId,
+                                  name: p.name,
+                                })
+                              }
+                              className="px-4 py-2 rounded-xl bg-white border border-gray-100 text-[#1A1A2E] font-black text-xs hover:bg-[#17409A] hover:text-white hover:border-[#17409A] shadow-sm transition-all"
+                            >
+                              Điều chỉnh
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-20 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <MdOutlineInventory className="text-5xl text-gray-200" />
+                          <p className="text-gray-400 font-bold text-sm">
+                            Không tìm thấy sản phẩm nào
+                          </p>
+                        </div>
                       </td>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-20 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <MdOutlineInventory className="text-5xl text-gray-200" />
-                      <p className="text-gray-400 font-bold text-sm">
-                        Không tìm thấy sản phẩm nào
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-      {/* Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center text-green-500">
-            <MdCheckCircleOutline className="text-3xl" />
+          {/* Info Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center text-green-500">
+                <MdCheckCircleOutline className="text-3xl" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
+                  Cạnh tranh lành mạnh
+                </p>
+                <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
+                  Hệ thống xử lý ưu tiên người thanh toán sớm nhất.
+                </p>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500">
+                <MdLockOutline className="text-3xl" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
+                  Tự động khóa hàng
+                </p>
+                <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
+                  Sản phẩm sẽ bị tạm khóa ngay khi khách nhấn đặt hàng.
+                </p>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500">
+                <MdHistory className="text-3xl" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
+                  Hoàn trả kho tự động
+                </p>
+                <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
+                  Số lượng tự động trả về kho nếu đơn hàng bị hủy.
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
-              Cạnh tranh lành mạnh
-            </p>
-            <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
-              Hệ thống xử lý ưu tiên người thanh toán sớm nhất.
-            </p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500">
-            <MdLockOutline className="text-3xl" />
-          </div>
-          <div>
-            <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
-              Tự động khóa hàng
-            </p>
-            <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
-              Sản phẩm sẽ bị tạm khóa ngay khi khách nhấn đặt hàng.
-            </p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500">
-            <MdHistory className="text-3xl" />
-          </div>
-          <div>
-            <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
-              Hoàn trả kho tự động
-            </p>
-            <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
-              Số lượng tự động trả về kho nếu đơn hàng bị hủy.
-            </p>
-          </div>
-        </div>
-      </div>
-
         </>
       ) : (
         <LocationTab />

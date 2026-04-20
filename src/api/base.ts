@@ -86,6 +86,8 @@ class BaseApiService {
                     if (typeof window !== 'undefined') {
                         localStorage.removeItem(STORAGE_KEYS.TOKEN);
                         localStorage.removeItem(STORAGE_KEYS.USER);
+                        // Dispatch event for Toast notification
+                        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
                     }
                 }
                 return Promise.reject(error);

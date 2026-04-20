@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  IoArrowBack, 
-  IoCartOutline, 
-  IoTrashOutline, 
+import {
+  IoArrowBack,
+  IoCartOutline,
+  IoTrashOutline,
   IoArrowForward,
-  IoHeart
+  IoHeart,
 } from "react-icons/io5";
 import gsap from "gsap";
 import { favoriteService } from "@/services/favorite.service";
@@ -16,12 +16,26 @@ import { FavoriteResponse } from "@/types/responses";
 import { useToast } from "@/contexts/ToastContext";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFavorite } from "@/contexts/FavoriteContext";
 import { useRouter } from "next/navigation";
 
 /* Bear paw SVG decoration */
-function PawPrint({ className, color }: { className?: string; color?: string }) {
+function PawPrint({
+  className,
+  color,
+}: {
+  className?: string;
+  color?: string;
+}) {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill={color ?? "currentColor"} className={className} aria-hidden="true">
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill={color ?? "currentColor"}
+      className={className}
+      aria-hidden="true"
+    >
       <ellipse cx="9" cy="4" rx="2.5" ry="3" />
       <ellipse cx="15" cy="4" rx="2.5" ry="3" />
       <ellipse cx="5" cy="9" rx="2" ry="2.5" />
@@ -34,9 +48,10 @@ function PawPrint({ className, color }: { className?: string; color?: string }) 
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<FavoriteResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const toast = useToast();
+  const { success, error } = useToast();
   const { addItem } = useCart();
   const { isAuthenticated } = useAuth();
+  const { toggleFavorite } = useFavorite();
   const router = useRouter();
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -48,11 +63,11 @@ export default function FavoritesPage() {
         setFavorites(res.value.items);
       }
     } catch (err) {
-      toast.error("Không thể tải danh sách yêu thích");
+      error("Không thể tải danh sách yêu thích");
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [error]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -66,9 +81,10 @@ export default function FavoritesPage() {
     if (!loading && listRef.current) {
       const items = listRef.current.querySelectorAll(".fav-item-row");
       if (items.length > 0) {
-        gsap.fromTo(items, 
+        gsap.fromTo(
+          items,
           { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" }
+          { opacity: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "power2.out" },
         );
       }
     }
@@ -76,28 +92,29 @@ export default function FavoritesPage() {
 
   const handleRemove = async (productId: string) => {
     try {
-      const res = await favoriteService.toggleFavorite(productId);
-      if (res.isSuccess) {
-        setFavorites(prev => prev.filter(f => f.productId !== productId));
-        toast.success("Đã xóa khỏi danh sách yêu thích");
-      }
+      await toggleFavorite(productId);
+      setFavorites((prev) => prev.filter((f) => f.productId !== productId));
     } catch (err) {
-      toast.error("Đã có lỗi xảy ra");
+      error("Đã có lỗi xảy ra");
     }
   };
 
   const handleAddToCart = async (fav: FavoriteResponse) => {
     try {
-      await addItem({
-        id: fav.productId,
-        name: fav.productName,
-        price: fav.productPrice,
-        image: fav.productImageUrl || "/teddy_bear.png",
-        description: "",
-      }, 1, null);
-      toast.success(`Đã thêm "${fav.productName}" vào giỏ hàng!`);
+      await addItem(
+        {
+          id: fav.productId,
+          name: fav.productName,
+          price: fav.productPrice,
+          image: fav.productImageUrl || "/teddy_bear.png",
+          description: "",
+        },
+        1,
+        null,
+      );
+      success(`Đã thêm "${fav.productName}" vào giỏ hàng!`);
     } catch (err) {
-      toast.error("Thêm vào giỏ hàng thất bại");
+      error("Thêm vào giỏ hàng thất bại");
     }
   };
 
@@ -110,27 +127,39 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F7FF] py-20 px-4 md:px-8" style={{ fontFamily: "'Nunito', sans-serif" }}>
+    <div
+      className="min-h-screen bg-[#F4F7FF] py-20 px-4 md:px-8"
+      style={{ fontFamily: "'Nunito', sans-serif" }}
+    >
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <Link href="/" className="inline-flex items-center gap-2 text-[#17409A] font-bold text-sm mb-4 hover:translate-x-[-4px] transition-transform">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-[#17409A] font-bold text-sm mb-4 hover:translate-x-[-4px] transition-transform"
+            >
               <IoArrowBack />
               Quay lại cửa hàng
             </Link>
             <div className="flex items-center gap-3 mb-2">
               <IoHeart className="text-4xl text-[#FF6B9D]" />
-              <h1 className="text-4xl font-black text-[#1A1A2E]">Danh sách yêu thích</h1>
+              <h1 className="text-4xl font-black text-[#1A1A2E]">
+                Danh sách yêu thích
+              </h1>
             </div>
             <p className="text-[#6B7280] font-semibold">
-              {favorites.length === 0 ? "Bé chưa chọn được món đồ nào" : `Bé có ${favorites.length} món đồ yêu thích`}
+              {favorites.length === 0
+                ? "Bé chưa chọn được món đồ nào"
+                : `Bé có ${favorites.length} món đồ yêu thích`}
             </p>
           </div>
-          
+
           {favorites.length > 0 && (
             <div className="flex items-center gap-2 opacity-20">
-              {[0, 1, 2, 3].map(i => <PawPrint key={i} color="#17409A" />)}
+              {[0, 1, 2, 3].map((i) => (
+                <PawPrint key={i} color="#17409A" />
+              ))}
             </div>
           )}
         </div>
@@ -141,11 +170,17 @@ export default function FavoritesPage() {
             <div className="w-24 h-24 bg-[#F4F7FF] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <IoHeart className="text-4xl text-[#FF6B9D] opacity-30" />
             </div>
-            <h2 className="text-2xl font-black text-[#1A1A2E] mb-3">Chưa có gấu yêu thích!</h2>
+            <h2 className="text-2xl font-black text-[#1A1A2E] mb-3">
+              Chưa có gấu yêu thích!
+            </h2>
             <p className="text-[#6B7280] mb-8 max-w-sm mx-auto">
-              Hãy dạo quanh cửa hàng và nhấn icon trái tim để lưu lại những chú gấu bé thích nhất nhé.
+              Hãy dạo quanh cửa hàng và nhấn icon trái tim để lưu lại những chú
+              gấu bé thích nhất nhé.
             </p>
-            <Link href="/products" className="inline-flex items-center gap-2 bg-[#17409A] text-white px-8 py-4 rounded-2xl font-black hover:shadow-2xl hover:scale-105 transition-all">
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-2 bg-[#17409A] text-white px-8 py-4 rounded-2xl font-black hover:shadow-2xl hover:scale-105 transition-all"
+            >
               Khám phá sản phẩm
               <IoArrowForward />
             </Link>
@@ -153,12 +188,15 @@ export default function FavoritesPage() {
         ) : (
           <div ref={listRef} className="space-y-4">
             {favorites.map((fav) => (
-              <div 
-                key={fav.favoriteId} 
+              <div
+                key={fav.favoriteId}
                 className="fav-item-row group flex flex-col sm:flex-row items-center gap-6 p-6 bg-white rounded-[32px] shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-[#17409A]/10"
               >
                 {/* Product Image */}
-                <Link href={`/products/${fav.productId}`} className="shrink-0 w-32 h-32 rounded-2xl overflow-hidden shadow-md bg-[#F4F7FF]">
+                <Link
+                  href={`/products/${fav.productId}`}
+                  className="shrink-0 w-32 h-32 rounded-2xl overflow-hidden shadow-md bg-[#F4F7FF]"
+                >
                   <Image
                     src={fav.productImageUrl || "/teddy_bear.png"}
                     alt={fav.productName}
@@ -174,18 +212,18 @@ export default function FavoritesPage() {
                     {fav.productName}
                   </h3>
                   <p className="text-[#17409A] font-black text-lg mb-4">
-                    {(fav.productPrice).toLocaleString("vi-VN")} đ
+                    {fav.productPrice.toLocaleString("vi-VN")} đ
                   </p>
-                  
+
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-                    <button 
+                    <button
                       onClick={() => handleAddToCart(fav)}
                       className="flex items-center gap-2 bg-[#17409A] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#4A90E2] transition-colors shadow-md"
                     >
                       <IoCartOutline className="text-lg" />
                       Thêm vào giỏ
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleRemove(fav.productId)}
                       className="flex items-center gap-2 bg-[#FFF0F0] text-[#FF6B6B] px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-[#FF6B6B] hover:text-white transition-all shadow-sm"
                       aria-label="Xóa"
@@ -197,9 +235,15 @@ export default function FavoritesPage() {
 
                 {/* Date Hidden on small */}
                 <div className="hidden lg:block text-right shrink-0">
-                  <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-widest mb-1">Đã thêm vào</p>
+                  <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-widest mb-1">
+                    Đã thêm vào
+                  </p>
                   <p className="text-sm font-black text-[#1A1A2E]">
-                    {new Date(fav.createdAt).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    {new Date(fav.createdAt).toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}
                   </p>
                 </div>
               </div>

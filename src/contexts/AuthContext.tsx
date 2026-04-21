@@ -134,6 +134,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth";
+        }
+      }, 1200);
+    };
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+
     const storedUser =
       localStorage.getItem(STORAGE_KEYS.USER) ??
       localStorage.getItem("dab_user");
@@ -146,6 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setLoading(false);
+
+    return () =>
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
   }, []);
 
   const login = async (email: string, password: string) => {

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   MdInbox,
   MdShoppingBag,
@@ -5,7 +6,7 @@ import {
   MdVerified,
   MdClose,
 } from "react-icons/md";
-import { ORDER_PIPELINE } from "@/data/admin";
+import type { OrderListItem } from "@/types";
 
 const STAGE_ICONS = [
   MdInbox,
@@ -14,13 +15,45 @@ const STAGE_ICONS = [
   MdVerified,
   MdClose,
 ];
-const MAX_COUNT = 312; // "Hoàn thành" — normalization anchor
 
-export default function OrdersPipeline() {
-  const total = ORDER_PIPELINE.reduce((acc, s) => acc + s.count, 0);
+interface OrdersPipelineProps {
+  orders: OrderListItem[];
+  loading?: boolean;
+}
+
+export default function OrdersPipeline({ orders, loading }: OrdersPipelineProps) {
+  const pipelineData = useMemo(() => {
+    const stages = [
+      { label: "Chờ xử lý", color: "#FF8C42", count: 0, statuses: ["PENDING", "PAID", "AWAITING_PAYMENT"] },
+      { label: "Đóng gói", color: "#7C5CFC", count: 0, statuses: ["PROCESSING", "PRINTING", "READY_FOR_PICKUP"] },
+      { label: "Vận chuyển", color: "#14B8A6", count: 0, statuses: ["SHIPPING"] },
+      { label: "Hoàn thành", color: "#4ECDC4", count: 0, statuses: ["COMPLETED"] },
+      { label: "Đã hủy", color: "#FF6B9D", count: 0, statuses: ["CANCELLED", "REFUNDED"] },
+    ];
+
+    orders.forEach((o) => {
+      const stage = stages.find((s) => s.statuses.includes(o.status));
+      if (stage) stage.count++;
+      else if (o.status === "PENDING") stages[0].count++; // Fallback
+    });
+
+    const total = orders.length;
+    const maxCount = Math.max(...stages.map(s => s.count), 1);
+
+    return { stages, total, maxCount };
+  }, [orders]);
 
   return (
-    <div className="bg-white rounded-3xl p-6 h-full flex flex-col">
+    <div className="relative bg-white rounded-3xl p-6 h-full flex flex-col min-h-[300px]">
+      {loading && (
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-50 flex items-center justify-center rounded-3xl">
+          <div className="text-[#17409A] font-black text-xs tracking-widest animate-pulse flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-[#17409A] rounded-full animate-bounce" />
+            ĐANG TẢI...
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -30,17 +63,17 @@ export default function OrdersPipeline() {
           <p className="text-[#1A1A2E] font-black text-lg">Luồng đơn hàng</p>
         </div>
         <span className="text-[10px] font-black text-[#17409A] bg-[#17409A]/8 px-3 py-1.5 rounded-full">
-          {total} đơn
+          {pipelineData.total} đơn
         </span>
       </div>
 
       {/* Pipeline stages */}
       <div className="flex items-stretch flex-1">
-        {ORDER_PIPELINE.map((stage, i) => {
+        {pipelineData.stages.map((stage, i) => {
           const Icon = STAGE_ICONS[i];
-          const pct = Math.round((stage.count / total) * 100);
-          const barW = Math.max(6, Math.round((stage.count / MAX_COUNT) * 100));
-          const isLast = i === ORDER_PIPELINE.length - 1;
+          const pct = pipelineData.total > 0 ? Math.round((stage.count / pipelineData.total) * 100) : 0;
+          const barW = Math.max(6, Math.round((stage.count / pipelineData.maxCount) * 100));
+          const isLast = i === pipelineData.stages.length - 1;
 
           return (
             <div key={stage.label} className="flex items-center flex-1 min-w-0">
@@ -57,13 +90,13 @@ export default function OrdersPipeline() {
                 {/* Count */}
                 <span
                   className="font-black text-[#1A1A2E] leading-none"
-                  style={{ fontSize: stage.count >= 100 ? 26 : 30 }}
+                  style={{ fontSize: stage.count >= 100 ? 24 : 28 }}
                 >
                   {stage.count}
                 </span>
 
                 {/* Label */}
-                <p className="text-[9px] font-black text-[#9CA3AF] tracking-[0.15em] uppercase text-center leading-tight px-0.5">
+                <p className="text-[9px] font-black text-[#9CA3AF] tracking-[0.15em] uppercase text-center leading-tight px-0.5 h-6 flex items-center justify-center">
                   {stage.label}
                 </p>
 
@@ -81,7 +114,7 @@ export default function OrdersPipeline() {
                 {/* Volume bar */}
                 <div className="w-full h-1 bg-[#F4F7FF] rounded-full overflow-hidden mt-0.5">
                   <div
-                    className="h-full rounded-full"
+                    className="h-full rounded-full transition-all duration-700 ease-out"
                     style={{ width: `${barW}%`, backgroundColor: stage.color }}
                   />
                 </div>
@@ -100,7 +133,7 @@ export default function OrdersPipeline() {
 
       {/* Footer note */}
       <p className="text-[#9CA3AF] text-[10px] font-semibold mt-4 pt-4 border-t border-[#F4F7FF]">
-        Cập nhật theo thời gian thực · Tháng 3 / 2026
+        Cập nhật theo thời gian thực · {new Date().toLocaleDateString("vi-VN", { month: "long", year: "numeric" })}
       </p>
     </div>
   );

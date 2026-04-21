@@ -154,36 +154,19 @@ export default function PaymentCancelClient() {
           </div>
         </div>
 
-        {/* Sync Status Bar */}
-        <div
-          className="mt-6 px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-2"
-          style={{
-            backgroundColor: isUpdating ? "#E0F2FE" : "#F0FDF4",
-            color: isUpdating ? "#0369A1" : "#15803D",
-            border: `1px solid ${isUpdating ? "#BAE6FD" : "#DCFCE7"}`,
-          }}
-        >
-          <div
-            className={`w-2 h-2 rounded-full ${isUpdating ? "animate-pulse" : ""}`}
-            style={{ backgroundColor: isUpdating ? "#0EA5E9" : "#22C55E" }}
-          />
-          {statusMessage}
-        </div>
+        {/* Sync Status Bar hidden as per user request */}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-7">
           <CancelInfoRow
             label="Mã đơn hàng"
             value={formatShortOrderCode(orderCode) || "Đang cập nhật"}
           />
-          <CancelInfoRow label="Trạng thái" value={status.toUpperCase()} />
+          {/* Status hidden as per user request */}
           <CancelInfoRow
             label="Mã giao dịch"
             value={transactionId || "Không có dữ liệu"}
           />
-          <CancelInfoRow
-            label="Mã phản hồi cổng thanh toán"
-            value={gatewayCode || "Không có dữ liệu"}
-          />
+          {/* Gateway code hidden as per user request */}
         </div>
 
         <div
@@ -206,14 +189,7 @@ export default function PaymentCancelClient() {
         </div>
 
         <div className="mt-7 flex flex-wrap gap-3">
-          <Link
-            href="/checkout"
-            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#17409A]/20"
-            style={{ backgroundColor: "#17409A", color: "#FFFFFF" }}
-          >
-            <IoRefreshOutline className="text-lg" />
-            Thử lại với đơn hàng mới
-          </Link>
+          {/* Try again button removed as per user request */}
           <Link
             href="/products"
             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95 border-2"

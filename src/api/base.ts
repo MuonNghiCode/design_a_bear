@@ -81,12 +81,13 @@ class BaseApiService {
                     url.includes('/google-login') ||
                     url.includes('/google-complete-profile');
 
-                if (error.response?.status === 401 && !isPublicEndpoint) {
-                    console.error('[API 401]', error.config?.method?.toUpperCase(), error.config?.url, '→ Token expired or invalid role.');
+                if ((error.response?.status === 401 || error.response?.status === 403) && !isPublicEndpoint) {
+                    console.error(`[API ${error.response.status}]`, error.config?.method?.toUpperCase(), error.config?.url, '→ Access denied or Session expired.');
                     if (typeof window !== 'undefined') {
                         localStorage.removeItem(STORAGE_KEYS.TOKEN);
                         localStorage.removeItem(STORAGE_KEYS.USER);
-                        // Dispatch event for Toast notification
+                        localStorage.removeItem('dab_user');
+                        // Dispatch event for Toast notification and Redirect
                         window.dispatchEvent(new CustomEvent('auth:unauthorized'));
                     }
                 }

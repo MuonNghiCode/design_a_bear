@@ -98,7 +98,7 @@ export default function ProductCard({
       }, 1500);
       return false;
     }
-    
+
     if (availableStock !== undefined && availableStock <= 0) {
       warning("Sản phẩm này hiện đang hết hàng.");
       return false;
@@ -167,7 +167,9 @@ export default function ProductCard({
       }}
     >
       {/* ── Background Image (fills entire card) ── */}
-      <div className={`relative aspect-3/4 overflow-hidden transition-all duration-300 ${availableStock === 0 ? "grayscale-70 opacity-90" : ""}`}>
+      <div
+        className={`relative aspect-3/4 overflow-hidden transition-all duration-300 ${availableStock === 0 ? "grayscale-70 opacity-90" : ""}`}
+      >
         <Image
           src={imgSrc}
           alt={name}
@@ -187,9 +189,9 @@ export default function ProductCard({
           </div>
         )}
 
-        {/* Hết hàng Badge */}
+        {/* Hết hàng Badge - Reordered to be behind content but in front of image */}
         {availableStock === 0 && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-30 backdrop-blur-[2px]">
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[25] backdrop-blur-[2px]">
             <div className="bg-[#FF6B9D] text-white px-6 py-2.5 rounded-2xl font-black text-sm tracking-widest shadow-2xl transform -rotate-12 border-2 border-white/30 animate-pulse">
               HẾT HÀNG
             </div>
@@ -207,7 +209,7 @@ export default function ProductCard({
 
         {/* ── Info Content ── */}
         <div
-          className="absolute bottom-0 left-0 right-0 p-5 z-10"
+          className="absolute bottom-0 left-0 right-0 p-5 z-40"
           style={{
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
@@ -233,20 +235,24 @@ export default function ProductCard({
             {/* CTA Button */}
             <div
               className={`flex-1 font-bold text-sm text-center py-3 rounded-xl transition-all duration-200 group-hover:shadow-lg cursor-pointer ${
-                availableStock === 0 
-                  ? "bg-gray-500/50 text-white/50 cursor-not-allowed" 
+                availableStock === 0
+                  ? "bg-white/10 text-white/40 border border-white/20 cursor-not-allowed"
                   : "bg-[#17409A] hover:bg-[#4A90E2] text-white"
               }`}
               onClick={availableStock === 0 ? undefined : handleBuyNow}
             >
-              {addingToCart ? "Đang xử lý..." : availableStock === 0 ? "Hết hàng" : "Mua ngay"}
+              {addingToCart
+                ? "Đang xử lý..."
+                : availableStock === 0
+                  ? "Tạm hết hàng"
+                  : "Mua ngay"}
             </div>
 
             {/* Icon Buttons */}
             <button
-              className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 ${
+              className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 cursor-pointer ${
                 availableStock === 0
-                  ? "bg-gray-500/30 text-white/30 cursor-not-allowed"
+                  ? "bg-white/5 text-white/20 border border-white/10 cursor-not-allowed"
                   : "bg-white/20 hover:bg-white text-white hover:text-[#17409A]"
               }`}
               aria-label="Thêm vào giỏ"
@@ -257,7 +263,7 @@ export default function ProductCard({
             </button>
 
             <button
-              className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 ${
+              className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 cursor-pointer ${
                 favorited
                   ? "bg-[#FF6B9D] text-white"
                   : "bg-white/20 hover:bg-[#FF6B9D] text-white"

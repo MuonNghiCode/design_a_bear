@@ -43,6 +43,7 @@ class PaymentService extends BaseApiService {
   ): Promise<CreatePaymentResponse> {
     return this.post(API_ENDPOINTS.PAYMENTS.CREATE, req, {
       withCredentials: false,
+      timeout: 60000,
     });
   }
 

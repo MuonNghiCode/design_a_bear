@@ -9,8 +9,13 @@ interface ForgotFormProps {
 }
 
 export default function ForgotForm({ onSwitchLogin }: ForgotFormProps) {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Logic for forgot password would go here
+  };
+
   return (
-    <>
+    <form onSubmit={handleSubmit} method="POST">
       <div className="field-item text-center mb-8">
         <h1 className="font-black text-[#1A1A2E] text-3xl leading-tight mb-2">
           Quên Mật Khẩu Rồi À?
@@ -52,6 +57,6 @@ export default function ForgotForm({ onSwitchLogin }: ForgotFormProps) {
           Đăng nhập ngay
         </button>
       </div>
-    </>
+    </form>
   );
 }

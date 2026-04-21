@@ -42,7 +42,7 @@ function mapDetailToItem(p: ProductDetail): ProductItem {
     badgeColor: "#17409A",
     slug: p.slug,
     variants: (p.variants || []).filter((v) => v.available > 0),
-    accessories: (p.accessories || []).filter((a) => a.available > 0),
+    accessories: (p.accessories || []),
   } as ProductItem;
 }
 
@@ -62,20 +62,11 @@ export default function ProductDetailClient({
   const effectiveRules = useMemo(() => {
     // If backend provided specific rules, prioritize them (and filter available)
     if (personalizationRules && personalizationRules.length > 0) {
-      return personalizationRules.filter(
-        (rule) =>
-          !rule.addonProduct ||
-          (rule.addonProduct.onHand !== undefined &&
-            rule.addonProduct.onHand > 0) ||
-          (rule.addonProduct.variants &&
-            rule.addonProduct.variants.some((v) => v.available > 0)),
-      );
+      return personalizationRules;
     }
 
-    // Fallback to mapping linked accessories directly (already filtered in mapDetailToItem)
-    const availableAccessories = (product.accessories || []).filter(
-      (acc) => (acc as any).available > 0,
-    );
+    // Fallback to mapping linked accessories directly
+    const availableAccessories = (product.accessories || []);
 
     if (availableAccessories.length > 0) {
       return availableAccessories.map(

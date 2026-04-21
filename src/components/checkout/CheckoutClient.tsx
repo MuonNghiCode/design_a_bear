@@ -20,6 +20,7 @@ import { StepPayment } from "./StepPayment";
 import { StepConfirm } from "./StepConfirm";
 import { SuccessScreen } from "./SuccessScreen";
 import { OrderSummary } from "./OrderSummary";
+import { ProcessingOverlay } from "./ProcessingOverlay";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -32,6 +33,7 @@ import { inventoryService } from "@/services/inventory.service";
 import { STORAGE_KEYS } from "@/constants";
 import type { Address } from "@/types";
 import { normalizePhoneNumber } from "@/utils/address";
+import { getComponentsForValidation } from "@/utils/stock_utils";
 /*  Main Component */
 export default function CheckoutClient() {
   const [step, setStep] = useState(1);
@@ -463,6 +465,8 @@ export default function CheckoutClient() {
 
   /**
    * Final validation of stock for all items in the cart before placing the order.
+   * "Deep Validation": Manually checks every component (Base + Accessories) 
+   * to ensure no hidden bottlenecks are missed by the server-side calculation.
    */
   const validateCartStock = async (): Promise<boolean> => {
     try {
@@ -471,25 +475,38 @@ export default function CheckoutClient() {
       const newErrors: Record<string, string> = {};
       let hasError = false;
 
-      // Check stock for each item in parallel
-      const stockResults = await Promise.all(
-        items.map(async (item) => {
-          const res = await inventoryService.getByProductId(item.product.id);
-          const totalAvailable =
-            res.isSuccess && res.value
-              ? res.value.reduce((acc, inv) => acc + (inv.onHand || 0), 0)
-              : 0;
-          return { item, totalAvailable };
-        }),
-      );
+      // 1. Collect all unique identities to check
+      const identitiesToCheck: { identityId: string; isAccessory: boolean }[] = [];
+      const itemComponentsMap = new Map<string, { identityId: string; isAccessory: boolean }[]>();
 
-      for (const { item, totalAvailable } of stockResults) {
-        if (totalAvailable <= 0) {
+      for (const item of items) {
+        const components = await getComponentsForValidation(item);
+        identitiesToCheck.push(...components);
+        itemComponentsMap.set(item.cartItemId, components);
+      }
+
+      // 2. Fetch all at once (Simulated Batch)
+      const uniqueIdentities = Array.from(
+        new Set(identitiesToCheck.map((i) => JSON.stringify(i))),
+      ).map((s) => JSON.parse(s));
+
+      const stockMap = await inventoryService.batchCheck(uniqueIdentities);
+
+      // 3. Validate each item against its components' bottlenecks
+      for (const item of items) {
+        const components = itemComponentsMap.get(item.cartItemId) || [];
+        let minAvailable = Infinity;
+
+        for (const comp of components) {
+          const available = stockMap[comp.identityId] ?? 0;
+          minAvailable = Math.min(minAvailable, available);
+        }
+
+        if (minAvailable === Infinity || minAvailable <= 0) {
           newErrors[item.cartItemId] = "Sản phẩm này hiện đã hết hàng.";
           hasError = true;
-        } else if (item.quantity > totalAvailable) {
-          newErrors[item.cartItemId] =
-            `Chênh lệch tồn kho: Chỉ còn ${totalAvailable} sản phẩm.`;
+        } else if (item.quantity > minAvailable) {
+          newErrors[item.cartItemId] = `Chỉnh còn ${minAvailable} sản phẩm sẵn có.`;
           hasError = true;
         }
       }
@@ -503,13 +520,15 @@ export default function CheckoutClient() {
       }
       return true;
     } catch (error) {
-      console.error("Stock validation error:", error);
+      console.error("Deep stock validation error:", error);
       toast.error("Không thể xác thực tồn kho. Vui lòng thử lại.");
       return false;
     } finally {
       setSubmitting(false);
     }
   };
+
+
 
   const goNext = useCallback(() => {
     if (submitting || isSubmittingRef.current) return;
@@ -609,7 +628,7 @@ export default function CheckoutClient() {
               orderId,
               itemName: "Design A Bear",
               quantity: Math.max(1, totalItems),
-              amount: FINAL_TOTAL,
+              amount: orderRes.value.grandTotal, // Use the server's calculated total
               description: safeDescription,
             });
 
@@ -788,6 +807,7 @@ export default function CheckoutClient() {
   }
 
   return (
+    <>
     <div
       className="flex min-h-screen"
       style={{
@@ -1025,5 +1045,7 @@ export default function CheckoutClient() {
         </div>
       )}
     </div>
+    {submitting && step === 3 && <ProcessingOverlay />}
+    </>
   );
 }

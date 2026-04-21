@@ -39,9 +39,10 @@ function mapToCard(item: ProductListItem): ProductCardProps {
 
 export default function ProductsClient({
   initialCategory,
+  initialSearch,
 }: ProductsClientProps) {
   const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearch || "");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   /* ── API state ── */
@@ -57,6 +58,13 @@ export default function ProductsClient({
     }
     setActiveCategory(initialCategory);
   }, [initialCategory]);
+
+  // Sync search từ URL
+  useEffect(() => {
+    if (initialSearch) {
+      setSearchQuery(initialSearch);
+    }
+  }, [initialSearch]);
 
   // Fetch một lần và chỉ giữ BASE_BEAR + COMPLETE_BEAR (ẩn ACCESSORY)
   const fetchPage = useCallback(async () => {

@@ -22,4 +22,5 @@ export interface ProductItem extends ProductCardProps {
 
 export interface ProductsClientProps {
   initialCategory?: string;
+  initialSearch?: string;
 }

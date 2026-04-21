@@ -16,17 +16,17 @@ import {
 import type { Location } from "@/types";
 
 interface Props {
-  productId: string; // This will be AccessoryId if isAccessory is true
-  variantId?: string | null;
+  productId: string; // The parent ID
+  identityId?: string | null; // The specific identifier
   productName: string;
-  isAccessory?: boolean;
+  isAccessory: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 export default function AdjustStockModal({
   productId,
-  variantId,
+  identityId,
   productName,
   isAccessory,
   onClose,
@@ -71,19 +71,12 @@ export default function AdjustStockModal({
 
     setIsSubmitting(true);
     try {
-      const res = isAccessory
-        ? await accessoryService.adjustStock(
-            productId,
-            delta,
-            selectedLocationId,
-          )
-        : await inventoryService.adjustStock(
-            selectedLocationId,
-            delta,
-            productId,
-            variantId,
-            null,
-          );
+      const res = await inventoryService.adjustStock(
+        identityId || productId,
+        isAccessory,
+        delta,
+        selectedLocationId,
+      );
       if (res.isSuccess) {
         toast.success(`Đã điều chỉnh kho cho ${productName}`);
         onSuccess();

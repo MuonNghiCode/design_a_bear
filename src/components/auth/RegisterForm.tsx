@@ -479,6 +479,7 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
 
         <form
           onSubmit={handleGoogleCompleteProfile}
+          method="POST"
           className="field-item grid grid-cols-1 md:grid-cols-2 gap-3"
         >
           <div>
@@ -616,7 +617,7 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
           </p>
         </div>
 
-        <form onSubmit={handleVerifyEmail} className="field-item space-y-4">
+        <form onSubmit={handleVerifyEmail} method="POST" className="field-item space-y-4">
           <InputField
             type="text"
             placeholder="Nhập mã OTP"
@@ -668,6 +669,7 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
 
       <form
         onSubmit={handleSignup}
+        method="POST"
         className="field-item grid grid-cols-1 md:grid-cols-2 gap-3"
       >
         <div>

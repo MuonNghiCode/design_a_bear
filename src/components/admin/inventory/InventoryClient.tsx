@@ -44,13 +44,13 @@ export default function InventoryClient() {
   >({});
   const [selectedItem, setSelectedItem] = useState<{
     id: string;
-    variantId?: string;
+    identityId?: string;
     name: string;
     isAccessory: boolean;
   } | null>(null);
   const [reserveReleaseAction, setReserveReleaseAction] = useState<{
     id: string;
-    variantId?: string;
+    identityId?: string;
     name: string;
     actionType: "RESERVE" | "RELEASE";
     isAccessory: boolean;
@@ -64,7 +64,7 @@ export default function InventoryClient() {
     const promises = itemList.map(async (item) => {
       try {
         const res = item.isAccessory
-          ? await accessoryService.getInventory(item.id)
+          ? await inventoryService.getByAccessoryId(item.id)
           : await inventoryService.getByProductId(item.id);
 
         if (res.isSuccess && res.value) {
@@ -343,7 +343,7 @@ export default function InventoryClient() {
                                   onClick={() =>
                                     setReserveReleaseAction({
                                       id: p.id,
-                                      variantId: invRecords[0]?.variantId,
+                                      identityId: invRecords[0]?.identityId,
                                       name: p.name,
                                       actionType: "RESERVE",
                                       isAccessory: p.isAccessory,
@@ -358,7 +358,7 @@ export default function InventoryClient() {
                                 onClick={() =>
                                   setSelectedItem({
                                     id: p.id,
-                                    variantId: invRecords[0]?.variantId,
+                                    identityId: invRecords[0]?.identityId,
                                     name: p.name,
                                     isAccessory: p.isAccessory,
                                   })
@@ -442,7 +442,7 @@ export default function InventoryClient() {
                                             onClick={() =>
                                               setReserveReleaseAction({
                                                 id: p.id,
-                                                variantId: v.variantId,
+                                                identityId: v.identityId,
                                                 name: `${p.name} - ${v.sizeTag || "Option"}`,
                                                 actionType: "RESERVE",
                                                 isAccessory: false,
@@ -456,7 +456,7 @@ export default function InventoryClient() {
                                             onClick={() =>
                                               setSelectedItem({
                                                 id: p.id,
-                                                variantId: v.variantId,
+                                                identityId: v.identityId,
                                                 name: `${p.name} (${v.sizeTag || "Option"})`,
                                                 isAccessory: false,
                                               })
@@ -545,7 +545,7 @@ export default function InventoryClient() {
       {selectedItem && (
         <AdjustStockModal
           productId={selectedItem.id}
-          variantId={selectedItem.variantId}
+          identityId={selectedItem.identityId}
           productName={selectedItem.name}
           isAccessory={selectedItem.isAccessory}
           onClose={() => setSelectedItem(null)}
@@ -556,7 +556,7 @@ export default function InventoryClient() {
       {reserveReleaseAction && (
         <ReserveReleaseModal
           productId={reserveReleaseAction.id}
-          variantId={reserveReleaseAction.variantId}
+          identityId={reserveReleaseAction.identityId}
           productName={reserveReleaseAction.name}
           actionType={reserveReleaseAction.actionType}
           isAccessory={reserveReleaseAction.isAccessory}

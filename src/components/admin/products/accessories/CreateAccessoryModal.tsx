@@ -23,7 +23,10 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
     name: "",
     description: "",
     sku: "",
-    price: "",
+    targetPrice: "0",
+    baseCost: "0",
+    assemblyCost: "0",
+    stockQuantity: "0",
     weightGram: "100",
     imageUrl: "",
     categoryId: "",
@@ -66,7 +69,10 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
     try {
       const res = await accessoryService.create({
         ...formData,
-        targetPrice: Number(formData.price),
+        targetPrice: Number(formData.targetPrice),
+        baseCost: Number(formData.baseCost),
+        assemblyCost: Number(formData.assemblyCost),
+        stockQuantity: Number(formData.stockQuantity),
         weightGram: Number(formData.weightGram),
       } as any);
 
@@ -151,13 +157,68 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[11px] font-black text-[#6B7280] uppercase">
-                Giá (VND) *
+                Giá bán (VND) *
               </label>
               <input
                 required
                 type="number"
-                name="price"
-                value={formData.price}
+                name="targetPrice"
+                value={formData.targetPrice}
+                onChange={handleChange}
+                className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-black text-[#6B7280] uppercase">
+                Số lượng ban đầu *
+              </label>
+              <input
+                required
+                type="number"
+                name="stockQuantity"
+                value={formData.stockQuantity}
+                onChange={handleChange}
+                className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-black text-[#6B7280] uppercase">
+                Giá vốn (VND)
+              </label>
+              <input
+                type="number"
+                name="baseCost"
+                value={formData.baseCost}
+                onChange={handleChange}
+                className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-black text-[#6B7280] uppercase">
+                Giá lắp ráp (VND)
+              </label>
+              <input
+                type="number"
+                name="assemblyCost"
+                value={formData.assemblyCost}
+                onChange={handleChange}
+                className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-black text-[#6B7280] uppercase">
+                Khối lượng (Gram)
+              </label>
+              <input
+                type="number"
+                name="weightGram"
+                value={formData.weightGram}
                 onChange={handleChange}
                 className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
               />

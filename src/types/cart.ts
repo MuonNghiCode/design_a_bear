@@ -13,6 +13,8 @@ export interface CartItem {
     price: number;
     image?: string;
   }[];
+  baseVariantId?: string;
+  availableStock?: number;
 }
 
 export interface CartContextType {

@@ -56,7 +56,7 @@ export default function LoginForm({
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} method="POST">
       <div className="field-item text-center mb-8">
         <h1 className="font-black text-[#1A1A2E] text-3xl leading-tight mb-2">
           Chào mừng bạn trở lại

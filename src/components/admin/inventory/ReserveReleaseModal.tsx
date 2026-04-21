@@ -12,18 +12,18 @@ import { inventoryService, locationService } from "@/services";
 import type { Location } from "@/types";
 
 interface Props {
-  productId: string; // This will be AccessoryId if isAccessory is true
-  variantId?: string | null;
+  productId: string; // The parent ID
+  identityId?: string | null; // The specific identifier
   productName: string;
   actionType: "RESERVE" | "RELEASE";
-  isAccessory?: boolean;
+  isAccessory: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 export default function ReserveReleaseModal({
   productId,
-  variantId,
+  identityId,
   productName,
   actionType,
   isAccessory,
@@ -60,10 +60,6 @@ export default function ReserveReleaseModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isAccessory) {
-      toast.error("Thao tác tạm khóa/giải phóng không hỗ trợ cho phụ kiện");
-      return;
-    }
     if (!selectedLocationId) {
       toast.error("Vui lòng chọn kho hàng");
       return;
@@ -75,20 +71,20 @@ export default function ReserveReleaseModal({
 
     setIsSubmitting(true);
     try {
+      const targetId = identityId || productId;
+      
       const res = isReserve
         ? await inventoryService.reserveStock(
-            selectedLocationId,
+            targetId,
+            isAccessory,
             quantity,
-            isAccessory ? null : productId,
-            variantId,
-            isAccessory ? productId : null,
+            selectedLocationId,
           )
         : await inventoryService.releaseReservation(
-            selectedLocationId,
+            targetId,
+            isAccessory,
             quantity,
-            isAccessory ? null : productId,
-            variantId,
-            isAccessory ? productId : null,
+            selectedLocationId,
           );
 
       if (res.isSuccess) {

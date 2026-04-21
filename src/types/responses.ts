@@ -331,6 +331,7 @@ export interface CartItem {
   variantNameSnapshot?: string | null;
   productSlug: string;
   productType: string;
+  availableStock?: number;
 }
 
 export interface Cart {

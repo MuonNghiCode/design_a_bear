@@ -58,6 +58,7 @@ function mapApiToUI(
       previousItem?.sizeTag,
     sizeDetails: previousItem?.sizeDetails, // Often found in variant description if available
     accessories: previousItem?.accessories, // Fallback to previous if available
+    availableStock: apiItem.availableStock,
   };
 }
 
@@ -228,6 +229,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                   sizeTag,
                   sizeDetails,
                   accessories,
+                  availableStock: addRes.availableStock,
                 },
                 ...prev,
               ];

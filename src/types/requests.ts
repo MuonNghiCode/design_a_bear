@@ -69,6 +69,7 @@ export interface GetProductsRequest {
   pageSize?: number;
   productType?: string;
   sortBy?: string;
+  searchTerm?: string;
 }
 
 export interface GetProductReviewsRequest {

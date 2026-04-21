@@ -13,6 +13,7 @@ export interface CartItem {
     price: number;
     image?: string;
   }[];
+  availableStock?: number;
 }
 
 export interface CartContextType {

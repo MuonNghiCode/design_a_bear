@@ -62,8 +62,9 @@ type JwtPayload = {
   id?: string;
   email?: string;
   fullname?: string;
-  [ROLE_CLAIM]?: string;
-  role?: string;
+  [ROLE_CLAIM]?: string | number;
+  role?: string | number;
+  role_name?: string;
 };
 
 function decodeJwtPayload(token: string): JwtPayload | null {
@@ -80,10 +81,17 @@ function decodeJwtPayload(token: string): JwtPayload | null {
   }
 }
 
-function mapRole(rawRole?: string): UserRole {
-  if (!rawRole) return "user";
-  if (rawRole === "1" || rawRole.toLowerCase() === "admin") return "admin";
-  if (rawRole === "2" || rawRole.toLowerCase() === "staff") return "staff";
+function mapRole(rawRole?: string | number, roleName?: string): UserRole {
+  if (!rawRole && !roleName) return "user";
+
+  const roleValue = rawRole !== undefined ? String(rawRole).toLowerCase() : "";
+  const nameValue = roleName ? roleName.toLowerCase() : "";
+
+  if (roleValue === "1" || roleValue === "admin" || nameValue === "admin")
+    return "admin";
+  if (roleValue === "2" || roleValue === "staff" || nameValue === "staff")
+    return "staff";
+
   return "user";
 }
 
@@ -92,18 +100,29 @@ function buildUserFromToken(token: string): User | null {
   if (!payload) return null;
 
   const roleValue = payload[ROLE_CLAIM] ?? payload.role;
+  const roleName = payload.role_name;
+
+  console.log("[Auth] Decoding Token Payload:", {
+    email: payload.email,
+    roleValue,
+    roleName,
+  });
+
   const email = payload.email ?? "";
   const id = payload.id ?? email;
   if (!id || !email) return null;
+
+  const role = mapRole(roleValue, roleName);
+  console.log("[Auth] Mapped Role:", role);
 
   return {
     id,
     email,
     name: payload.fullname ?? email,
-    role: mapRole(roleValue),
+    role,
     avatar: "/teddy_bear.png",
   };
-}
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

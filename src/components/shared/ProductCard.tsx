@@ -20,6 +20,7 @@ type CartPayload = {
 export interface ProductCardProps {
   id: string;
   name: string;
+  slug?: string;
   variantName?: string;
   description: string;
   price: number;
@@ -37,6 +38,7 @@ function formatPrice(price: number): string {
 export default function ProductCard({
   id,
   name,
+  slug,
   description,
   price,
   image,
@@ -45,7 +47,7 @@ export default function ProductCard({
   href,
   availableStock,
 }: ProductCardProps) {
-  const productLink = href || `/products/${id}`;
+  const productLink = href || `/products/${slug || id}`;
   const { isAuthenticated } = useAuth();
   const { addItem } = useCart();
   const { warning, success, error } = useToast();

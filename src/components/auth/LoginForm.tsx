@@ -30,14 +30,22 @@ export default function LoginForm({
     try {
       await login(email, password);
       success("Đăng nhập thành công");
+      
       // AuthContext now stores role — read from localStorage to redirect
       const stored = localStorage.getItem("dab_user");
       const user = stored ? JSON.parse(stored) : null;
+      
+      console.log("[Auth] User data from storage:", user);
+      console.log("[Auth] Redirecting based on role:", user?.role);
+
       if (user?.role === "admin") {
+        console.log("[Auth] Route: /admin");
         router.push("/admin");
       } else if (user?.role === "staff") {
+        console.log("[Auth] Route: /staff");
         router.push("/staff");
       } else {
+        console.log("[Auth] Route: /");
         router.push("/");
       }
     } catch (err: unknown) {

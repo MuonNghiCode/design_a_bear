@@ -16,6 +16,7 @@ declare global {
           initialize: (config: {
             client_id: string;
             callback: (response: { credential?: string }) => void;
+            use_fedcm_for_prompt?: boolean;
           }) => void;
           prompt: (
             callback?: (notification: {
@@ -90,27 +91,28 @@ export default function SocialButtons({
               ),
             );
           }
-        }, 15000);
+        }, 60000); // Increased to 60s for better user experience
 
-        if (!isGoogleInitialized) {
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: (response) => {
-              if (settled) return;
-              if (response.credential) {
-                settled = true;
-                window.clearTimeout(timeoutId);
-                resolve(response.credential);
-                return;
-              }
-
+        // Re-initialize every time to ensure the current callback with the correct 'settled' closure is used
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          use_fedcm_for_prompt: true, // Modern browser support
+          callback: (response) => {
+            if (settled) return;
+            console.log("[Google Auth] Identity callback received:", response);
+            
+            if (response.credential) {
               settled = true;
               window.clearTimeout(timeoutId);
-              reject(new Error("Google không trả về credential"));
-            },
-          });
-          isGoogleInitialized = true;
-        }
+              resolve(response.credential);
+              return;
+            }
+
+            settled = true;
+            window.clearTimeout(timeoutId);
+            reject(new Error("Google không trả về credential"));
+          },
+        });
 
         window.google.accounts.id.prompt((notification) => {
           if (settled) return;

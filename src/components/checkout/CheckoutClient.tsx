@@ -20,6 +20,7 @@ import { StepPayment } from "./StepPayment";
 import { StepConfirm } from "./StepConfirm";
 import { SuccessScreen } from "./SuccessScreen";
 import { OrderSummary } from "./OrderSummary";
+import { ProcessingOverlay } from "./ProcessingOverlay";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -627,7 +628,7 @@ export default function CheckoutClient() {
               orderId,
               itemName: "Design A Bear",
               quantity: Math.max(1, totalItems),
-              amount: FINAL_TOTAL,
+              amount: orderRes.value.grandTotal, // Use the server's calculated total
               description: safeDescription,
             });
 
@@ -806,6 +807,7 @@ export default function CheckoutClient() {
   }
 
   return (
+    <>
     <div
       className="flex min-h-screen"
       style={{
@@ -1043,5 +1045,7 @@ export default function CheckoutClient() {
         </div>
       )}
     </div>
+    {submitting && step === 3 && <ProcessingOverlay />}
+    </>
   );
 }

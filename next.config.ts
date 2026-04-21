@@ -32,6 +32,7 @@ const nextConfig: NextConfig = {
         hostname: "m.media-amazon.com",
       },
     ],
+    unoptimized: true,
   },
 };
 

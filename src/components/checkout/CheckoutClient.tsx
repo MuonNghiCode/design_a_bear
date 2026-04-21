@@ -465,50 +465,31 @@ export default function CheckoutClient() {
    * Final validation of stock for all items in the cart before placing the order.
    */
   const validateCartStock = async (): Promise<boolean> => {
-    try {
-      setSubmitting(true);
-      setStockErrors({});
-      const newErrors: Record<string, string> = {};
-      let hasError = false;
+    setStockErrors({});
+    const newErrors: Record<string, string> = {};
+    let hasError = false;
 
-      // Check stock for each item in parallel
-      const stockResults = await Promise.all(
-        items.map(async (item) => {
-          const res = await inventoryService.getByProductId(item.product.id);
-          const totalAvailable =
-            res.isSuccess && res.value
-              ? res.value.reduce((acc, inv) => acc + (inv.onHand || 0), 0)
-              : 0;
-          return { item, totalAvailable };
-        }),
-      );
+    for (const item of items) {
+      // Use the server-enriched availableStock property
+      const stock = item.availableStock ?? 0;
 
-      for (const { item, totalAvailable } of stockResults) {
-        if (totalAvailable <= 0) {
-          newErrors[item.cartItemId] = "Sản phẩm này hiện đã hết hàng.";
-          hasError = true;
-        } else if (item.quantity > totalAvailable) {
-          newErrors[item.cartItemId] =
-            `Chênh lệch tồn kho: Chỉ còn ${totalAvailable} sản phẩm.`;
-          hasError = true;
-        }
+      if (stock <= 0) {
+        newErrors[item.cartItemId] = "Sản phẩm này hiện đã hết hàng.";
+        hasError = true;
+      } else if (item.quantity > stock) {
+        newErrors[item.cartItemId] = `Chỉ còn ${stock} sản phẩm sẵn có.`;
+        hasError = true;
       }
-
-      if (hasError) {
-        setStockErrors(newErrors);
-        toast.error(
-          "Có sản phẩm trong giỏ hàng không đủ tồn kho. Vui lòng kiểm tra lại.",
-        );
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error("Stock validation error:", error);
-      toast.error("Không thể xác thực tồn kho. Vui lòng thử lại.");
-      return false;
-    } finally {
-      setSubmitting(false);
     }
+
+    if (hasError) {
+      setStockErrors(newErrors);
+      toast.error(
+        "Có sản phẩm trong giỏ hàng không đủ tồn kho. Vui lòng kiểm tra lại.",
+      );
+      return false;
+    }
+    return true;
   };
 
   const goNext = useCallback(() => {

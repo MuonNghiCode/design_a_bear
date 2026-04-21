@@ -293,6 +293,7 @@ export default function CartDrawer() {
                         width={80}
                         height={80}
                         className="w-full h-full object-cover"
+                        unoptimized={!!item.product.image}
                       />
                     </div>
                   </Link>

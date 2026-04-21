@@ -475,13 +475,14 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                                   className="flex items-center gap-4 p-2 hover:bg-[#F4F7FF] rounded-xl transition-all group"
                                 >
                                   <div className="w-14 h-14 bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-100 group-hover:scale-105 transition-transform duration-300">
-                                    <Image
-                                      src={product.imageUrl || "/placeholder-product.webp"}
-                                      alt={product.name}
-                                      width={56}
-                                      height={56}
-                                      className="object-cover w-full h-full"
-                                    />
+                                      <Image
+                                        src={product.imageUrl || "/placeholder-product.webp"}
+                                        alt={product.name}
+                                        width={56}
+                                        height={56}
+                                        className="object-cover w-full h-full"
+                                        unoptimized={!!product.imageUrl}
+                                      />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <h4

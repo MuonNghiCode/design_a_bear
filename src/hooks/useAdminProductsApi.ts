@@ -1,12 +1,16 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { accessoryService } from "@/services/accessory.service";
 import { productService } from "@/services/product.service";
 import type {
   GetProductsRequest,
   GetProductsResponseData,
   CreateProductRequest,
   UpdateProductRequest,
+  AccessoryResponse,
+  CreateAccessoryRequest,
+  UpdateAccessoryRequest,
 } from "@/types";
 
 export function useAdminProductsApi() {
@@ -15,6 +19,8 @@ export function useAdminProductsApi() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [data, setData] = useState<GetProductsResponseData | null>(null);
+  const [accessories, setAccessories] = useState<AccessoryResponse[]>([]);
+  const [accessoriesLoading, setAccessoriesLoading] = useState(false);
 
   const fetchProducts = useCallback(async (params?: GetProductsRequest) => {
     setLoading(true);
@@ -89,5 +95,77 @@ export function useAdminProductsApi() {
     }
   }, []);
 
-  return { loading, isCreating, isUpdating, isDeleting, data, fetchProducts, createProduct, updateProduct, deleteProduct };
+  const fetchAccessories = useCallback(async () => {
+    setAccessoriesLoading(true);
+    try {
+      const res = await accessoryService.getAll();
+      if (res.isSuccess && res.value) {
+        setAccessories(res.value);
+        return res.value;
+      }
+      return [];
+    } catch (err) {
+      console.error("Error fetching accessories", err);
+      return [];
+    } finally {
+      setAccessoriesLoading(false);
+    }
+  }, []);
+
+  const createAccessory = useCallback(async (payload: CreateAccessoryRequest) => {
+    setIsCreating(true);
+    try {
+      const res = await accessoryService.create(payload as any);
+      return res.isSuccess;
+    } catch (err) {
+      console.error("Error creating accessory", err);
+      return false;
+    } finally {
+      setIsCreating(false);
+    }
+  }, []);
+
+  const updateAccessory = useCallback(async (id: string, payload: UpdateAccessoryRequest) => {
+    setIsUpdating(true);
+    try {
+      const res = await accessoryService.update(id, payload as any);
+      return res.isSuccess;
+    } catch (err) {
+      console.error("Error updating accessory", err);
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  }, []);
+
+  const deleteAccessory = useCallback(async (id: string) => {
+    setIsDeleting(true);
+    try {
+      const res = await accessoryService.deleteAccessory(id);
+      return res.isSuccess;
+    } catch (err) {
+      console.error("Error deleting accessory", err);
+      return false;
+    } finally {
+      setIsDeleting(false);
+    }
+  }, []);
+
+  return {
+    loading,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    data,
+    accessories,
+    accessoriesLoading,
+    fetchProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    fetchAccessories,
+    createAccessory,
+    updateAccessory,
+    deleteAccessory,
+  };
 }

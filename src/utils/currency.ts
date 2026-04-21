@@ -5,7 +5,8 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-export function formatPrice(amount: number): string {
+export function formatPrice(amount: number | null | undefined): string {
+  if (amount === undefined || amount === null) return "0 vnđ";
   return amount.toLocaleString("vi-VN") + " vnđ";
 }
 

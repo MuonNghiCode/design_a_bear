@@ -210,15 +210,20 @@ export default function CartDrawer() {
         try {
           const results = await Promise.all(
             items.map(async (item) => {
-              const res = await inventoryService.getByProductId(item.product.id);
-              const total = res.isSuccess && res.value
-                ? res.value.reduce((acc, inv) => acc + (inv.quantityAvailable || 0), 0)
-                : 0;
+              const res = await inventoryService.getByProductId(
+                item.product.id,
+              );
+              const total =
+                res.isSuccess && res.value
+                  ? res.value.reduce((acc, inv) => acc + (inv.onHand || 0), 0)
+                  : 0;
               return { id: item.product.id, total };
-            })
+            }),
           );
           const newMap: Record<string, number> = {};
-          results.forEach(r => { newMap[r.id] = r.total; });
+          results.forEach((r) => {
+            newMap[r.id] = r.total;
+          });
           setInventoryMap(newMap);
         } catch (err) {
           console.error("Failed to fetch cart stock:", err);
@@ -352,29 +357,66 @@ export default function CartDrawer() {
                             {item.product.name}
                           </p>
                         </Link>
-                        
-                        {/* Stock Status */}
-                        {!loadingStock && inventoryMap[item.product.id] !== undefined && (
-                          <div className="mt-1">
-                            {inventoryMap[item.product.id] <= 0 ? (
-                              <p className="text-[10px] font-bold text-[#FF6B9D] animate-pulse">
-                                Sản phẩm hiện đã hết hàng
-                              </p>
-                            ) : item.quantity > inventoryMap[item.product.id] ? (
-                              <p className="text-[10px] font-bold text-[#FF8C42]">
-                                Chỉ còn {inventoryMap[item.product.id]} sản phẩm sẵn có
-                              </p>
-                            ) : inventoryMap[item.product.id] < 5 ? (
-                               <p className="text-[10px] font-bold text-[#FF8C42]">
-                                Sắp hết hàng: Chỉ còn {inventoryMap[item.product.id]} chiếc
-                              </p>
-                            ) : null}
+
+                        {/* Build Details (Size & Accessories) */}
+                        {(item.sizeTag || (item.accessories && item.accessories.length > 0)) && (
+                          <div className="mt-1.5 space-y-1.5">
+                            {item.sizeTag && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] font-black uppercase tracking-wider text-[#9CA3AF]">
+                                  Size:
+                                </span>
+                                <span className="text-[11px] font-black text-[#17409A]">
+                                  {item.sizeTag} {item.sizeDetails && <span className="text-[9px] font-bold text-[#9CA3AF] ml-1">({item.sizeDetails})</span>}
+                                </span>
+                              </div>
+                            )}
+                            {item.accessories && item.accessories.length > 0 && (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-[9px] font-black uppercase tracking-wider text-[#9CA3AF]">
+                                  Phụ kiện:
+                                </span>
+                                <div className="space-y-0.5">
+                                  {item.accessories.map((acc, idx) => (
+                                    <p key={idx} className="text-[10px] font-bold text-[#4B5563] flex items-start gap-1">
+                                      <span className="text-[#17409A]">•</span>
+                                      {acc.name}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
+
+                        {/* Stock Status */}
+                        {!loadingStock &&
+                          inventoryMap[item.product.id] !== undefined && (
+                            <div className="mt-1">
+                              {inventoryMap[item.product.id] <= 0 ? (
+                                <p className="text-[10px] font-bold text-[#FF6B9D] animate-pulse">
+                                  Sản phẩm hiện đã hết hàng
+                                </p>
+                              ) : item.quantity >
+                                inventoryMap[item.product.id] ? (
+                                <p className="text-[10px] font-bold text-[#FF8C42]">
+                                  Chỉ còn {inventoryMap[item.product.id]} sản
+                                  phẩm sẵn có
+                                </p>
+                              ) : inventoryMap[item.product.id] < 5 ? (
+                                <p className="text-[10px] font-bold text-[#FF8C42]">
+                                  Sắp hết hàng: Chỉ còn{" "}
+                                  {inventoryMap[item.product.id]} chiếc
+                                </p>
+                              ) : null}
+                            </div>
+                          )}
                       </div>
 
                       <button
-                        onClick={() => item.cartItemId && removeItem(item.cartItemId)}
+                        onClick={() =>
+                          item.cartItemId && removeItem(item.cartItemId)
+                        }
                         className="shrink-0 w-7 h-7 rounded-xl flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
                         style={{ backgroundColor: "#FFF0F0", color: "#FF6B6B" }}
                         aria-label="Xóa sản phẩm"
@@ -400,7 +442,8 @@ export default function CartDrawer() {
                       >
                         <button
                           onClick={() =>
-                            item.cartItemId && updateQuantity(item.cartItemId, item.quantity - 1)
+                            item.cartItemId &&
+                            updateQuantity(item.cartItemId, item.quantity - 1)
                           }
                           className="w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110"
                           style={{
@@ -420,11 +463,18 @@ export default function CartDrawer() {
                         </span>
                         <button
                           onClick={() =>
-                            item.cartItemId && updateQuantity(item.cartItemId, item.quantity + 1)
+                            item.cartItemId &&
+                            updateQuantity(item.cartItemId, item.quantity + 1)
                           }
-                          disabled={!loadingStock && inventoryMap[item.product.id] !== undefined && item.quantity >= inventoryMap[item.product.id]}
+                          disabled={
+                            !loadingStock &&
+                            inventoryMap[item.product.id] !== undefined &&
+                            item.quantity >= inventoryMap[item.product.id]
+                          }
                           className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110 ${
-                            !loadingStock && inventoryMap[item.product.id] !== undefined && item.quantity >= inventoryMap[item.product.id]
+                            !loadingStock &&
+                            inventoryMap[item.product.id] !== undefined &&
+                            item.quantity >= inventoryMap[item.product.id]
                               ? "opacity-30 cursor-not-allowed"
                               : ""
                           }`}
@@ -497,9 +547,14 @@ export default function CartDrawer() {
               href="/checkout"
               onClick={animateClose}
               className={`w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 ${
-                items.some(item => !loadingStock && inventoryMap[item.product.id] !== undefined && inventoryMap[item.product.id] < item.quantity)
-                ? "opacity-50 cursor-not-allowed pointer-events-none"
-                : ""
+                items.some(
+                  (item) =>
+                    !loadingStock &&
+                    inventoryMap[item.product.id] !== undefined &&
+                    inventoryMap[item.product.id] < item.quantity,
+                )
+                  ? "opacity-50 cursor-not-allowed pointer-events-none"
+                  : ""
               }`}
               style={{
                 backgroundColor: "#17409A",

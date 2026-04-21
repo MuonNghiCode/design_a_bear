@@ -128,21 +128,35 @@ export interface CreateProductMediaRequest {
   sortOrder: number;
 }
 
+export interface CreateProductVariantRequest {
+  sku: string;
+  price: number;
+  weightGram: number;
+  sizeTag: string; // XS, S, M, L, XL, XXL, OS
+  sizeDescription: string; // Real dimensions e.g. "25cm"
+  baseCost: number;
+  assemblyCost: number;
+  stockQuantity: number;
+}
+
 export interface CreateProductRequest {
   name: string;
   slug: string;
   productType: string;
   description: string;
-  model3DUrl: string;
   isPersonalizable: boolean;
   isActive: boolean;
   price: number;
   sku: string;
   weightGram: number;
+  stockQuantity: number;
+  model3DUrl?: string;
   categoryIds: string[];
   characterIds: string[];
+  accessoryIds: string[];
   media: CreateProductMediaRequest[];
   comboImages?: CreateProductComboImageRequest[];
+  variants?: CreateProductVariantRequest[];
 }
 
 export interface CreateProductComboImageRequest {
@@ -186,6 +200,7 @@ export interface CreateCartRequest {
 export interface AddToCartRequest {
   cartId: string;
   productId: string;
+  variantId?: string | null;
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
@@ -293,3 +308,17 @@ export interface GetRevenueReportRequest {
 export interface ToggleFavoriteRequest {
   productId: string;
 }
+
+/* ── Accessory API Requests ── */
+
+export interface CreateAccessoryRequest {
+  name: string;
+  description: string;
+  sku: string;
+  price: number;
+  weightGram: number;
+  imageUrl: string;
+  categoryId: string;
+}
+
+export type UpdateAccessoryRequest = Partial<CreateAccessoryRequest>;

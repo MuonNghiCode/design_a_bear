@@ -5,11 +5,26 @@ export interface CartItem {
   buildId?: string | null;
   product: ProductCardProps;
   quantity: number;
+  sizeTag?: string;
+  sizeDetails?: string;
+  accessories?: {
+    id: string;
+    name: string;
+    price: number;
+    image?: string;
+  }[];
 }
 
 export interface CartContextType {
   items: CartItem[];
-  addItem: (product: ProductCardProps, quantity?: number, buildId?: string | null) => Promise<void>;
+  addItem: (
+    product: ProductCardProps,
+    quantity?: number,
+    buildId?: string | null,
+    sizeTag?: string,
+    sizeDetails?: string,
+    accessories?: { id: string; name: string; price: number; image?: string }[],
+  ) => Promise<void>;
   removeItem: (cartItemId: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;

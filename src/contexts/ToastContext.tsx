@@ -98,21 +98,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [removeToast],
   );
 
-  // Listen for unauthorized events
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      showToast("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", {
-        type: "error",
-      });
-    };
-
-    window.addEventListener("auth:unauthorized", handleUnauthorized as any);
-    return () =>
-      window.removeEventListener(
-        "auth:unauthorized",
-        handleUnauthorized as any,
-      );
-  }, [showToast]);
 
   const value = useMemo<ToastContextValue>(
     () => ({

@@ -187,9 +187,9 @@ export default function FavoritesPage() {
           </div>
         ) : (
           <div ref={listRef} className="space-y-4">
-            {favorites.map((fav) => (
+            {favorites.map((fav, i) => (
               <div
-                key={fav.favoriteId}
+                key={fav.favoriteId || `${fav.productId}-${i}`}
                 className="fav-item-row group flex flex-col sm:flex-row items-center gap-6 p-6 bg-white rounded-[32px] shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-[#17409A]/10"
               >
                 {/* Product Image */}
@@ -211,9 +211,6 @@ export default function FavoritesPage() {
                   <h3 className="text-xl font-black text-[#1A1A2E] mb-1 truncate">
                     {fav.productName}
                   </h3>
-                  <p className="text-[#17409A] font-black text-lg mb-4">
-                    {fav.productPrice.toLocaleString("vi-VN")} đ
-                  </p>
 
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
                     <button

@@ -20,12 +20,14 @@ import {
 import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
-import type { ProductListItem, ProductDetail } from "@/types";
+import type { ProductListItem, ProductDetail, AccessoryResponse } from "@/types";
 import { productService } from "@/services/product.service";
 
 import CreateProductModal from "./CreateProductModal";
 import EditProductModal from "./EditProductModal";
 import ProductDetailModal from "./ProductDetailModal";
+import CreateAccessoryModal from "./accessories/CreateAccessoryModal";
+import EditAccessoryModal from "./accessories/EditAccessoryModal";
 
 type ViewMode = "grid" | "table";
 type CategoryFilter = "all" | "bear" | "accessory";
@@ -348,24 +350,52 @@ function ProductRow({
 }
 
 const mapProductToAdmin = (p: ProductListItem, index: number): ProductAdmin => {
-  const badgeColors = ["#17409A", "#7C5CFC", "#4ECDC4", "#FF8C42", "#FF6B9D", "#FFD93D"];
+  const badgeColors = [
+    "#17409A",
+    "#7C5CFC",
+    "#4ECDC4",
+    "#FF8C42",
+    "#FF6B9D",
+    "#FFD93D",
+  ];
   const color = badgeColors[index % badgeColors.length];
-  const category = p.productType === "ACCESSORY" ? "accessory" : "bear";
-  const badgeName = p.productType === "ACCESSORY" ? "Phụ kiện" : "Gấu";
 
   return {
     id: p.productId,
     name: p.name,
     imageUrl: p.imageUrl || "/teddy_bear.png",
-    badge: badgeName,
+    badge: "Gấu",
     badgeColor: color,
-    category,
+    category: "bear",
     price: p.price,
-    stock: 50,
+    stock: 50, // This should normally come from inventory but using 50 as placeholder
     sold: p.totalSales,
     rating: p.averageRating,
     status: p.isActive ? "active" : "draft",
     popular: p.viewCountIn10Min > 5,
+  };
+};
+
+const mapAccessoryToAdmin = (
+  a: AccessoryResponse,
+  index: number,
+): ProductAdmin => {
+  const badgeColors = ["#FF8C42", "#FF6B9D", "#7C5CFC", "#17409A"];
+  const color = badgeColors[index % badgeColors.length];
+
+  return {
+    id: a.accessoryId,
+    name: a.name,
+    imageUrl: a.imageUrl || "/accessory_placeholder.png",
+    badge: "Phụ kiện",
+    badgeColor: color,
+    category: "accessory",
+    price: a.targetPrice,
+    stock: 100,
+    sold: 0,
+    rating: 0,
+    status: "active",
+    popular: false,
   };
 };
 
@@ -375,23 +405,41 @@ export default function ProductsGrid() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null,
+  );
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [isCreateAccessoryModalOpen, setCreateAccessoryModalOpen] =
+    useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(null);
+  const [editingAccessoryId, setEditingAccessoryId] = useState<string | null>(
+    null,
+  );
+  const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(
+    null,
+  );
 
   const {
     data,
+    loading,
+    accessories,
+    accessoriesLoading,
     fetchProducts,
+    fetchAccessories,
     deleteProduct,
+    deleteAccessory,
     isDeleting,
   } = useAdminProductsApi();
   const { success, error: toastError } = useToast();
 
   const handleRefresh = useCallback(() => {
-    fetchProducts({ pageIndex: 1, pageSize: 50 });
-  }, [fetchProducts]);
+    if (catFilter === "accessory") {
+      fetchAccessories();
+    } else {
+      fetchProducts({ pageIndex: 1, pageSize: 50 });
+    }
+  }, [catFilter, fetchProducts, fetchAccessories]);
 
   useEffect(() => {
     handleRefresh();
@@ -403,47 +451,60 @@ export default function ProductsGrid() {
 
   const handleDeleteConfirm = async () => {
     if (!deletingProduct) return;
-    const ok = await deleteProduct(deletingProduct.id);
+    const ok =
+      deletingProduct.category === "accessory"
+        ? await deleteAccessory(deletingProduct.id)
+        : await deleteProduct(deletingProduct.id);
+
     if (ok) {
-      success("Xóa sản phẩm thành công!");
+      success("Xóa thành công!");
       handleRefresh();
     } else {
-      toastError("Có lỗi xảy ra khi xóa sản phẩm.");
+      toastError("Có lỗi xảy ra khi xóa.");
     }
     setDeletingProduct(null);
   };
 
   const mappedData = useMemo(() => {
+    if (catFilter === "accessory") {
+      return accessories.map(mapAccessoryToAdmin);
+    }
     if (!data?.items) return [];
     return data.items.map(mapProductToAdmin);
-  }, [data]);
+  }, [data, accessories, catFilter]);
 
   const catCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: mappedData.length };
-    mappedData.forEach(p => {
-      counts[p.category] = (counts[p.category] ?? 0) + 1;
-    });
-    return counts;
-  }, [mappedData]);
+    return {
+      all: (data?.totalCount ?? 0) + accessories.length,
+      bear: data?.totalCount ?? 0,
+      accessory: accessories.length,
+    };
+  }, [data, accessories]);
 
-  const filtered = useMemo(() =>
-    mappedData.filter(p => {
-      if (catFilter !== "all" && p.category !== catFilter) return false;
-      if (statusFilter !== "all" && p.status !== statusFilter) return false;
-      if (debouncedSearch) {
-        const q = debouncedSearch.toLowerCase();
-        return p.name.toLowerCase().includes(q) || (p.badge ?? "").toLowerCase().includes(q);
-      }
-      return true;
-    }),
-    [mappedData, catFilter, statusFilter, debouncedSearch]
+  const filtered = useMemo(
+    () =>
+      mappedData.filter((p) => {
+        if (catFilter !== "all" && p.category !== catFilter) return false;
+        if (statusFilter !== "all" && p.status !== statusFilter) return false;
+        if (debouncedSearch) {
+          const q = debouncedSearch.toLowerCase();
+          return (
+            p.name.toLowerCase().includes(q) ||
+            (p.badge ?? "").toLowerCase().includes(q)
+          );
+        }
+        return true;
+      }),
+    [mappedData, catFilter, statusFilter, debouncedSearch],
   );
 
   return (
     <div className="bg-white rounded-3xl p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
-          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">Danh mục</p>
+          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
+            Danh mục
+          </p>
           <p className="text-[#1A1A2E] font-black text-xl">Quản lý sản phẩm</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -462,14 +523,26 @@ export default function ProductsGrid() {
                 key={m}
                 onClick={() => setViewMode(m)}
                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                  viewMode === m ? "bg-[#17409A] text-white shadow-sm" : "text-[#9CA3AF] hover:text-[#6B7280]"
+                  viewMode === m
+                    ? "bg-[#17409A] text-white shadow-sm"
+                    : "text-[#9CA3AF] hover:text-[#6B7280]"
                 }`}
               >
-                {m === "grid" ? <MdGridView className="text-base" /> : <MdTableRows className="text-base" />}
+                {m === "grid" ? (
+                  <MdGridView className="text-base" />
+                ) : (
+                  <MdTableRows className="text-base" />
+                )}
               </button>
             ))}
           </div>
-          <button onClick={() => setCreateModalOpen(true)} className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap">
+          <button
+            onClick={() => {
+              if (catFilter === "accessory") setCreateAccessoryModalOpen(true);
+              else setCreateModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap"
+          >
             <MdAdd className="text-base" /> Thêm mới
           </button>
         </div>
@@ -483,11 +556,15 @@ export default function ProductsGrid() {
               key={key}
               onClick={() => setCatFilter(key)}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all duration-200 ${
-                active ? "bg-[#17409A] text-white shadow-sm" : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEF9]"
+                active
+                  ? "bg-[#17409A] text-white shadow-sm"
+                  : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEF9]"
               }`}
             >
               {label}
-              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : "bg-white text-[#9CA3AF]"}`}>
+              <span
+                className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : "bg-white text-[#9CA3AF]"}`}
+              >
                 {catCounts[key] ?? 0}
               </span>
             </button>
@@ -503,13 +580,30 @@ export default function ProductsGrid() {
           { key: "archived", label: "Lưu trữ" },
         ].map(({ key, label }) => {
           const active = statusFilter === key;
-          const cfg = key !== "all" ? STATUS_CFG[key as ProductAdminStatus] : null;
+          const cfg =
+            key !== "all" ? STATUS_CFG[key as ProductAdminStatus] : null;
           return (
             <button
               key={key}
               onClick={() => setStatus(key as any)}
               className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all duration-200 ${active ? "ring-1" : "opacity-70 hover:opacity-100"}`}
-              style={active && cfg ? { color: cfg.color, backgroundColor: cfg.bg, outline: `1px solid ${cfg.color}` } : active ? { color: "#17409A", backgroundColor: "#17409A18", outline: "1px solid #17409A" } : cfg ? { color: cfg.color, backgroundColor: cfg.bg } : { color: "#9CA3AF", backgroundColor: "#F4F7FF" }}
+              style={
+                active && cfg
+                  ? {
+                      color: cfg.color,
+                      backgroundColor: cfg.bg,
+                      outline: `1px solid ${cfg.color}`,
+                    }
+                  : active
+                    ? {
+                        color: "#17409A",
+                        backgroundColor: "#17409A18",
+                        outline: "1px solid #17409A",
+                      }
+                    : cfg
+                      ? { color: cfg.color, backgroundColor: cfg.bg }
+                      : { color: "#9CA3AF", backgroundColor: "#F4F7FF" }
+              }
             >
               {label}
             </button>
@@ -519,12 +613,15 @@ export default function ProductsGrid() {
 
       {viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {filtered.map(p => (
+          {filtered.map((p) => (
             <ProductCard
               key={p.id}
               p={p}
-              onView={p => setSelectedProductId(p.id)}
-              onEdit={p => setEditingProductId(p.id)}
+              onView={(p) => setSelectedProductId(p.id)}
+              onEdit={(p) => {
+                if (p.category === "accessory") setEditingAccessoryId(p.id);
+                else setEditingProductId(p.id);
+              }}
               onDelete={handleDelete}
               isDeleting={isDeleting && deletingProduct?.id === p.id}
             />
@@ -536,7 +633,12 @@ export default function ProductsGrid() {
             <thead>
               <tr>
                 {COL_HEADS.map((h, i) => (
-                  <th key={i} className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4 whitespace-nowrap">{h}</th>
+                  <th
+                    key={i}
+                    className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4 whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -546,8 +648,11 @@ export default function ProductsGrid() {
                   key={p.id}
                   p={p}
                   index={i}
-                  onView={p => setSelectedProductId(p.id)}
-                  onEdit={p => setEditingProductId(p.id)}
+                  onView={(p) => setSelectedProductId(p.id)}
+                  onEdit={(p) => {
+                    if (p.category === "accessory") setEditingAccessoryId(p.id);
+                    else setEditingProductId(p.id);
+                  }}
                   onDelete={handleDelete}
                   isDeleting={isDeleting && deletingProduct?.id === p.id}
                 />
@@ -565,12 +670,30 @@ export default function ProductsGrid() {
         />
       )}
 
+      {isCreateAccessoryModalOpen && (
+        <CreateAccessoryModal
+          onClose={() => setCreateAccessoryModalOpen(false)}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {editingAccessoryId && (
+        <EditAccessoryModal
+          accessoryId={editingAccessoryId}
+          onClose={() => setEditingAccessoryId(null)}
+          onSuccess={handleRefresh}
+        />
+      )}
+
       {editingProductId && (
         <EditProductModal
           productId={editingProductId}
           onClose={() => setEditingProductId(null)}
           onSubmit={async (payload) => {
-            const ok = await productService.updateProduct(editingProductId, payload);
+            const ok = await productService.updateProduct(
+              editingProductId,
+              payload,
+            );
             if (ok.isSuccess) {
               success("Cập nhật thành công");
               handleRefresh();
@@ -600,11 +723,30 @@ export default function ProductsGrid() {
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4">
               <MdDelete className="text-2xl" />
             </div>
-            <h3 className="text-lg font-black text-[#1A1A2E] mb-2">Xác nhận xóa?</h3>
-            <p className="text-sm font-semibold text-[#6B7280] mb-6">Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa sản phẩm <span className="text-[#1A1A2E] font-black">"{deletingProduct.name}"</span>?</p>
+            <h3 className="text-lg font-black text-[#1A1A2E] mb-2">
+              Xác nhận xóa?
+            </h3>
+            <p className="text-sm font-semibold text-[#6B7280] mb-6">
+              Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa sản
+              phẩm{" "}
+              <span className="text-[#1A1A2E] font-black">
+                "{deletingProduct.name}"
+              </span>
+              ?
+            </p>
             <div className="flex gap-3">
-              <button onClick={() => setDeletingProduct(null)} className="flex-1 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E5E7EB] transition-all">Hủy</button>
-              <button onClick={handleDeleteConfirm} className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all">Xóa ngay</button>
+              <button
+                onClick={() => setDeletingProduct(null)}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E5E7EB] transition-all"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all"
+              >
+                Xóa ngay
+              </button>
             </div>
           </div>
         </div>

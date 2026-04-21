@@ -131,9 +131,9 @@ export default function CheckoutClient() {
           if (pendingOrder) {
             try {
               const parsed = JSON.parse(pendingOrder);
-                if (parsed?.orderDetails?.orderId) {
-                  await orderService.cancelOrder(parsed.orderDetails.orderId);
-                }
+              if (parsed?.orderDetails?.orderId) {
+                await orderService.cancelOrder(parsed.orderDetails.orderId);
+              }
             } catch {}
           }
           localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
@@ -477,10 +477,7 @@ export default function CheckoutClient() {
           const res = await inventoryService.getByProductId(item.product.id);
           const totalAvailable =
             res.isSuccess && res.value
-              ? res.value.reduce(
-                  (acc, inv) => acc + (inv.quantityAvailable || 0),
-                  0,
-                )
+              ? res.value.reduce((acc, inv) => acc + (inv.onHand || 0), 0)
               : 0;
           return { item, totalAvailable };
         }),
@@ -568,7 +565,9 @@ export default function CheckoutClient() {
           setSubmitting(true);
 
           // ── Step 3: Skip manual reservation as backend handles it ──
-          console.log("[Checkout] Creating order (Backend will handle reservation)...");
+          console.log(
+            "[Checkout] Creating order (Backend will handle reservation)...",
+          );
 
           // ── Proceed with Order Creation ──
           const addrId = await getOrResolveAddressId();

@@ -29,10 +29,12 @@ export interface ProductCardProps {
   badgeColor?: string;
   href?: string;
   availableStock?: number;
+  productId?: string;
+  variantId?: string;
 }
 
 function formatPrice(price: number): string {
-  return price.toLocaleString("vi-VN") + " đ";
+  return (price ?? 0).toLocaleString("vi-VN") + " đ";
 }
 
 export default function ProductCard({
@@ -239,19 +241,14 @@ export default function ProductCard({
               className={`flex-1 font-bold text-sm text-center py-3 rounded-xl transition-all duration-200 group-hover:shadow-lg cursor-pointer ${
                 availableStock === 0
                   ? "bg-white/10 text-white/40 border border-white/20 cursor-not-allowed"
-                  : "bg-[#17409A] hover:bg-[#4A90E2] text-white"
+                  : "bg-white/10 border border-white/30 text-white hover:bg-[#17409A]"
               }`}
-              onClick={availableStock === 0 ? undefined : handleBuyNow}
             >
-              {addingToCart
-                ? "Đang xử lý..."
-                : availableStock === 0
-                  ? "Tạm hết hàng"
-                  : "Mua ngay"}
+              {availableStock === 0 ? "Tạm hết hàng" : "Xem sản phẩm"}
             </div>
 
             {/* Icon Buttons */}
-            <button
+            {/* <button
               className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 cursor-pointer ${
                 availableStock === 0
                   ? "bg-white/5 text-white/20 border border-white/10 cursor-not-allowed"
@@ -262,7 +259,7 @@ export default function ProductCard({
               disabled={addingToCart || availableStock === 0}
             >
               <IoBagOutline className="text-xl" />
-            </button>
+            </button> */}
 
             <button
               className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 cursor-pointer ${

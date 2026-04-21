@@ -6,7 +6,6 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { type ProductDetail } from "@/types";
 import { type ProductItem } from "@/types/products";
 import { type PersonalizationRule } from "@/types/responses";
-import { inventoryService } from "@/services/inventory.service";
 import ProductImageSection from "./ProductImageSection";
 import ProductInfoPanel from "./ProductInfoPanel";
 import ProductSpecs from "./ProductSpecs";
@@ -42,6 +41,8 @@ function mapDetailToItem(p: ProductDetail): ProductItem {
     characters: (p.characters || []).map((c) => c.name).filter(Boolean),
     badgeColor: "#17409A",
     slug: p.slug,
+    variants: (p.variants || []).filter((v) => v.available > 0),
+    accessories: (p.accessories || []).filter((a) => a.available > 0),
   } as ProductItem;
 }
 
@@ -54,14 +55,63 @@ export default function ProductDetailClient({
   const [selectedAccessories, setSelectedAccessories] = useState<
     PersonalizationRule[]
   >([]);
-  const [availableStock, setAvailableStock] = useState<number | null>(null);
-  const [relatedStockMap, setRelatedStockMap] = useState<
-    Record<string, number>
-  >({});
   const heroRef = useRef<HTMLDivElement>(null);
   const productItem = mapDetailToItem(product);
 
-  // ── Combination Image Logic ──
+  // ── Transform accessories to personalization rules if none provided ──
+  const effectiveRules = useMemo(() => {
+    // If backend provided specific rules, prioritize them (and filter available)
+    if (personalizationRules && personalizationRules.length > 0) {
+      return personalizationRules.filter(
+        (rule) =>
+          !rule.addonProduct ||
+          (rule.addonProduct.onHand !== undefined &&
+            rule.addonProduct.onHand > 0) ||
+          (rule.addonProduct.variants &&
+            rule.addonProduct.variants.some((v) => v.available > 0)),
+      );
+    }
+
+    // Fallback to mapping linked accessories directly (already filtered in mapDetailToItem)
+    const availableAccessories = (product.accessories || []).filter(
+      (acc) => (acc as any).available > 0,
+    );
+
+    if (availableAccessories.length > 0) {
+      return availableAccessories.map(
+        (acc) =>
+          ({
+            ruleId: acc.accessoryId,
+            baseProductId: product.productId,
+            groupId: "linked-accessories",
+            allowedComponentProductId: acc.accessoryId,
+            isRequired: false,
+            maxQuantity: 1,
+            ruleType: "ACCESSORY",
+            addonProduct: {
+              productId: acc.accessoryId,
+              name: acc.name,
+              price: acc.targetPrice,
+              productType: "ACCESSORY",
+              media: acc.imageUrl
+                ? [{ url: acc.imageUrl, altText: acc.name, sortOrder: 1 }]
+                : [],
+              description: acc.description || "",
+              sku: acc.sku,
+              isPersonalizable: false,
+              isActive: true,
+              weightGram: 0,
+              available: acc.available,
+              onHand: acc.onHand,
+              createdAt: acc.createdAt,
+              updatedAt: acc.updatedAt,
+            } as any,
+          }) as PersonalizationRule,
+      );
+    }
+
+    return [];
+  }, [personalizationRules, product.accessories, product.productId]);
   const combinationKey = useMemo(() => {
     // Sort IDs alphabetically and join with |
     // EXCLUDING AI_PROCESSOR from image combination key (per requirement)
@@ -84,56 +134,6 @@ export default function ProductDetailClient({
         ?.imageUrl || null
     );
   }, [product.comboImages, combinationKey]);
-
-  // ── Fetch Stock Quantity ──
-  useEffect(() => {
-    const fetchStock = async () => {
-      try {
-        const res = await inventoryService.getByProductId(product.productId);
-        if (res.isSuccess && res.value) {
-          // Sum quantityAvailable from all locations
-          const total = res.value.reduce(
-            (acc, inv) => acc + (inv.quantityAvailable || 0),
-            0,
-          );
-          setAvailableStock(total);
-        } else {
-          setAvailableStock(0);
-        }
-      } catch (err) {
-        console.error("Failed to fetch stock:", err);
-        setAvailableStock(0);
-      }
-    };
-    fetchStock();
-  }, [product.productId]);
-
-  // ── Fetch Stock for Related Products ──
-  useEffect(() => {
-    if (related.length > 0) {
-      (async () => {
-        try {
-          const results = await Promise.all(
-            related.map(async (p) => {
-              const res = await inventoryService.getTotalAvailable(p.id);
-              return {
-                id: p.id,
-                total:
-                  res.isSuccess && res.value ? res.value.totalAvailable : 0,
-              };
-            }),
-          );
-          const newMap: Record<string, number> = {};
-          results.forEach((r) => {
-            newMap[r.id] = r.total;
-          });
-          setRelatedStockMap(newMap);
-        } catch (err) {
-          console.error("Failed to fetch related stock:", err);
-        }
-      })();
-    }
-  }, [related]);
 
   useEffect(() => {
     if (!heroRef.current) return;
@@ -169,12 +169,11 @@ export default function ProductDetailClient({
           <div className="pd-info-enter w-full lg:w-[45%] lg:sticky lg:top-28">
             <ProductInfoPanel
               product={productItem}
-              personalizationRules={personalizationRules}
+              personalizationRules={effectiveRules}
               quantity={quantity}
               setQuantity={setQuantity}
               selectedAccessories={selectedAccessories}
               setSelectedAccessories={setSelectedAccessories}
-              availableStock={availableStock}
             />
           </div>
         </div>
@@ -199,7 +198,7 @@ export default function ProductDetailClient({
         <ProductRelated
           products={related.map((p) => ({
             ...p,
-            availableStock: relatedStockMap[p.id],
+            availableStock: p.available,
           }))}
         />
       )}

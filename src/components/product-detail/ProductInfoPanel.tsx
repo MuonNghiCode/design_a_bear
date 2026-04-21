@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -163,7 +163,6 @@ interface Props {
   setSelectedAccessories: React.Dispatch<
     React.SetStateAction<PersonalizationRule[]>
   >;
-  availableStock?: number | null;
 }
 export default function ProductInfoPanel({
   product,
@@ -172,7 +171,6 @@ export default function ProductInfoPanel({
   setQuantity,
   selectedAccessories,
   setSelectedAccessories,
-  availableStock,
 }: Props) {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
@@ -184,7 +182,21 @@ export default function ProductInfoPanel({
     loading: favoriteLoading,
   } = useFavorite();
   const [addingToCart, setAddingToCart] = useState(false);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    product.variants && product.variants.length > 0
+      ? product.variants[0].variantId
+      : null,
+  );
+
+  const selectedVariant = useMemo(() => {
+    if (!selectedVariantId || !product.variants) return null;
+    return product.variants.find((v) => v.variantId === selectedVariantId);
+  }, [product.variants, selectedVariantId]);
+
   const accent = product.badgeColor || "#17409A";
+
+  const isOutOfStock =
+    product.variants !== undefined && product.variants.length === 0;
 
   const favorited = isFavorited(product.id);
 
@@ -192,8 +204,14 @@ export default function ProductInfoPanel({
     await toggleFavorite(product.id);
   };
 
+  const currentAvailable = useMemo(() => {
+    return selectedVariant
+      ? selectedVariant.available
+      : (product.available ?? 0);
+  }, [product.available, selectedVariant]);
+
   // Calculate total price
-  const basePrice = product.price;
+  const basePrice = selectedVariant ? selectedVariant.price : product.price;
   const accessoriesPrice = selectedAccessories.reduce(
     (acc, rule) => acc + (rule.addonProduct.price || 0),
     0,
@@ -227,7 +245,10 @@ export default function ProductInfoPanel({
       setAddingToCart(true);
 
       const productId = product.id;
-      const itemName = product.name;
+      const variantId = selectedVariant?.variantId || productId;
+      const itemName = selectedVariant
+        ? `${product.name} (${selectedVariant.sizeTag})`
+        : product.name;
       let targetBuildId: string | null = null;
 
       // 1. If user selected accessories, CREATE A BUILD FIRST
@@ -259,7 +280,7 @@ export default function ProductInfoPanel({
       // 2. ONLY 1 AddToCart REQUEST is needed! We send the buildId.
       await addItem(
         {
-          id: productId,
+          id: variantId,
           name: itemName,
           description:
             selectedAccessories.length > 0
@@ -272,6 +293,14 @@ export default function ProductInfoPanel({
         },
         quantity,
         targetBuildId,
+        selectedVariant?.sizeTag,
+        selectedVariant?.sizeDescription,
+        selectedAccessories.map((acc) => ({
+          id: acc.addonProduct.productId,
+          name: acc.addonProduct.name,
+          price: acc.addonProduct.price,
+          image: acc.addonProduct.imageUrl || undefined,
+        })),
       );
 
       if (goCheckout) {
@@ -316,6 +345,18 @@ export default function ProductInfoPanel({
         </span>
       </nav>
 
+      {/* ── Weight Display (Subtle) ── */}
+      {selectedVariant && (
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">
+            Khối lượng dự kiến:
+          </span>
+          <span className="text-xs font-black text-[#1A1A2E]">
+            {selectedVariant.weightGram}g
+          </span>
+        </div>
+      )}
+
       {/* ── Price (FIRST — unconventional luxury placement) ── */}
       <div>
         <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#9CA3AF] mb-2">
@@ -342,6 +383,50 @@ export default function ProductInfoPanel({
           {product.name}
         </h1>
       </div>
+
+      {/* ── Size Selection Grid ── */}
+      {product.variants && product.variants.length > 1 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-black tracking-[0.2em] uppercase text-[#1A1A2E]">
+              Chọn kích thước
+            </p>
+            {selectedVariant && (
+              <span className="text-[10px] font-bold text-[#6B7280]">
+                {selectedVariant.sizeDescription}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {product.variants.map((v) => {
+              const isSelected = selectedVariantId === v.variantId;
+              return (
+                <button
+                  key={v.variantId}
+                  onClick={() => setSelectedVariantId(v.variantId)}
+                  className={`relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 ${
+                    isSelected
+                      ? "border-[#17409A] bg-[#17409A]/5 ring-4 ring-[#17409A]/10"
+                      : "border-gray-100 bg-white hover:border-[#17409A]/30"
+                  }`}
+                >
+                  <span
+                    className={`text-sm font-black ${isSelected ? "text-[#17409A]" : "text-[#4B5563]"}`}
+                  >
+                    {v.sizeTag}
+                  </span>
+                  <span className="text-[9px] font-bold text-[#9CA3AF] mt-0.5">
+                    {formatPrice(v.price)}
+                  </span>
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#17409A]" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Accessories Rules Checklist ── */}
       {personalizationRules.length > 0 && (
@@ -422,13 +507,9 @@ export default function ProductInfoPanel({
         <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#17409A]/10 text-[#17409A] tracking-wide">
           {CATEGORY_LABELS[product.category] || product.category}
         </span>
-        {availableStock === null ? (
-          <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-gray-100 text-gray-500 tracking-wide animate-pulse">
-            Đang kiểm tra kho...
-          </span>
-        ) : availableStock > 0 ? (
+        {currentAvailable > 0 ? (
           <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#4ECDC4]/20 text-[#059669] tracking-wide border border-[#4ECDC4]/30">
-            Sẵn có: {availableStock} sản phẩm
+            Sẵn có: {currentAvailable} sản phẩm
           </span>
         ) : (
           <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#FF6B9D]/15 text-[#FF6B9D] tracking-wide border border-[#FF6B9D]/30">
@@ -481,7 +562,13 @@ export default function ProductInfoPanel({
       <div className="h-px bg-[#E5E7EB]" />
 
       {/* ── Quantity selector ── */}
-      <div className={availableStock !== null && availableStock <= 0 ? "opacity-40 grayscale pointer-events-none" : ""}>
+      <div
+        className={
+          currentAvailable <= 0
+            ? "opacity-40 grayscale pointer-events-none"
+            : ""
+        }
+      >
         <p className="text-xs font-black tracking-[0.25em] uppercase text-[#1A1A2E] mb-3">
           Số lượng
         </p>
@@ -489,9 +576,11 @@ export default function ProductInfoPanel({
           <button
             type="button"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            disabled={quantity <= 1 || (availableStock !== null && availableStock <= 0)}
+            disabled={quantity <= 1 || currentAvailable <= 0}
             className={`w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer ${
-              (quantity <= 1 || (availableStock !== null && availableStock <= 0)) ? "opacity-30 cursor-not-allowed" : ""
+              quantity <= 1 || currentAvailable <= 0
+                ? "opacity-30 cursor-not-allowed"
+                : ""
             }`}
             aria-label="Giảm số lượng"
           >
@@ -505,22 +594,26 @@ export default function ProductInfoPanel({
           </div>
           <button
             type="button"
-            onClick={() => setQuantity(Math.min(availableStock || 1, quantity + 1))}
-            disabled={availableStock !== null && (quantity >= availableStock || availableStock <= 0)}
+            onClick={() =>
+              setQuantity(Math.min(currentAvailable || 1, quantity + 1))
+            }
+            disabled={quantity >= currentAvailable || currentAvailable <= 0}
             className={`w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer ${
-              (availableStock !== null && (quantity >= availableStock || availableStock <= 0)) ? "opacity-30 cursor-not-allowed" : ""
+              quantity >= currentAvailable || currentAvailable <= 0
+                ? "opacity-30 cursor-not-allowed"
+                : ""
             }`}
             aria-label="Tăng số lượng"
           >
             <IconPlus />
           </button>
         </div>
-        {availableStock !== null && availableStock > 0 && availableStock < 5 && (
+        {currentAvailable > 0 && currentAvailable < 5 && (
           <p className="mt-2 text-xs font-bold" style={{ color: "#FF8C42" }}>
-            Chỉ còn {availableStock} sản phẩm cuối cùng!
+            Chỉ còn {currentAvailable} sản phẩm cuối cùng!
           </p>
         )}
-        {availableStock === 0 && (
+        {currentAvailable <= 0 && (
           <p className="mt-2 text-xs font-bold text-[#FF6B9D]">
             Sản phẩm hiện đang tạm hết hàng.
           </p>
@@ -529,26 +622,32 @@ export default function ProductInfoPanel({
 
       {/* ── CTA Buttons ── */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <button
-          type="button"
-          onClick={handleBuyNow}
-          disabled={addingToCart || (availableStock !== null && availableStock <= 0)}
-          className={`flex-1 py-4 px-8 rounded-2xl text-white font-black text-base tracking-wide shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
-            availableStock !== null && availableStock <= 0 ? "bg-gray-400" : ""
-          }`}
-          style={{ backgroundColor: (availableStock !== null && availableStock <= 0) ? "#9CA3AF" : accent }}
-        >
-          {addingToCart ? "Đang xử lý..." : (availableStock !== null && availableStock <= 0) ? "Hết hàng" : "Mua ngay"}
-        </button>
-        <button
-          type="button"
-          onClick={onAddToCart}
-          disabled={addingToCart || (availableStock !== null && availableStock <= 0)}
-          className="flex-1 py-4 px-8 rounded-2xl font-black text-base tracking-wide border-2 border-[#17409A] text-[#17409A] hover:bg-[#17409A] hover:text-white transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-        >
-          <IconCart />
-          {addingToCart ? "Đang thêm..." : (availableStock !== null && availableStock <= 0) ? "Tạm hết hàng" : "Thêm vào giỏ"}
-        </button>
+        {currentAvailable <= 0 ? (
+          <div className="flex-1 bg-gray-100 text-gray-500 py-4 px-8 rounded-2xl font-black text-center uppercase tracking-widest border-2 border-dashed border-gray-200">
+            Sản phẩm tạm hết hàng
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={addingToCart}
+              className="flex-1 py-4 px-8 rounded-2xl text-white font-black text-base tracking-wide shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              style={{ backgroundColor: accent }}
+            >
+              {addingToCart ? "Đang xử lý..." : "Mua ngay"}
+            </button>
+            <button
+              type="button"
+              onClick={onAddToCart}
+              disabled={addingToCart}
+              className="flex-1 py-4 px-8 rounded-2xl font-black text-base tracking-wide border-2 border-[#17409A] text-[#17409A] hover:bg-[#17409A] hover:text-white transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              <IconCart />
+              {addingToCart ? "Đang thêm..." : "Thêm vào giỏ"}
+            </button>
+          </>
+        )}
         <button
           type="button"
           onClick={handleToggleFavorite}

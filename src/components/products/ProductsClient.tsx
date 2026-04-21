@@ -12,7 +12,6 @@ import { type SortOption, type ProductsClientProps } from "@/types/products";
 import { useProductApi } from "@/hooks/useProductApi";
 import type { ProductListItem } from "@/types";
 import type { ProductCardProps } from "@/components/shared/ProductCard";
-import { inventoryService } from "@/services/inventory.service";
 
 const PAGE_SIZE = 12;
 
@@ -21,8 +20,9 @@ type UserVisibleProduct = ProductListItem & {
 };
 
 /* ── Map API item → ProductCardProps ── */
-function mapToCard(item: ProductListItem, stock?: number): ProductCardProps {
+function mapToCard(item: ProductListItem): ProductCardProps {
   const image = item.imageUrl || item.media?.[0]?.url || "/teddy_bear.png";
+  const stock = item.available;
 
   return {
     id: item.productId,
@@ -47,7 +47,6 @@ export default function ProductsClient({
   /* ── API state ── */
   const { getProducts, loading } = useProductApi();
   const [allItems, setAllItems] = useState<UserVisibleProduct[]>([]);
-  const [inventoryMap, setInventoryMap] = useState<Record<string, number>>({});
   const [pageIndex, setPageIndex] = useState(1);
 
   // Sync category từ URL
@@ -134,44 +133,9 @@ export default function ProductsClient({
     const start = (pageIndex - 1) * PAGE_SIZE;
     return filteredProducts
       .slice(start, start + PAGE_SIZE)
-      .map((item) => mapToCard(item, inventoryMap[item.productId]));
-  }, [filteredProducts, pageIndex, inventoryMap]);
+      .map((item) => mapToCard(item));
+  }, [filteredProducts, pageIndex]);
 
-  // Sync inventory for visible items
-  useEffect(() => {
-    const visibleIds = filteredProducts
-      .slice((pageIndex - 1) * PAGE_SIZE, pageIndex * PAGE_SIZE)
-      .map((p) => p.productId);
-
-    if (visibleIds.length > 0) {
-      (async () => {
-        try {
-          const results = await Promise.all(
-            visibleIds.map(async (id) => {
-              const res = await inventoryService.getTotalAvailable(id);
-              return {
-                id,
-                total:
-                  res.isSuccess && res.value ? res.value.totalAvailable : 0,
-              };
-            }),
-          );
-
-          const newMap = { ...inventoryMap };
-          let changed = false;
-          results.forEach((r) => {
-            if (newMap[r.id] !== r.total) {
-              newMap[r.id] = r.total;
-              changed = true;
-            }
-          });
-          if (changed) setInventoryMap(newMap);
-        } catch (err) {
-          console.error("Failed to sync list inventory:", err);
-        }
-      })();
-    }
-  }, [pageIndex, filteredProducts.length]); // Only re-fetch on page/list change
 
   const pageNumbers = useMemo(() => {
     const pages: number[] = [];

@@ -146,6 +146,35 @@ export function OrderSummary({
               >
                 {item.product.name}
               </p>
+
+              {/* Build Details (Size & Accessories) */}
+              {(item.sizeTag || (item.accessories && item.accessories.length > 0)) && (
+                <div className="mt-1 space-y-1">
+                  {item.sizeTag && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-[#9CA3AF]">
+                        Size:
+                      </span>
+                      <span className="text-[10px] font-black text-[#17409A]">
+                        {item.sizeTag} {item.sizeDetails && <span className="text-[9px] font-bold text-[#9CA3AF] ml-1">({item.sizeDetails})</span>}
+                      </span>
+                    </div>
+                  )}
+                  {item.accessories && item.accessories.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      <div className="space-y-0.5">
+                        {item.accessories.map((acc, idx) => (
+                          <p key={idx} className="text-[9px] font-bold text-[#6B7280] flex items-start gap-1">
+                            <span className="text-[#17409A]">•</span>
+                            {acc.name}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {item.product.badge && (
                 <span
                   className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5"

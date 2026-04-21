@@ -161,6 +161,9 @@ export interface ProductListItem {
   discountRate: number;
   averageRating: number;
   reviewCount: number;
+  onHand: number;
+  reserved: number;
+  available: number;
   media: ProductMedia[];
 }
 
@@ -229,6 +232,13 @@ export interface Product {
   price: number;
   sku: string;
   weightGram: number;
+  imageUrl?: string | null;
+  stockQuantity?: number;
+  onHand?: number;
+  reserved?: number;
+  available?: number;
+  totalSales?: number;
+  model3DUrl?: string;
   createdAt: string;
   updatedAt: string;
   media: ProductMedia[];
@@ -237,15 +247,53 @@ export interface Product {
 export interface ProductDetail extends Product {
   categories: ProductCategory[];
   characters: CharacterItem[];
-  model3DUrl?: string;
   reviews?: ProductReview[];
   comboImages: ProductComboImage[];
+  variants: ProductVariantResponse[];
+  accessories: AccessoryResponse[];
 }
 
 export interface ProductComboImage {
   comboId: string;
   combinationKey: string;
   imageUrl: string;
+}
+
+export interface ProductVariantResponse {
+  variantId: string;
+  productId: string;
+  sizeTag?: string;
+  sizeDescription?: string;
+  sku: string;
+  price: number;
+  baseCost: number;
+  assemblyCost: number;
+  weightGram: number;
+  isActive: boolean;
+  onHand: number;
+  reserved: number;
+  available: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccessoryResponse {
+  accessoryId: string;
+  name: string;
+  sku: string;
+  description?: string;
+  imageUrl?: string;
+  baseCost: number;
+  assemblyCost: number;
+  targetPrice: number;
+  weightGram?: number;
+  isActive: boolean;
+  onHand: number;
+  reserved: number;
+  available: number;
+  categoryIds?: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ProductListResponseData {
@@ -589,5 +637,7 @@ export interface GetMyFavoritesResponseData {
 }
 
 export type GetMyFavoritesResponse = ApiResponse<GetMyFavoritesResponseData>;
-export type ToggleFavoriteResponse = ApiResponse<{ isAdded: boolean; message: string }>;
-
+export type ToggleFavoriteResponse = ApiResponse<{
+  isAdded: boolean;
+  message: string;
+}>;

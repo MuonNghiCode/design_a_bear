@@ -22,30 +22,22 @@ class BaseApiService {
       headers: {
         "Content-Type": "application/json",
       },
+      timeout: 15000,
     });
 
     this.setupInterceptors();
   }
 
-  private extractErrorMessage(error: unknown): string {
-    const axiosError = error as AxiosError<{
-      title?: string;
-      error?: { code?: string; description?: string };
-      errors?: Record<string, string[] | string>;
-      message?: string;
-    }>;
-
+  protected extractErrorMessage(error: unknown): string {
+    const axiosError = error as AxiosError<any>;
     const data = axiosError.response?.data;
 
-    // Log detailed error for debugging
-    console.error("[API Error Detail]:", {
-      message: axiosError.message,
-      code: axiosError.code,
-      status: axiosError.response?.status,
-      url: axiosError.config?.url,
-      method: axiosError.config?.method?.toUpperCase(),
-      data: data,
-    });
+    // Force detailed error log for debugging
+    console.group("--- [API Error Detail] ---");
+    console.log("URL:", axiosError.config?.url);
+    console.log("Status:", axiosError.response?.status);
+    console.log("Data:", data);
+    console.groupEnd();
 
     if (!data) {
       if (axiosError.code === "ERR_NETWORK") {
@@ -54,35 +46,28 @@ class BaseApiService {
       return axiosError.message || API_ERROR_MESSAGES.NETWORK_ERROR;
     }
 
+    if (typeof data === "string") return data;
+
     // 1. Handle our custom Result structure
     if (data.error?.description) {
       return data.error.description;
     }
 
-    // 2. Handle ASP.NET Core Validation Errors (ModelState)
+    // 2. Handle ASP.NET Core Validation Errors
     const modelStateErrors = data?.errors;
     if (modelStateErrors && typeof modelStateErrors === "object") {
       const firstFieldErrors = Object.values(modelStateErrors).find(
-        (fieldErrors) => Array.isArray(fieldErrors) && fieldErrors.length > 0,
+        (fieldErrors) =>
+          Array.isArray(fieldErrors) && (fieldErrors as any).length > 0,
       );
-      if (firstFieldErrors?.[0]) {
+      if (Array.isArray(firstFieldErrors) && firstFieldErrors[0]) {
         return firstFieldErrors[0] as string;
       }
     }
 
-    if (data?.title) {
-      return data.title;
-    }
-
-    if (data?.message) {
-      return data.message;
-    }
-
-    if (axiosError.message) {
-      return axiosError.message;
-    }
-
-    return "Đã có lỗi xảy ra. Vui lòng thử lại sau.";
+    return (
+      data?.title || data?.message || axiosError.message || "Đã có lỗi xảy ra."
+    );
   }
 
   private setupInterceptors(): void {
@@ -116,17 +101,10 @@ class BaseApiService {
           (error.response?.status === 401 || error.response?.status === 403) &&
           !isPublicEndpoint
         ) {
-          console.error(
-            `[API ${error.response.status}]`,
-            error.config?.method?.toUpperCase(),
-            error.config?.url,
-            "→ Access denied or Session expired.",
-          );
           if (typeof window !== "undefined") {
             localStorage.removeItem(STORAGE_KEYS.TOKEN);
             localStorage.removeItem(STORAGE_KEYS.USER);
             localStorage.removeItem("dab_user");
-            // Dispatch event for Toast notification and Redirect
             window.dispatchEvent(new CustomEvent("auth:unauthorized"));
           }
         }

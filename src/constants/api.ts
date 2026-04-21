@@ -132,11 +132,26 @@ export const API_ENDPOINTS = {
     ADJUST: "/api/Inventories/adjust",
     RESERVE: "/api/Inventories/reserve",
     RELEASE: "/api/Inventories/release",
-    BY_LOCATION_PRODUCT: "/api/Inventories/location/{locationId}/product/{productId}",
+    BY_LOCATION_PRODUCT:
+      "/api/Inventories/location/{locationId}/product/{productId}",
+    BY_ACCESSORY: "/api/Inventories/accessory/{accessoryId}",
+    VARIANT_ADJUST: "/api/Inventories/variant/adjust",
+    ACCESSORY_ADJUST: "/api/Inventories/accessory/adjust",
   },
   LOCATIONS: {
     BASE: "/api/Locations",
     BY_ID: "/api/Locations/{id}",
+  },
+  ACCESSORIES: {
+    GET_ALL: "/api/Accessories",
+    GET_BY_ID: "/api/Accessories/{id}",
+    GET_BY_PRODUCT: "/api/Accessories/product/{productId}",
+    SMART_CHIP: "/api/Accessories/smart-chip",
+    CREATE: "/api/Accessories",
+    UPDATE: "/api/Accessories/{id}",
+    DELETE: "/api/Accessories/{id}",
+    ADD_TO_PRODUCT: "/api/Accessories/matrix",
+    REMOVE_FROM_PRODUCT: "/api/Accessories/matrix",
   },
   FAVORITES: {
     BASE: "/api/Favorites",

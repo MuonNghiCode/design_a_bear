@@ -15,13 +15,14 @@ import {
 } from "@/types/cart";
 import { useCartApi } from "@/hooks/useCartApi";
 import { STORAGE_KEYS } from "@/constants";
-import type { CartItem as ApiCartItem } from "@/types/responses";
+import type { CartItem as ApiCartItem, Build } from "@/types/responses";
+import { buildService } from "@/services/build.service";
 
 const CartContext = createContext<CartContextType | null>(null);
 
-
 function mapApiToUI(
   apiItem: ApiCartItem,
+  buildDetail?: Build | null,
   previousItem?: UICartItem,
 ): UICartItem {
   const safeProductName =
@@ -29,7 +30,7 @@ function mapApiToUI(
     apiItem.productName ??
     previousItem?.product.name ??
     "Sản phẩm";
-  
+
   return {
     cartItemId: apiItem.cartItemId,
     buildId: apiItem.buildId,
@@ -51,6 +52,12 @@ function mapApiToUI(
         : previousItem?.product.href,
     },
     quantity: apiItem.quantity,
+    // Build details
+    sizeTag:
+      apiItem.variantNameSnapshot?.match(/\((.*?)\)/)?.[1] ||
+      previousItem?.sizeTag,
+    sizeDetails: previousItem?.sizeDetails, // Often found in variant description if available
+    accessories: previousItem?.accessories, // Fallback to previous if available
   };
 }
 
@@ -72,18 +79,65 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (cartId) {
         const cart = await getCart(cartId);
         if (cart && cart.cartItems) {
+          // Fetch build details in parallel if they exist
+          const buildDetailsMap = new Map<string, Build>();
+          const buildIds = Array.from(
+            new Set(
+              cart.cartItems
+                .map((i) => i.buildId)
+                .filter((id): id is string => !!id),
+            ),
+          );
+
+          if (buildIds.length > 0) {
+            await Promise.all(
+              buildIds.map(async (id) => {
+                try {
+                  const res = await buildService.getBuildById(id);
+                  if (res.isSuccess && res.value) {
+                    buildDetailsMap.set(id, res.value);
+                  }
+                } catch (err) {
+                  console.error(`Failed to fetch build ${id}`, err);
+                }
+              }),
+            );
+          }
+
           setItems((prev) => {
             const prevByCartItemId = new Map(
               prev.map((item) => [item.cartItemId, item]),
             );
-            return cart.cartItems.reverse().map((apiItem) =>
-              mapApiToUI(apiItem, prevByCartItemId.get(apiItem.cartItemId)),
-            );
+
+            return cart.cartItems.reverse().map((apiItem) => {
+              const buildDetail = apiItem.buildId
+                ? buildDetailsMap.get(apiItem.buildId)
+                : null;
+              const mapped = mapApiToUI(
+                apiItem,
+                buildDetail,
+                prevByCartItemId.get(apiItem.cartItemId),
+              );
+
+              if (buildDetail && buildDetail.buildComponents) {
+                mapped.accessories = buildDetail.buildComponents.map((c) => ({
+                  id: c.optionVariantId,
+                  name:
+                    (c as any).optionProductName ||
+                    (c as any).name ||
+                    "Phụ kiện",
+                  price: c.priceSnapshot,
+                }));
+              }
+
+              return mapped;
+            });
           });
           return cartId;
         }
       }
-    } catch {
+    } catch (err) {
+      console.error("Cart load failed:", err);
       localStorage.removeItem(STORAGE_KEYS.CART_ID);
     }
     return null;
@@ -99,6 +153,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       product: ProductCardProps,
       quantity = 1,
       buildId: string | null = null,
+      sizeTag?: string,
+      sizeDetails?: string,
+      accessories?: {
+        id: string;
+        name: string;
+        price: number;
+        image?: string;
+      }[],
     ) => {
       try {
         let cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
@@ -116,7 +178,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
           cartId = newCart.cartId;
           localStorage.setItem(STORAGE_KEYS.CART_ID, cartId!);
         }
-
 
         const addRes = await addItemToCart({
           cartId: cartId!,
@@ -137,19 +198,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         // Optimistic update — inject item directly into state
         if (addRes) {
-          // IMPORTANT: Re-fetch cart is the safest way to ensure state consistency 
-          // because the user might have multiple customized versions of the same product.
-          // However, for "Wow" factor, we can try to update the local state.
-          
           setItems((prev) => {
             const existingIndex = prev.findIndex(
               (i) => i.cartItemId === addRes.cartItemId,
             );
-            
+
             if (existingIndex >= 0) {
               return prev.map((i, idx) =>
                 idx === existingIndex
-                  ? { ...i, quantity: i.quantity + quantity }
+                  ? {
+                      ...i,
+                      quantity: i.quantity + quantity,
+                      sizeTag: sizeTag || i.sizeTag,
+                      sizeDetails: sizeDetails || i.sizeDetails,
+                      accessories: accessories || i.accessories,
+                    }
                   : i,
               );
             } else {
@@ -162,6 +225,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     href: product.href || `/products/${product.id}`,
                   },
                   quantity,
+                  sizeTag,
+                  sizeDetails,
+                  accessories,
                 },
                 ...prev,
               ];
@@ -212,7 +278,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     },
     [removeItem, updateItemQuantity, loadCart],
   );
-
 
   const clearCart = useCallback(async () => {
     setItems([]); // Optimistic

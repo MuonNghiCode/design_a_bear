@@ -8,30 +8,72 @@ class InventoryService extends BaseApiService {
     return this.get<Inventory[]>(url, undefined, { withCredentials: false });
   }
 
-  async getTotalAvailable(productId: string): Promise<ApiResponse<{ totalAvailable: number }>> {
-    const url = API_ENDPOINTS.INVENTORIES.TOTAL_AVAILABLE.replace("{productId}", productId);
-    return this.get<{ totalAvailable: number }>(url, undefined, { withCredentials: false });
+  async getByAccessoryId(accessoryId: string): Promise<ApiResponse<Inventory[]>> {
+    const url = API_ENDPOINTS.INVENTORIES.BY_ACCESSORY.replace("{accessoryId}", accessoryId);
+    return this.get<Inventory[]>(url);
+  }
+
+  async getTotalAvailable(productId: string, variantId?: string): Promise<ApiResponse<{ totalAvailable: number }>> {
+    let url = API_ENDPOINTS.INVENTORIES.TOTAL_AVAILABLE.replace("{productId}", productId);
+    if (variantId) url += `?variantId=${variantId}`;
+    return this.get<{ totalAvailable: number }>(url);
   }
 
   /**
-   * Adjusts stock for a specific location and product
-   * @param locationId The warehouse location ID
-   * @param productId The product ID
-   * @param delta Positive to restock, negative to deduct
+   * Adjusts stock for a specific location and item
    */
-  async adjustStock(locationId: string, productId: string, delta: number): Promise<ApiResponse<null>> {
-    const url = `${API_ENDPOINTS.INVENTORIES.ADJUST}?locationId=${locationId}&productId=${productId}&delta=${delta}`;
-    return this.post<null>(url, {}, { withCredentials: false });
+  async adjustStock(
+    locationId: string,
+    delta: number,
+    productId?: string | null,
+    variantId?: string | null,
+    accessoryId?: string | null
+  ): Promise<ApiResponse<null>> {
+    const params = new URLSearchParams();
+    params.append("locationId", locationId);
+    params.append("delta", delta.toString());
+    if (productId) params.append("productId", productId);
+    if (variantId) params.append("variantId", variantId);
+    if (accessoryId) params.append("accessoryId", accessoryId);
+
+    const url = `${API_ENDPOINTS.INVENTORIES.ADJUST}?${params.toString()}`;
+    return this.post<null>(url, {});
   }
 
-  async reserveStock(locationId: string, productId: string, quantity: number): Promise<ApiResponse<null>> {
-    const url = `${API_ENDPOINTS.INVENTORIES.RESERVE}?locationId=${locationId}&productId=${productId}&quantity=${quantity}`;
-    return this.post<null>(url, {}, { withCredentials: false });
+  async reserveStock(
+    locationId: string,
+    quantity: number,
+    productId?: string | null,
+    variantId?: string | null,
+    accessoryId?: string | null
+  ): Promise<ApiResponse<null>> {
+    const params = new URLSearchParams();
+    params.append("locationId", locationId);
+    params.append("quantity", quantity.toString());
+    if (productId) params.append("productId", productId);
+    if (variantId) params.append("variantId", variantId);
+    if (accessoryId) params.append("accessoryId", accessoryId);
+
+    const url = `${API_ENDPOINTS.INVENTORIES.RESERVE}?${params.toString()}`;
+    return this.post<null>(url, {});
   }
 
-  async releaseReservation(locationId: string, productId: string, quantity: number): Promise<ApiResponse<null>> {
-    const url = `${API_ENDPOINTS.INVENTORIES.RELEASE}?locationId=${locationId}&productId=${productId}&quantity=${quantity}`;
-    return this.post<null>(url, {}, { withCredentials: false });
+  async releaseReservation(
+    locationId: string,
+    quantity: number,
+    productId?: string | null,
+    variantId?: string | null,
+    accessoryId?: string | null
+  ): Promise<ApiResponse<null>> {
+    const params = new URLSearchParams();
+    params.append("locationId", locationId);
+    params.append("quantity", quantity.toString());
+    if (productId) params.append("productId", productId);
+    if (variantId) params.append("variantId", variantId);
+    if (accessoryId) params.append("accessoryId", accessoryId);
+
+    const url = `${API_ENDPOINTS.INVENTORIES.RELEASE}?${params.toString()}`;
+    return this.post<null>(url, {});
   }
 }
 

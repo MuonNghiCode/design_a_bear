@@ -9,6 +9,7 @@ import {
 } from "react";
 import { STORAGE_KEYS } from "@/constants";
 import { authService } from "@/services/auth.service";
+import { useToast } from "@/contexts/ToastContext";
 import type {
   GoogleCompleteProfileRequest,
   GoogleLoginResponseData,
@@ -127,6 +128,7 @@ function buildUserFromToken(token: string): User | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { error: toastError } = useToast();
   const [pendingVerification, setPendingVerification] = useState<{
     email: string;
   } | null>(null);
@@ -154,13 +156,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleUnauthorized = () => {
+      toastError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       logout();
 
       setTimeout(() => {
         if (typeof window !== "undefined") {
           window.location.href = "/auth";
         }
-      }, 1200);
+      }, 1500);
     };
 
     window.addEventListener("auth:unauthorized", handleUnauthorized);

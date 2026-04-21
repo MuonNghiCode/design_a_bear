@@ -1,83 +1,121 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   MdSearch,
   MdFilterList,
   MdOutlineInventory,
   MdAdd,
   MdHistory,
-  MdInfoOutline,
-  MdLockOutline,
   MdCheckCircleOutline,
   MdBusiness,
+  MdArrowForward,
+  MdLockOutline,
 } from "react-icons/md";
-import { productService, inventoryService } from "@/services";
-import type { ProductListItem, Inventory } from "@/types";
+import { productService, inventoryService, accessoryService } from "@/services";
+import type { ProductListItem, Inventory, AccessoryResponse } from "@/types";
 import { useToast } from "@/contexts/ToastContext";
 import AdjustStockModal from "./AdjustStockModal";
 import ReserveReleaseModal from "./ReserveReleaseModal";
-import LocationTab from "./LocationTab";
+
+// Unified type for both Products and Accessories
+interface InventoryItem {
+  id: string; // ProductId or AccessoryId
+  name: string;
+  sku: string;
+  imageUrl?: string;
+  productType: "BEAR" | "ACCESSORY" | "Standard";
+  isAccessory: boolean;
+}
 
 export default function InventoryClient() {
-  const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [inventories, setInventories] = useState<Record<string, Inventory[]>>(
     {},
   );
   const [totals, setTotals] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"PRODUCTS" | "LOCATIONS">(
-    "PRODUCTS",
+  const [activeTab, setActiveTab] = useState<"ALL" | "BEAR" | "ACCESSORY">(
+    "ALL",
   );
-  const [selectedProduct, setSelectedProduct] = useState<{
+  const [expandedProducts, setExpandedProducts] = useState<
+    Record<string, boolean>
+  >({});
+  const [selectedItem, setSelectedItem] = useState<{
     id: string;
+    variantId?: string;
     name: string;
+    isAccessory: boolean;
   } | null>(null);
   const [reserveReleaseAction, setReserveReleaseAction] = useState<{
-    productId: string;
-    productName: string;
+    id: string;
+    variantId?: string;
+    name: string;
     actionType: "RESERVE" | "RELEASE";
+    isAccessory: boolean;
   } | null>(null);
   const toast = useToast();
 
-  const fetchInventoryData = useCallback(
-    async (productItems: ProductListItem[]) => {
-      const invMap: Record<string, Inventory[]> = {};
-      const totalMap: Record<string, number> = {};
+  const fetchInventoryData = useCallback(async (itemList: InventoryItem[]) => {
+    const invMap: Record<string, Inventory[]> = {};
+    const totalMap: Record<string, number> = {};
 
-      const promises = productItems.map(async (p) => {
-        try {
-          // Fetch detailed inventories (currently 0 due to BE mapping issue)
-          const res = await inventoryService.getByProductId(p.productId);
-          if (res.isSuccess && res.value) {
-            invMap[p.productId] = res.value;
-          }
+    const promises = itemList.map(async (item) => {
+      try {
+        const res = item.isAccessory
+          ? await accessoryService.getInventory(item.id)
+          : await inventoryService.getByProductId(item.id);
 
-          // Fetch TRUE total available (works on BE)
-          const totalRes = await inventoryService.getTotalAvailable(
-            p.productId,
+        if (res.isSuccess && res.value) {
+          invMap[item.id] = res.value;
+          // Calculate available from inventory records
+          totalMap[item.id] = res.value.reduce(
+            (acc, inv) => acc + (inv.onHand || 0),
+            0,
           );
-          if (totalRes.isSuccess && totalRes.value) {
-            totalMap[p.productId] = totalRes.value.totalAvailable;
-          }
-        } catch {}
-      });
-      await Promise.all(promises);
-      setInventories(invMap);
-      setTotals(totalMap);
-    },
-    [],
-  );
+        }
+      } catch {}
+    });
+    await Promise.all(promises);
+    setInventories(invMap);
+    setTotals(totalMap);
+  }, []);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await productService.getProducts({ pageSize: 100 });
-      if (res.isSuccess && res.value?.items) {
-        setProducts(res.value.items);
-        await fetchInventoryData(res.value.items);
+      // 1. Fetch Products
+      const prodRes = await productService.getProducts({ pageSize: 150 });
+      let normalizedProducts: InventoryItem[] = [];
+      if (prodRes.isSuccess && prodRes.value?.items) {
+        normalizedProducts = prodRes.value.items.map((p) => ({
+          id: p.productId,
+          name: p.name,
+          sku: p.sku || "",
+          imageUrl: p.imageUrl || undefined,
+          productType: "BEAR",
+          isAccessory: false,
+        }));
       }
+
+      // 2. Fetch Accessories from dedicated table
+      const accRes = await accessoryService.getAll();
+      let normalizedAccessories: InventoryItem[] = [];
+      if (accRes.isSuccess && accRes.value) {
+        normalizedAccessories = accRes.value.map((a) => ({
+          id: a.accessoryId,
+          name: a.name,
+          sku: a.sku || "",
+          imageUrl: a.imageUrl || undefined,
+          productType: "ACCESSORY",
+          isAccessory: true,
+        }));
+      }
+
+      const allItems = [...normalizedProducts, ...normalizedAccessories];
+      setItems(allItems);
+      await fetchInventoryData(allItems);
     } catch (err) {
       toast.error("Không thể tải dữ liệu kho hàng");
     } finally {
@@ -89,22 +127,32 @@ export default function InventoryClient() {
     fetchData();
   }, [fetchData]);
 
-  const filteredProducts = products.filter(
-    (p) =>
+  const filteredItems = items.filter((p) => {
+    const matchesSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.sku?.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+      p.sku?.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const getAggregate = (productId: string) => {
-    const invs = inventories[productId] || [];
+    if (activeTab === "ALL") return matchesSearch;
+    if (activeTab === "BEAR") return matchesSearch && !p.isAccessory;
+    if (activeTab === "ACCESSORY") return matchesSearch && p.isAccessory;
+    return matchesSearch;
+  });
+
+  const toggleExpand = (id: string) => {
+    setExpandedProducts((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const getAggregate = (id: string) => {
+    const invs = inventories[id] || [];
     return invs.reduce(
       (acc, curr) => {
-        const onHand = Number(curr.quantityAvailable || 0);
-        const reserved = Number(curr.quantityReserved || 0);
         return {
-          onHand: acc.onHand + onHand,
-          reserved: acc.reserved + reserved,
-          available: acc.available + (onHand - reserved),
+          onHand: acc.onHand + (curr.onHand || 0),
+          reserved: acc.reserved + (curr.reserved || 0),
+          available: acc.available + (curr.onHand || 0),
         };
       },
       { onHand: 0, reserved: 0, available: 0 },
@@ -113,312 +161,405 @@ export default function InventoryClient() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Tab Switcher */}
-      <div className="flex items-center gap-1 p-1 bg-white rounded-2xl w-fit shadow-sm border border-white/50 mb-2">
-        <button
-          onClick={() => setActiveTab("PRODUCTS")}
-          className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
-            activeTab === "PRODUCTS"
-              ? "bg-[#17409A] text-white shadow-lg shadow-[#17409A]/20"
-              : "text-[#6B7280] hover:bg-[#F4F7FF] hover:text-[#17409A]"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <MdOutlineInventory className="text-lg" />
-            Tồn kho sản phẩm
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab("LOCATIONS")}
-          className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
-            activeTab === "LOCATIONS"
-              ? "bg-[#17409A] text-white shadow-lg shadow-[#17409A]/20"
-              : "text-[#6B7280] hover:bg-[#F4F7FF] hover:text-[#17409A]"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <MdBusiness className="text-lg" />
-            Danh mục kho bãi
-          </div>
-        </button>
+      {/* Category Tabs */}
+      <div className="flex flex-wrap items-center gap-2 p-1 bg-white rounded-3xl w-fit shadow-sm border border-white/50 border-b-4 border-b-[#f4f7ff]">
+        {[
+          { id: "ALL", label: "Tất cả kho", icon: MdOutlineInventory },
+          {
+            id: "BEAR",
+            label: "Gấu bông / Thú nhồi",
+            icon: MdOutlineInventory,
+          },
+          { id: "ACCESSORY", label: "Phụ kiện đồ chơi", icon: MdFilterList },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black transition-all ${
+              activeTab === tab.id
+                ? "bg-[#17409A] text-white shadow-lg shadow-[#17409A]/20 scale-105"
+                : "text-[#6B7280] hover:bg-[#F4F7FF] hover:text-[#17409A]"
+            }`}
+          >
+            <tab.icon className="text-lg" />
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {activeTab === "PRODUCTS" ? (
-        <>
-          {/* Search & Actions */}
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-5 rounded-3xl shadow-sm border border-white/50">
-            <div className="relative w-full md:w-96 group">
-              <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-[#17409A] transition-colors" />
-              <input
-                type="text"
-                placeholder="Tìm kiếm theo tên sản phẩm, SKU..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-[#F4F7FF] rounded-2xl text-sm font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all"
-              />
-            </div>
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <button className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-white border border-gray-100 text-[#1A1A2E] font-bold text-sm hover:bg-[#F4F7FF] transition-all shadow-sm">
-                <MdFilterList className="text-lg" /> Bộ lọc
-              </button>
-              <button
-                onClick={() => fetchData()}
-                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#17409A] text-white font-bold text-sm hover:bg-[#0E2A66] transition-all shadow-lg shadow-[#17409A]/20"
-              >
-                Làm mới dữ liệu
-              </button>
-            </div>
-          </div>
+      {/* Search & Actions */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-5 rounded-3xl shadow-sm border border-white/50">
+        <div className="relative w-full md:w-96 group">
+          <MdSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-[#17409A] transition-colors" />
+          <input
+            type="text"
+            placeholder="Tìm theo tên, mã SKU hoặc phân loại..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-[#F4F7FF] rounded-2xl text-sm font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all"
+          />
+        </div>
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <button
+            onClick={() => fetchData()}
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-[#17409A] text-white font-black text-sm hover:bg-[#0E2A66] transition-all shadow-lg shadow-[#17409A]/20"
+          >
+            Làm mới đồng bộ
+          </button>
+        </div>
+      </div>
 
-          {/* Inventory Grid */}
-          <div className="bg-white rounded-3xl overflow-hidden border border-white/50 shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#F4F7FF]/50">
-                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
-                      Sản phẩm
-                    </th>
-                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
-                      Tổng kho (Tồn thực)
-                    </th>
-                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
-                      Đang giữ (Khóa tạm)
-                    </th>
-                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
-                      Sẵn có (Khả dụng)
-                    </th>
-                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center w-40">
-                      Thao tác nhanh
-                    </th>
-                    <th className="px-6 py-4 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-right">
-                      Cấu hình
-                    </th>
+      {/* Main Table */}
+      <div className="bg-white rounded-[32px] overflow-hidden border border-white/50 shadow-sm border-b-8 border-b-[#f4f7ff]">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#F4F7FF]/50 border-b border-[#f4f7ff]">
+                <th className="px-8 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
+                  Thông tin sản phẩm
+                </th>
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
+                  Tồn thực
+                </th>
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
+                  Tạm khóa
+                </th>
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
+                  Khả dụng
+                </th>
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-center">
+                  Trạng thái
+                </th>
+                <th className="px-8 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider text-right">
+                  Hành động
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td colSpan={6} className="px-8 py-8">
+                      <div className="h-10 bg-gray-100 rounded-2xl w-full" />
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {isLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td className="px-6 py-5">
-                          <div className="h-10 w-40 bg-gray-100 rounded-xl" />
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="h-6 w-16 bg-gray-100 rounded-lg mx-auto" />
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          <div className="ml-auto h-10 w-24 bg-gray-100 rounded-xl" />
-                        </td>
-                      </tr>
-                    ))
-                  ) : filteredProducts.length > 0 ? (
-                    filteredProducts.map((p) => {
-                      const stats = getAggregate(p.productId);
-                      const availableValue = totals[p.productId] ?? 0;
-                      const isLow = availableValue < 5 && availableValue > 0;
-                      const isOut = availableValue <= 0;
+                ))
+              ) : filteredItems.length > 0 ? (
+                filteredItems.map((p) => {
+                  const stats = getAggregate(p.id);
+                  const availableValue = stats.available;
+                  const invRecords = inventories[p.id] || [];
+                  const isExpanded = !!expandedProducts[p.id];
+                  const hasVariants = !p.isAccessory && invRecords.length > 1;
 
-                      return (
-                        <tr
-                          key={p.productId}
-                          className="hover:bg-[#F4F7FF]/30 transition-colors group"
-                        >
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-2xl bg-[#F4F7FF] border border-white/50 overflow-hidden flex-shrink-0">
+                  return (
+                    <React.Fragment key={p.id}>
+                      <tr
+                        onClick={() => hasVariants && toggleExpand(p.id)}
+                        className={`group hover:bg-[#F4F7FF]/30 transition-all cursor-pointer ${isExpanded ? "bg-[#F4F7FF]/20" : ""}`}
+                      >
+                        <td className="px-8 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <div className="w-14 h-14 rounded-2xl bg-[#F4F7FF] border border-white p-1 overflow-hidden shadow-sm">
                                 <img
-                                  src={p.imageUrl || "/teddy_bear.png"}
-                                  alt={p.name}
-                                  className="w-full h-full object-cover"
+                                  src={
+                                    p.imageUrl ||
+                                    (p.isAccessory
+                                      ? "/accessory_placeholder.png"
+                                      : "/teddy_bear.png")
+                                  }
+                                  className="w-full h-full object-cover rounded-xl"
+                                  alt=""
                                 />
                               </div>
-                              <div>
-                                <p className="text-sm font-black text-[#1A1A2E] group-hover:text-[#17409A] transition-colors">
+                              {hasVariants && (
+                                <div
+                                  className={`absolute -right-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-sm transition-all ${isExpanded ? "bg-[#17409A] text-white rotate-180" : "bg-white text-[#17409A]"}`}
+                                >
+                                  {isExpanded ? "—" : invRecords.length}
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-[15px] font-black text-[#1A1A2E]">
                                   {p.name}
-                                </p>
-                                <p className="text-[10px] font-bold text-[#9CA3AF] uppercase">
-                                  SKU: {p.sku || "N/A"}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="text-sm font-black text-[#1A1A2E]">
-                                {stats.onHand}
-                              </span>
-                              <span className="text-[9px] font-bold text-[#9CA3AF] uppercase">
-                                Cái
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="flex flex-col items-center">
-                              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100/50">
-                                <MdLockOutline className="text-sm" />
-                                <span className="text-sm font-black">
-                                  {stats.reserved}
+                                </h3>
+                                <span
+                                  className={`text-[9px] px-2.5 py-0.5 rounded-lg font-black uppercase shadow-sm ${p.isAccessory ? "bg-purple-100 text-purple-600" : "bg-blue-100 text-blue-600"}`}
+                                >
+                                  {p.isAccessory ? "Phụ kiện" : "Sản phẩm"}
                                 </span>
                               </div>
+                              <p className="text-[10px] font-bold text-gray-400 uppercase mt-0.5">
+                                Mã: {p.sku || "CHƯA CÓ SKU"}
+                              </p>
                             </div>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="flex flex-col items-center">
-                              <div
-                                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full font-black text-sm border ${
-                                  isOut
-                                    ? "bg-red-50 text-red-600 border-red-100"
-                                    : isLow
-                                      ? "bg-yellow-50 text-yellow-600 border-yellow-100"
-                                      : "bg-green-50 text-green-600 border-green-100"
-                                }`}
-                              >
-                                {totals[p.productId] ?? 0}
-                                {isOut && (
-                                  <span className="text-[10px] ml-1">
-                                    (Hết hàng)
-                                  </span>
-                                )}
-                                {isLow && (
-                                  <span className="text-[10px] ml-1">
-                                    (Sắp hết)
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                title="Giữ hàng"
-                                onClick={() => {
-                                  setReserveReleaseAction({
-                                    productId: p.productId,
-                                    productName: p.name,
-                                    actionType: "RESERVE",
-                                  });
-                                }}
-                                className="p-2 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white transition-all border border-orange-100"
-                              >
-                                <MdLockOutline className="text-lg" />
-                              </button>
-                              <button
-                                title="Giải phóng hàng giữ"
-                                onClick={() => {
-                                  setReserveReleaseAction({
-                                    productId: p.productId,
-                                    productName: p.name,
-                                    actionType: "RELEASE",
-                                  });
-                                }}
-                                className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all border border-blue-100"
-                              >
-                                <MdHistory className="text-lg" />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-right">
-                            <button
-                              onClick={() =>
-                                setSelectedProduct({
-                                  id: p.productId,
-                                  name: p.name,
-                                })
-                              }
-                              className="px-4 py-2 rounded-xl bg-white border border-gray-100 text-[#1A1A2E] font-black text-xs hover:bg-[#17409A] hover:text-white hover:border-[#17409A] shadow-sm transition-all"
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <span className="text-sm font-black text-[#1A1A2E]">
+                            {stats.onHand}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-orange-50 text-orange-600 font-black text-sm">
+                            <MdLockOutline /> {stats.reserved}
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <span
+                            className={`text-sm font-black ${availableValue <= 3 ? "text-red-600" : "text-green-600"}`}
+                          >
+                            {availableValue}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <span
+                            className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${
+                              availableValue <= 0
+                                ? "bg-red-100 text-red-600"
+                                : availableValue <= 5
+                                  ? "bg-yellow-100 text-yellow-600"
+                                  : "bg-green-100 text-green-600"
+                            }`}
+                          >
+                            {availableValue <= 0
+                              ? "Hết hàng"
+                              : availableValue <= 5
+                                ? "Sắp hết"
+                                : "Ổn định"}
+                          </span>
+                        </td>
+                        <td className="px-8 py-5 text-right">
+                          {p.isAccessory || !hasVariants ? (
+                            <div
+                              className="flex items-center justify-end gap-2"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              Điều chỉnh
-                            </button>
+                              {!p.isAccessory && (
+                                <button
+                                  onClick={() =>
+                                    setReserveReleaseAction({
+                                      id: p.id,
+                                      variantId: invRecords[0]?.variantId,
+                                      name: p.name,
+                                      actionType: "RESERVE",
+                                      isAccessory: p.isAccessory,
+                                    })
+                                  }
+                                  className="p-2.5 rounded-xl bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white transition-all shadow-sm"
+                                >
+                                  <MdLockOutline className="text-lg" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() =>
+                                  setSelectedItem({
+                                    id: p.id,
+                                    variantId: invRecords[0]?.variantId,
+                                    name: p.name,
+                                    isAccessory: p.isAccessory,
+                                  })
+                                }
+                                className="px-4 py-2.5 rounded-xl bg-[#17409A] text-white text-xs font-black hover:bg-[#0E2A66] transition-all shadow-md shadow-[#17409A]/10"
+                              >
+                                Nhập/Xuất
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2 text-[#17409A] font-black text-[11px] uppercase group-hover:translate-x-1 transition-all">
+                              {isExpanded
+                                ? "Thu gọn"
+                                : `Xem ${invRecords.length} loại size`}{" "}
+                              <MdArrowForward />
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+
+                      {isExpanded && !p.isAccessory && (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="px-8 py-4 bg-[#F4F7FF]/20 border-l-4 border-l-[#17409A]"
+                          >
+                            <div className="bg-white rounded-2xl shadow-inner border border-[#f4f7ff] overflow-hidden">
+                              <table className="w-full">
+                                <thead>
+                                  <tr className="bg-[#17409A] text-white">
+                                    <th className="px-6 py-3 text-[10px] font-black uppercase text-left">
+                                      Phân loại / Kích cỡ
+                                    </th>
+                                    <th className="px-6 py-3 text-[10px] font-black uppercase text-center">
+                                      Mã SKU cụ thể
+                                    </th>
+                                    <th className="px-6 py-3 text-[10px] font-black uppercase text-center">
+                                      Tồn thực
+                                    </th>
+                                    <th className="px-6 py-3 text-[10px] font-black uppercase text-center">
+                                      Khóa kho
+                                    </th>
+                                    <th className="px-6 py-3 text-[10px] font-black uppercase text-center">
+                                      Khả dụng
+                                    </th>
+                                    <th className="px-6 py-3 text-[10px] font-black uppercase text-right">
+                                      Điều chỉnh
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                  {invRecords.map((v, i) => (
+                                    <tr
+                                      key={i}
+                                      className="hover:bg-[#F4F7FF]/10 transition-colors"
+                                    >
+                                      <td className="px-6 py-4 font-black text-[#1A1A2E]">
+                                        {v.sizeTag || "Tiêu chuẩn"}{" "}
+                                        {v.sizeDescription &&
+                                          `(${v.sizeDescription})`}
+                                      </td>
+                                      <td className="px-6 py-4 text-center font-bold text-gray-500">
+                                        {v.sku || "N/A"}
+                                      </td>
+                                      <td className="px-6 py-4 text-center font-black">
+                                        {v.onHand}
+                                      </td>
+                                      <td className="px-6 py-4 text-center">
+                                        <span className="text-orange-600 font-black">
+                                          {v.reserved}
+                                        </span>
+                                      </td>
+                                      <td className="px-6 py-4 text-center">
+                                        <span className="text-green-600 font-black">
+                                          {v.onHand}
+                                        </span>
+                                      </td>
+                                      <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <button
+                                            onClick={() =>
+                                              setReserveReleaseAction({
+                                                id: p.id,
+                                                variantId: v.variantId,
+                                                name: `${p.name} - ${v.sizeTag || "Option"}`,
+                                                actionType: "RESERVE",
+                                                isAccessory: false,
+                                              })
+                                            }
+                                            className="p-1.5 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white transition-all shadow-sm"
+                                          >
+                                            <MdLockOutline />
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              setSelectedItem({
+                                                id: p.id,
+                                                variantId: v.variantId,
+                                                name: `${p.name} (${v.sizeTag || "Option"})`,
+                                                isAccessory: false,
+                                              })
+                                            }
+                                            className="px-3 py-1.5 rounded-lg bg-[#17409A] text-white text-[10px] font-black shadow-sm"
+                                          >
+                                            Cập nhật
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </td>
                         </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-20 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <MdOutlineInventory className="text-5xl text-gray-200" />
-                          <p className="text-gray-400 font-bold text-sm">
-                            Không tìm thấy sản phẩm nào
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-20 h-20 rounded-[32px] bg-[#F4F7FF] flex items-center justify-center text-[#17409A]">
+                        <MdOutlineInventory className="text-4xl" />
+                      </div>
+                      <p className="text-gray-400 font-black text-sm uppercase">
+                        Không tìm thấy sản phẩm nào trong kho
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          {/* Info Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center text-green-500">
-                <MdCheckCircleOutline className="text-3xl" />
-              </div>
-              <div>
-                <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
-                  Cạnh tranh lành mạnh
-                </p>
-                <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
-                  Hệ thống xử lý ưu tiên người thanh toán sớm nhất.
-                </p>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-500">
-                <MdLockOutline className="text-3xl" />
-              </div>
-              <div>
-                <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
-                  Tự động khóa hàng
-                </p>
-                <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
-                  Sản phẩm sẽ bị tạm khóa ngay khi khách nhấn đặt hàng.
-                </p>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-3xl border border-white/50 shadow-sm flex items-center gap-5">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-500">
-                <MdHistory className="text-3xl" />
-              </div>
-              <div>
-                <p className="text-xs font-black text-[#6B7280] uppercase tracking-wider">
-                  Hoàn trả kho tự động
-                </p>
-                <p className="text-sm font-bold text-[#1A1A2E] mt-0.5">
-                  Số lượng tự động trả về kho nếu đơn hàng bị hủy.
-                </p>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-white/50 flex items-center gap-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/50 rounded-bl-[64px] transition-all group-hover:scale-110" />
+          <div className="w-16 h-16 rounded-[24px] bg-blue-50 flex items-center justify-center text-[#17409A] z-10">
+            <MdOutlineInventory className="text-3xl" />
           </div>
-        </>
-      ) : (
-        <LocationTab />
-      )}
+          <div className="z-10">
+            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+              Tổng loại mã sản phẩm
+            </p>
+            <p className="text-2xl font-black text-[#1A1A2E]">{items.length}</p>
+          </div>
+        </div>
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-white/50 flex items-center gap-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-green-50/50 rounded-bl-[64px] transition-all group-hover:scale-110" />
+          <div className="w-16 h-16 rounded-[24px] bg-green-50 flex items-center justify-center text-green-600 z-10">
+            <MdCheckCircleOutline className="text-3xl" />
+          </div>
+          <div className="z-10">
+            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+              Hàng sẵn sàng
+            </p>
+            <p className="text-2xl font-black text-green-600">
+              {Object.values(totals).reduce((a, b) => a + b, 0)}
+            </p>
+          </div>
+        </div>
+        <div className="bg-white p-8 rounded-[32px] shadow-sm border border-white/50 flex items-center gap-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50/50 rounded-bl-[64px] transition-all group-hover:scale-110" />
+          <div className="w-16 h-16 rounded-[24px] bg-orange-50 flex items-center justify-center text-orange-600 z-10">
+            <MdLockOutline className="text-3xl" />
+          </div>
+          <div className="z-10">
+            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+              Đang bị khóa kho
+            </p>
+            <p className="text-2xl font-black text-orange-600">
+              {Object.values(inventories)
+                .flat()
+                .reduce((acc, curr) => acc + (curr.reserved || 0), 0)}
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {/* Adjust Modal */}
-      {selectedProduct && (
+      {selectedItem && (
         <AdjustStockModal
-          productId={selectedProduct.id}
-          productName={selectedProduct.name}
-          onClose={() => setSelectedProduct(null)}
+          productId={selectedItem.id}
+          variantId={selectedItem.variantId}
+          productName={selectedItem.name}
+          isAccessory={selectedItem.isAccessory}
+          onClose={() => setSelectedItem(null)}
           onSuccess={() => fetchData()}
         />
       )}
 
-      {/* Reserve/Release Modal */}
       {reserveReleaseAction && (
         <ReserveReleaseModal
-          productId={reserveReleaseAction.productId}
-          productName={reserveReleaseAction.productName}
+          productId={reserveReleaseAction.id}
+          variantId={reserveReleaseAction.variantId}
+          productName={reserveReleaseAction.name}
           actionType={reserveReleaseAction.actionType}
+          isAccessory={reserveReleaseAction.isAccessory}
           onClose={() => setReserveReleaseAction(null)}
           onSuccess={() => fetchData()}
         />

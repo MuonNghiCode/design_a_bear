@@ -14,6 +14,7 @@ import {
   personalizationGroupService,
   personalizationRuleService,
   productService,
+  accessoryService,
 } from "@/services";
 import { useToast } from "@/contexts/ToastContext";
 import PersonalizationRuleFormModal from "./PersonalizationRuleFormModal";
@@ -67,6 +68,7 @@ export default function PersonalizationRulesClient({
   const [rules, setRules] = useState<PersonalizationRule[]>([]);
   const [groups, setGroups] = useState<PersonalizationGroup[]>([]);
   const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [accProducts, setAccProducts] = useState<ProductListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -80,10 +82,11 @@ export default function PersonalizationRulesClient({
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [rulesRes, groupsRes, productsRes] = await Promise.all([
+      const [rulesRes, groupsRes, productsRes, accRes] = await Promise.all([
         personalizationRuleService.getRules(),
         personalizationGroupService.getGroups(),
         productService.getProducts({ pageSize: 200 }),
+        accessoryService.getAll(),
       ]);
 
       const ruleItems = extractRuleItems(rulesRes.value);
@@ -105,6 +108,20 @@ export default function PersonalizationRulesClient({
         setProducts(productsRes.value.items);
       } else {
         toastError(productsRes.error?.description || "Không thể tải sản phẩm.");
+      }
+
+      if (accRes.isSuccess && accRes.value) {
+        const mapped = accRes.value.map((a) => ({
+          productId: a.accessoryId,
+          name: a.name,
+          imageUrl: a.imageUrl || null,
+          price: a.targetPrice,
+          sku: a.sku,
+          productType: "ACCESSORY",
+        }));
+        setAccProducts(mapped as any[] as ProductListItem[]);
+      } else {
+        toastError(accRes.error?.description || "Không thể tải phụ kiện.");
       }
     } catch (err) {
       toastError(
@@ -141,18 +158,12 @@ export default function PersonalizationRulesClient({
     return () => ctx.revert();
   }, [embedded]);
 
-  const accessoryProducts = useMemo(
-    () =>
-      products.filter(
-        (p) => normalizeProductType(p.productType) === "ACCESSORY",
-      ),
-    [products],
-  );
+  const accessoryProducts = useMemo(() => accProducts, [accProducts]);
 
   const baseProducts = useMemo(
     () =>
       products.filter(
-        (p) => normalizeProductType(p.productType) === "BASE_BEAR",
+        (p) => normalizeProductType(p.productType) === "Standard",
       ),
     [products],
   );

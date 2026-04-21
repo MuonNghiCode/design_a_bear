@@ -1,3 +1,5 @@
+import { AccessoryResponse } from "./accessory";
+
 export interface ApiResponse<T> {
   value: T;
   isSuccess: boolean;
@@ -148,7 +150,6 @@ export interface ProductListItem {
   productId: string;
   name: string;
   slug: string;
-  productType: string;
   isActive: boolean;
   imageUrl: string | null;
   price: number;
@@ -162,6 +163,9 @@ export interface ProductListItem {
   averageRating: number;
   reviewCount: number;
   media: ProductMedia[];
+  productType?: string;
+  onHand?: number;
+  reserved?: number;
 }
 
 export interface GetProductsResponseData {
@@ -222,16 +226,39 @@ export interface Product {
   productId: string;
   name: string;
   slug: string;
-  productType: string; // BASE_BEAR, ACCESSORY, COMPLETE_SET
   description?: string;
   isPersonalizable: boolean;
   isActive: boolean;
   price: number;
+  baseCost: number;
+  assemblyCost: number;
   sku: string;
+  imageUrl?: string | null;
   weightGram: number;
+  badge?: string;
+  badgeColor?: string;
   createdAt: string;
   updatedAt: string;
   media: ProductMedia[];
+  productType?: string;
+  onHand?: number;
+  reserved?: number;
+}
+
+export interface ProductVariant {
+  variantId: string;
+  productId: string;
+  sku: string;
+  name?: string;
+  price: number;
+  baseCost: number;
+  assemblyCost: number;
+  weightGram?: number;
+  onHand: number;
+  reserved: number;
+  quantityAvailable: number;
+  sizeTag?: string;
+  sizeDescription?: string;
 }
 
 export interface ProductDetail extends Product {
@@ -240,6 +267,8 @@ export interface ProductDetail extends Product {
   model3DUrl?: string;
   reviews?: ProductReview[];
   comboImages: ProductComboImage[];
+  variants: ProductVariant[];
+  accessories?: AccessoryResponse[];
 }
 
 export interface ProductComboImage {
@@ -282,7 +311,11 @@ export interface CartItem {
   productNameSnapshot?: string | null;
   variantNameSnapshot?: string | null;
   productSlug: string;
-  productType: string;
+  variantId?: string;
+  size?: string;
+  sizeTag?: string;
+  build?: any;
+  productType?: string;
 }
 
 export interface Cart {

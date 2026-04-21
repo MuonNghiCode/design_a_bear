@@ -85,28 +85,18 @@ export default function ProductDetailClient({
     );
   }, [product.comboImages, combinationKey]);
 
-  // ── Fetch Stock Quantity ──
+  // ── Calculate Initial Stock ──
   useEffect(() => {
-    const fetchStock = async () => {
-      try {
-        const res = await inventoryService.getByProductId(product.productId);
-        if (res.isSuccess && res.value) {
-          // Sum quantityAvailable from all locations
-          const total = res.value.reduce(
-            (acc, inv) => acc + (inv.quantityAvailable || 0),
-            0,
-          );
-          setAvailableStock(total);
-        } else {
-          setAvailableStock(0);
-        }
-      } catch (err) {
-        console.error("Failed to fetch stock:", err);
-        setAvailableStock(0);
-      }
-    };
-    fetchStock();
-  }, [product.productId]);
+    if (product.variants && product.variants.length > 0) {
+      const total = product.variants.reduce(
+        (acc, v) => acc + ((v.onHand || 0) - (v.reserved || 0)),
+        0,
+      );
+      setAvailableStock(total);
+    } else {
+      setAvailableStock(0);
+    }
+  }, [product.variants]);
 
   // ── Fetch Stock for Related Products ──
   useEffect(() => {
@@ -168,7 +158,8 @@ export default function ProductDetailClient({
           </div>
           <div className="pd-info-enter w-full lg:w-[45%] lg:sticky lg:top-28">
             <ProductInfoPanel
-              product={productItem}
+              product={product}
+              variants={product.variants}
               personalizationRules={personalizationRules}
               quantity={quantity}
               setQuantity={setQuantity}

@@ -131,10 +131,26 @@ export default function CheckoutClient() {
           if (pendingOrder) {
             try {
               const parsed = JSON.parse(pendingOrder);
-                if (parsed?.orderDetails?.orderId) {
-                  await orderService.cancelOrder(parsed.orderDetails.orderId);
-                }
-            } catch {}
+              if (parsed?.orderDetails?.orderId) {
+                await orderService.updateOrderStatus(
+                  parsed.orderDetails.orderId,
+                  {
+                    status: "CANCELLED",
+                    notes:
+                      cancel === "true"
+                        ? "Khách hàng hủy thanh toán"
+                        : `Thanh toán thất bại với trạng thái: ${status}`,
+                  },
+                );
+
+                // Reorder: Restore items to cart so user can try again easily
+                await orderService.reorder(parsed.orderDetails.orderId);
+                // Refresh page to populate cart and show items again
+                window.location.reload();
+              }
+            } catch (err) {
+              console.error("Failed to restore cart after cancellation:", err);
+            }
           }
           localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
           toast.error(
@@ -413,7 +429,7 @@ export default function CheckoutClient() {
   };
 
   const calculateFee = async (addrId: string) => {
-    if (!addrId || isCalculatingShipping) return;
+    if (!addrId || isCalculatingShipping || totalItems === 0) return;
     const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
     if (!cartId) return;
 

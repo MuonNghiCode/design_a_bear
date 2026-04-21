@@ -128,19 +128,28 @@ export interface CreateProductMediaRequest {
   sortOrder: number;
 }
 
+export interface ProductVariantInlineRequest {
+  sizeTag: string;
+  sizeDescription: string;
+  baseCost: number;
+  assemblyCost: number;
+  weightGram: number;
+  price: number;
+  stockQuantity: number;
+}
+
 export interface CreateProductRequest {
   name: string;
   slug: string;
-  productType: string;
   description: string;
   model3DUrl: string;
   isPersonalizable: boolean;
   isActive: boolean;
-  price: number;
   sku: string;
-  weightGram: number;
+  stockQuantity: number;
   categoryIds: string[];
   characterIds: string[];
+  variants: ProductVariantInlineRequest[];
   media: CreateProductMediaRequest[];
   comboImages?: CreateProductComboImageRequest[];
 }
@@ -150,7 +159,21 @@ export interface CreateProductComboImageRequest {
   imageUrl: string;
 }
 
-export type UpdateProductRequest = CreateProductRequest;
+export interface UpdateProductRequest {
+  name: string;
+  slug: string;
+  description: string;
+  model3DUrl: string;
+  isPersonalizable: boolean;
+  isActive: boolean;
+  sku: string;
+  stockQuantity: number;
+  categoryIds: string[];
+  characterIds: string[];
+  variants: ProductVariantInlineRequest[];
+  media: CreateProductMediaRequest[];
+  comboImages?: CreateProductComboImageRequest[];
+}
 
 /* ── Build API Requests ── */
 
@@ -186,6 +209,7 @@ export interface CreateCartRequest {
 export interface AddToCartRequest {
   cartId: string;
   productId: string;
+  variantId: string;
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;

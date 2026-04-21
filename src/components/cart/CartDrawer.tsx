@@ -7,6 +7,7 @@ import {
   IoCloseOutline,
   IoTrashOutline,
   IoArrowForward,
+  IoChevronDown,
 } from "react-icons/io5";
 import gsap from "gsap";
 import { useCart } from "@/contexts/CartContext";
@@ -140,6 +141,7 @@ export default function CartDrawer() {
 
   const [inventoryMap, setInventoryMap] = useState<Record<string, number>>({});
   const [loadingStock, setLoadingStock] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   const drawerRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -158,9 +160,9 @@ export default function CartDrawer() {
       "-=0.2",
     );
 
-    if (itemsRef.current) {
+    if (itemsRef.current && items.length > 0) {
       const rowEls = itemsRef.current.querySelectorAll(".cart-item-row");
-      if (rowEls.length) {
+      if (rowEls && rowEls.length > 0) {
         gsap.fromTo(
           rowEls,
           { x: 24, opacity: 0 },
@@ -210,15 +212,28 @@ export default function CartDrawer() {
         try {
           const results = await Promise.all(
             items.map(async (item) => {
+              // skip if product id is null to avoid backend error
+              if (!item.product.id) return { id: item.variantId, total: 0 };
+
               const res = await inventoryService.getByProductId(item.product.id);
-              const total = res.isSuccess && res.value
-                ? res.value.reduce((acc, inv) => acc + (inv.quantityAvailable || 0), 0)
-                : 0;
-              return { id: item.product.id, total };
+              // Find the specific variant stock if variantId is available
+              const variantInventory = res.isSuccess && res.value && item.variantId
+                ? res.value.find(v => v.variantId === item.variantId)
+                : null;
+                
+              const total = variantInventory
+                ? (Number(variantInventory.onHand ?? (variantInventory as any).OnHand ?? 0) - Number(variantInventory.reserved ?? (variantInventory as any).Reserved ?? 0))
+                : (res.isSuccess && res.value 
+                    ? res.value.reduce((acc, inv) => acc + (Number(inv.onHand ?? (inv as any).OnHand ?? 0) - Number(inv.reserved ?? (inv as any).Reserved ?? 0)), 0)
+                    : 0);
+              
+              return { id: item.variantId || item.product.id, total };
             })
           );
           const newMap: Record<string, number> = {};
-          results.forEach(r => { newMap[r.id] = r.total; });
+          results.forEach(r => { 
+            if (r.id) newMap[r.id] = r.total; 
+          });
           setInventoryMap(newMap);
         } catch (err) {
           console.error("Failed to fetch cart stock:", err);
@@ -314,15 +329,16 @@ export default function CartDrawer() {
                     onClick={animateClose}
                   >
                     <div
-                      className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 shadow-md transition-transform duration-200 group-hover:scale-105"
+                      className="w-24 h-24 rounded-[2rem] overflow-hidden shrink-0 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border-2 border-white transition-transform duration-300 group-hover:scale-105 relative"
                       style={{ backgroundColor: "#F4F7FF" }}
                     >
                       <Image
                         src={item.product.image || "/teddy_bear.png"}
                         alt={item.product.name}
-                        width={80}
-                        height={80}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 440px) 96px, 96px"
+                        className="object-contain p-2"
+                        priority
                       />
                     </div>
                   </Link>
@@ -346,27 +362,134 @@ export default function CartDrawer() {
                           onClick={animateClose}
                         >
                           <p
-                            className="font-black text-sm leading-tight truncate hover:text-[#17409A] transition-colors"
-                            style={{ color: "#1A1A2E" }}
+                            className="font-black text-xl tracking-tight group-hover:text-[#17409A] transition-colors leading-[1.1]"
+                            style={{ 
+                              color: "#1A1A2E", 
+                              fontFamily: "'Fredoka', 'Nunito', sans-serif" 
+                            }}
                           >
-                            {item.product.name}
+                            {item.buildDetails?.baseProductName ? `Gấu ${item.buildDetails.baseProductName}` : item.product.name}
                           </p>
                         </Link>
+
+                        {/* Details Section */}
+                        <div className="flex flex-col gap-1 mt-1.5">
+                          {item.product.size && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black px-2 py-0.5 bg-[#FFF0F3] text-[#FF4D6D] rounded-md border border-[#FF4D6D]/20 uppercase">
+                                Kích thước: {item.product.size} {item.product.sizeTag ? `(${item.product.sizeTag})` : ""}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {item.buildDetails?.buildComponents && item.buildDetails.buildComponents.length > 0 ? (
+                            <p className="text-[11px] font-bold text-slate-600 leading-tight mt-1 bg-slate-50 p-2 rounded-xl border border-slate-100/50">
+                              <span className="text-[#17409A]">Phụ kiện: </span>
+                              {item.buildDetails.buildComponents.map((c: any) => c.productName).join(", ")}
+                            </p>
+                          ) : item.buildId ? (
+                            <p className="text-[10px] text-amber-500 font-bold animate-pulse mt-1">
+                              ⚠️ Đang tải danh sách phụ kiện...
+                            </p>
+                          ) : null}
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5 mt-2.5">
+                          {item.product.sizeTag && !item.product.size && (
+                            <span className="text-[9px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded-full">
+                              {item.product.sizeTag}
+                            </span>
+                          )}
+                        </div>
+
+                        {item.buildDetails?.buildComponents && item.buildDetails.buildComponents.length > 0 && (
+                          <div className="mt-4">
+                            <button 
+                              onClick={() => setExpandedItems(prev => ({ ...prev, [item.cartItemId!]: !prev[item.cartItemId!] }))}
+                              className={`flex items-center justify-between w-full px-4 py-2.5 rounded-2xl border-2 transition-all duration-300 group/btn ${
+                                expandedItems[item.cartItemId!] 
+                                  ? 'bg-[#17409A] border-[#17409A] text-white shadow-lg shadow-[#17409A]/20' 
+                                  : 'bg-slate-50 border-slate-100 text-slate-500 hover:border-[#17409A]/30 hover:bg-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                  expandedItems[item.cartItemId!] 
+                                    ? 'bg-white/20' 
+                                    : 'bg-white shadow-sm border border-slate-100 group-hover/btn:rotate-180'
+                                }`}>
+                                  <IoChevronDown 
+                                    className={`text-xs transition-transform duration-500 ${expandedItems[item.cartItemId!] ? 'rotate-180' : ''}`}
+                                  />
+                                </div>
+                                <span className={`text-[11px] font-black uppercase tracking-[0.15em] ${expandedItems[item.cartItemId!] ? 'text-white' : 'text-slate-600'}`}>
+                                  Phụ kiện ({item.buildDetails.buildComponents.length})
+                                </span>
+                              </div>
+                              {!expandedItems[item.cartItemId!] && (
+                                <div className="flex -space-x-2">
+                                  {item.buildDetails.buildComponents.slice(0, 3).map((c: any, i: number) => (
+                                    <div key={i} className="w-5 h-5 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
+                                      <img src={c.imageUrl || "/teddy_bear.png"} alt="" className="w-full h-full object-contain" />
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </button>
+                            
+                            {expandedItems[item.cartItemId!] && (
+                              <div className="grid grid-cols-1 gap-2 mt-3 animate-in fade-in slide-in-from-top-3 duration-500">
+                                {item.buildDetails.buildComponents.map((comp: any, idx: number) => (
+                                  <div key={idx} className="flex items-center justify-between gap-3 p-2.5 bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-[#17409A]/20 transition-all group/item">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border-2 border-slate-50 bg-[#F8FAFF] p-1.5 shadow-inner transition-transform group-hover/item:scale-110">
+                                        <img 
+                                          src={comp.imageUrl || "/teddy_bear.png"} 
+                                          alt={comp.productName} 
+                                          className="w-full h-full object-contain" 
+                                        />
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className="text-[11px] font-black text-[#1A1A2E] leading-tight">
+                                          {comp.productName}
+                                        </span>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded-md">
+                                            Phụ kiện
+                                          </span>
+                                          {comp.size && (
+                                            <span className="text-[8px] font-bold text-[#17409A] uppercase bg-[#17409A]/5 px-1.5 py-0.5 rounded-md">
+                                              {comp.size}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="bg-[#4ECDC4]/10 text-[#059669] px-2.5 py-1 rounded-xl text-[9px] font-black border border-[#4ECDC4]/20 flex items-center gap-1">
+                                      <div className="w-1 h-1 rounded-full bg-[#059669] animate-pulse" />
+                                      Đã gắn
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                         
                         {/* Stock Status */}
-                        {!loadingStock && inventoryMap[item.product.id] !== undefined && (
+                        {!loadingStock && inventoryMap[item.variantId || item.product.id] !== undefined && (
                           <div className="mt-1">
-                            {inventoryMap[item.product.id] <= 0 ? (
+                            {inventoryMap[item.variantId || item.product.id] <= 0 ? (
                               <p className="text-[10px] font-bold text-[#FF6B9D] animate-pulse">
-                                Sản phẩm hiện đã hết hàng
+                                Biến thể này hiện đã hết hàng
                               </p>
-                            ) : item.quantity > inventoryMap[item.product.id] ? (
+                            ) : item.quantity > inventoryMap[item.variantId || item.product.id] ? (
                               <p className="text-[10px] font-bold text-[#FF8C42]">
-                                Chỉ còn {inventoryMap[item.product.id]} sản phẩm sẵn có
+                                Chỉ còn {inventoryMap[item.variantId || item.product.id]} sản phẩm sẵn có
                               </p>
-                            ) : inventoryMap[item.product.id] < 5 ? (
+                            ) : inventoryMap[item.variantId || item.product.id] < 5 ? (
                                <p className="text-[10px] font-bold text-[#FF8C42]">
-                                Sắp hết hàng: Chỉ còn {inventoryMap[item.product.id]} chiếc
+                                Sắp hết hàng: Chỉ còn {inventoryMap[item.variantId || item.product.id]} chiếc
                               </p>
                             ) : null}
                           </div>
@@ -422,9 +545,9 @@ export default function CartDrawer() {
                           onClick={() =>
                             item.cartItemId && updateQuantity(item.cartItemId, item.quantity + 1)
                           }
-                          disabled={!loadingStock && inventoryMap[item.product.id] !== undefined && item.quantity >= inventoryMap[item.product.id]}
+                          disabled={!loadingStock && inventoryMap[item.variantId || item.product.id] !== undefined && item.quantity >= inventoryMap[item.variantId || item.product.id]}
                           className={`w-7 h-7 rounded-xl flex items-center justify-center font-black text-base transition-all duration-150 hover:scale-110 ${
-                            !loadingStock && inventoryMap[item.product.id] !== undefined && item.quantity >= inventoryMap[item.product.id]
+                            !loadingStock && inventoryMap[item.variantId || item.product.id] !== undefined && item.quantity >= inventoryMap[item.variantId || item.product.id]
                               ? "opacity-30 cursor-not-allowed"
                               : ""
                           }`}
@@ -497,7 +620,7 @@ export default function CartDrawer() {
               href="/checkout"
               onClick={animateClose}
               className={`w-full py-4 rounded-2xl font-black text-base flex items-center justify-center gap-2 transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 ${
-                items.some(item => !loadingStock && inventoryMap[item.product.id] !== undefined && inventoryMap[item.product.id] < item.quantity)
+                items.some(item => !loadingStock && inventoryMap[item.variantId || item.product.id] !== undefined && inventoryMap[item.variantId || item.product.id] < item.quantity)
                 ? "opacity-50 cursor-not-allowed pointer-events-none"
                 : ""
               }`}

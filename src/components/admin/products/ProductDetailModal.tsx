@@ -150,11 +150,30 @@ export default function ProductDetailModal({
                 ))}
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
-                <div className="bg-white rounded-2xl p-3 border border-[#E5E7EB] shadow-sm">
-                  <p className="text-[#9CA3AF] text-[9px] font-black tracking-widest uppercase mb-1">Khối lượng</p>
-                  <p className="text-[#1A1A2E] font-black text-sm">{product.weightGram}g</p>
-                </div>
+               {!product.variants || product.variants.length === 0 ? (
+                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-white rounded-2xl border border-[#E5E7EB] shadow-sm">
+                    <div>
+                      <p className="text-[#9CA3AF] text-[9px] font-black tracking-widest uppercase mb-1">Giá bán</p>
+                      <p className="text-[#17409A] font-extrabold text-sm">{formatPrice(product.price)}</p>
+                    </div>
+                    <div>
+                      <label className="text-[#9CA3AF] text-[9px] font-black tracking-widest uppercase mb-1 flex items-center gap-1">Giá vốn <span className="w-1.5 h-1.5 rounded-full bg-[#9CA3AF]/30"></span></label>
+                      <p className="text-[#4B5563] font-black text-sm">{formatPrice(product.baseCost || 0)}</p>
+                    </div>
+                    <div>
+                      <label className="text-[#9CA3AF] text-[9px] font-black tracking-widest uppercase mb-1 flex items-center gap-1">Gia công <span className="w-1.5 h-1.5 rounded-full bg-[#9CA3AF]/30"></span></label>
+                      <p className="text-[#4B5563] font-black text-sm">{formatPrice(product.assemblyCost || 0)}</p>
+                    </div>
+                    <div className="bg-[#4ECDC4]/5 p-2 rounded-xl border border-[#4ECDC4]/10">
+                      <p className="text-[#4ECDC4] text-[9px] font-black tracking-widest uppercase mb-1">Lợi nhuận gộp</p>
+                      <p className="text-[#4ECDC4] font-black text-sm">
+                        {formatPrice(product.price - (product.baseCost || 0) - (product.assemblyCost || 0))}
+                      </p>
+                    </div>
+                 </div>
+               ) : null}
+
+              <div className="grid grid-cols-3 gap-3">
                 <div className="bg-white rounded-2xl p-3 border border-[#E5E7EB] shadow-sm">
                   <p className="text-[#9CA3AF] text-[9px] font-black tracking-widest uppercase mb-1">Đánh giá</p>
                   <div className="flex items-center gap-1 text-[#FFD93D] font-black text-sm">
@@ -224,6 +243,49 @@ export default function ProductDetailModal({
                 <p className="text-[10px] font-black text-[#6B7280] uppercase tracking-widest">Loại sản phẩm chính</p>
                 <p className="text-sm font-black text-[#17409A] mt-1">{product.productType}</p>
              </div>
+          {/* Variants Table */}
+          {product.variants && product.variants.length > 0 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pl-1">
+                <MdGridView className="text-[#17409A]" />
+                <h4 className="text-[11px] font-black text-[#6B7280] tracking-[0.2em] uppercase">
+                  Ma trận biến thể (Size)
+                </h4>
+              </div>
+              <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-[#F4F7FF]/50 border-b border-[#E5E7EB]">
+                        <th className="px-4 py-3 font-black text-[#6B7280] uppercase tracking-wider">Size</th>
+                        <th className="px-4 py-3 font-black text-[#6B7280] uppercase tracking-wider">SKU</th>
+                        <th className="px-4 py-3 font-black text-[#6B7280] uppercase tracking-wider text-right">Giá vốn</th>
+                        <th className="px-4 py-3 font-black text-[#6B7280] uppercase tracking-wider text-right">Gia công</th>
+                        <th className="px-4 py-3 font-black text-[#17409A] uppercase tracking-wider text-right text-[13px]">Giá bán</th>
+                        <th className="px-4 py-3 font-black text-[#6B7280] uppercase tracking-wider text-right">Kho</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F4F7FF]">
+                      {product.variants.map((v) => (
+                        <tr key={v.variantId} className="hover:bg-[#F4F7FF]/20 transition-colors">
+                          <td className="px-4 py-3 font-black text-[#1A1A2E]">{v.sizeTag || v.name}</td>
+                          <td className="px-4 py-3 font-bold text-[#6B7280] font-mono">{v.sku}</td>
+                          <td className="px-4 py-3 text-right font-semibold">{formatPrice(v.baseCost)}</td>
+                          <td className="px-4 py-3 text-right font-semibold">{formatPrice(v.assemblyCost)}</td>
+                          <td className="px-4 py-3 text-right font-black text-[#17409A] text-[13px]">{formatPrice(v.price)}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${v.quantityAvailable > 0 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+                              {v.quantityAvailable}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
           </div>
         </div>
 

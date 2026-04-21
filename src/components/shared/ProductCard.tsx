@@ -19,6 +19,7 @@ type CartPayload = {
 
 export interface ProductCardProps {
   id: string;
+  variantId?: string;
   name: string;
   variantName?: string;
   description: string;
@@ -28,6 +29,8 @@ export interface ProductCardProps {
   badgeColor?: string;
   href?: string;
   availableStock?: number;
+  size?: string;
+  sizeTag?: string;
 }
 
 function formatPrice(price: number): string {
@@ -44,6 +47,8 @@ export default function ProductCard({
   badgeColor = "#17409A",
   href,
   availableStock,
+  size,
+  sizeTag,
 }: ProductCardProps) {
   const productLink = href || `/products/${id}`;
   const { isAuthenticated } = useAuth();
@@ -172,6 +177,7 @@ export default function ProductCard({
           src={imgSrc}
           alt={name}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover transition-transform duration-500 group-hover:scale-110"
           priority
           unoptimized={imgSrc.startsWith("http")}
@@ -237,9 +243,9 @@ export default function ProductCard({
                   ? "bg-gray-500/50 text-white/50 cursor-not-allowed" 
                   : "bg-[#17409A] hover:bg-[#4A90E2] text-white"
               }`}
-              onClick={availableStock === 0 ? undefined : handleBuyNow}
+              onClick={availableStock === 0 ? undefined : () => router.push(productLink)}
             >
-              {addingToCart ? "Đang xử lý..." : availableStock === 0 ? "Hết hàng" : "Mua ngay"}
+              {availableStock === 0 ? "HẾT HÀNG" : "Xem sản phẩm"}
             </div>
 
             {/* Icon Buttons */}

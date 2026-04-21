@@ -16,6 +16,9 @@ import {
   MdRemoveRedEye,
   MdDelete,
   MdStar,
+  MdExpandMore,
+  MdExpandLess,
+  MdInventory,
 } from "react-icons/md";
 import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
@@ -30,7 +33,26 @@ import ProductDetailModal from "./ProductDetailModal";
 type ViewMode = "grid" | "table";
 type CategoryFilter = "all" | "bear" | "accessory";
 
-const STATUS_CFG: Record<
+export interface ProductAdmin {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+  badge?: string;
+  badgeColor?: string;
+  category: string;
+  productType?: string;
+  price: number;
+  priceRange?: string | null;
+  stock: number;
+  reserved?: number;
+  sold: number;
+  rating: number;
+  status: ProductAdminStatus;
+  popular?: boolean;
+  variants?: any[];
+}
+
+const STATUS_CONFIG: Record<
   ProductAdminStatus,
   { label: string; color: string; bg: string }
 > = {
@@ -41,11 +63,12 @@ const STATUS_CFG: Record<
 
 const CATEGORY_TABS: { key: CategoryFilter; label: string }[] = [
   { key: "all", label: "Tất cả" },
-  { key: "bear", label: "Gấu" },
+  { key: "bear", label: "Gấu bông" },
   { key: "accessory", label: "Phụ kiện" },
 ];
 
 const COL_HEADS = [
+  "",
   "Sản phẩm",
   "Danh mục",
   "Giá",
@@ -141,7 +164,7 @@ function ProductCard({
         </div>
 
         <p className="text-[#17409A] font-black text-lg leading-none mb-3">
-          {formatPrice(p.price)}
+          {p.priceRange ? p.priceRange : formatPrice(p.price)}
         </p>
 
         <div className="flex items-center justify-between text-[10px] font-semibold text-[#9CA3AF] mb-3 min-h-4">
@@ -212,6 +235,8 @@ function ProductRow({
   onEdit,
   onDelete,
   isDeleting,
+  isExpanded,
+  toggleExpand,
 }: {
   p: ProductAdmin;
   index: number;
@@ -219,19 +244,34 @@ function ProductRow({
   onEdit: (p: ProductAdmin) => void;
   onDelete: (p: ProductAdmin) => void;
   isDeleting: boolean;
+  isExpanded: boolean;
+  toggleExpand: () => void;
 }) {
   const st = STATUS_CFG[p.status];
   const CATEGORY_LABELS: Record<string, string> = {
     all: "Tất cả",
-    bear: "Gấu",
+    bear: "Gấu bông",
     accessory: "Phụ kiện",
   };
 
+  const hasVariants = p.category === "bear" && p.variants && p.variants.length > 0;
+
   return (
+    <>
     <tr
-      onClick={() => onView(p)}
-      className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer"
+      onClick={() => hasVariants ? toggleExpand() : onView(p)}
+      className={`group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer ${isExpanded ? "bg-[#F8F9FF]" : ""}`}
     >
+      <td className="py-3 pl-4 w-10">
+        {hasVariants && (
+          <button 
+            onClick={(e) => { e.stopPropagation(); toggleExpand(); }}
+            className={`w-6 h-6 flex items-center justify-center rounded-lg transition-all ${isExpanded ? "bg-[#17409A] text-white rotate-180" : "text-[#9CA3AF] hover:bg-[#17409A]/10 hover:text-[#17409A]"}`}
+          >
+            <MdExpandMore className="text-xl" />
+          </button>
+        )}
+      </td>
       <td className="py-3 pr-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-200 bg-[#F4F7FF] flex items-center justify-center">
@@ -247,15 +287,9 @@ function ProductRow({
             <p className="text-[#1A1A2E] font-bold text-sm leading-tight max-w-48 truncate">
               {p.name}
             </p>
-            {p.badge && (
-              <span
-                className="text-[8px] font-black px-1.5 py-0.5 rounded-full mt-0.5 inline-block"
-                style={{
-                  color: p.badgeColor,
-                  backgroundColor: p.badgeColor + "18",
-                }}
-              >
-                {p.badge}
+            {p.productType === "ACCESSORY" && (
+              <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full mt-0.5 inline-block text-[#7C5CFC] bg-[#7C5CFC]/10">
+                Phụ kiện
               </span>
             )}
           </div>
@@ -264,18 +298,23 @@ function ProductRow({
 
       <td className="py-3 pr-4">
         <span className="text-[10px] font-black text-[#6B7280] bg-[#F4F7FF] px-2.5 py-1 rounded-lg whitespace-nowrap">
-          {CATEGORY_LABELS[p.category]}
+          {CATEGORY_LABELS[p.category] || p.category}
         </span>
       </td>
 
       <td className="py-3 pr-4 whitespace-nowrap">
         <span className="text-[#17409A] font-black text-sm">
-          {formatPrice(p.price)}
+          {p.priceRange ? p.priceRange : formatPrice(p.price)}
         </span>
       </td>
 
       <td className="py-3 pr-4">
-        <StockBadge stock={p.stock} />
+        <div className="flex flex-col gap-0.5">
+          <StockBadge stock={p.stock} />
+          {p.reserved && p.reserved > 0 ? (
+             <span className="text-[8px] font-bold text-[#9CA3AF]">Đã giữ: {p.reserved}</span>
+          ) : null}
+        </div>
       </td>
 
       <td className="py-3 pr-4">
@@ -308,7 +347,7 @@ function ProductRow({
         </div>
       </td>
 
-      <td className="py-3">
+      <td className="py-3 pr-4">
         <div className="flex gap-1.5">
           <button
             onClick={(e) => {
@@ -337,21 +376,80 @@ function ProductRow({
             }}
             disabled={isDeleting}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-all disabled:opacity-50"
-            title="Xóa sản phẩm"
+            title="Xóa"
           >
             <MdDelete className="text-sm" />
           </button>
         </div>
       </td>
     </tr>
+    
+    {isExpanded && hasVariants && (
+      <tr className="bg-[#F8F9FF]/50 animate-in fade-in slide-in-from-top-1 duration-200">
+        <td colSpan={9} className="py-0 px-4 pb-4">
+          <div className="bg-white rounded-2xl border border-[#17409A]/10 shadow-sm overflow-hidden ml-14 mr-10 my-1">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#F8F9FF] border-b border-[#F1F5F9]">
+                  <th className="py-2.5 px-4 text-[10px] font-black text-[#6B7280] uppercase tracking-wider">Mã biến thể (SKU)</th>
+                  <th className="py-2.5 px-4 text-[10px] font-black text-[#6B7280] uppercase tracking-wider">Kích thước</th>
+                  <th className="py-2.5 px-4 text-[10px] font-black text-[#6B7280] uppercase tracking-wider text-right">Giá bán</th>
+                  <th className="py-2.5 px-4 text-[10px] font-black text-[#6B7280] uppercase tracking-wider text-center">Tồn kho</th>
+                  <th className="py-2.5 px-4 text-[10px] font-black text-[#6B7280] uppercase tracking-wider text-right">Giao hàng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.variants?.map((v: any) => {
+                  const stock = (v.onHand ?? v.OnHand ?? 0) - (v.reserved ?? v.Reserved ?? 0);
+                  return (
+                    <tr key={v.variantId} className="border-b border-[#F1F5F9] last:border-0 hover:bg-[#F1F5F9]/30">
+                      <td className="py-3 px-4">
+                        <span className="font-mono text-[11px] font-black text-[#17409A] select-all cursor-copy">{v.sku || v.Sku}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-[#1A1A2E]">{v.sizeTag || v.SizeTag}</span>
+                          <span className="text-[10px] text-[#9CA3AF] font-bold">{v.sizeDescription || v.SizeDescription}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-xs font-black text-[#17409A]">{formatPrice(v.price || v.Price)}</span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex flex-col items-center gap-0.5">
+                           <StockBadge stock={stock} />
+                           {v.reserved > 0 && <span className="text-[8px] font-bold text-[#9CA3AF]">Giữ: {v.reserved}</span>}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-[10px] font-black text-[#4ECDC4] bg-[#4ECDC411] px-2 py-0.5 rounded-full whitespace-nowrap">
+                           Sẵn sàng ({v.weightGram || v.WeightGram}g)
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    )}
+    </>
   );
 }
 
 const mapProductToAdmin = (p: ProductListItem, index: number): ProductAdmin => {
   const badgeColors = ["#17409A", "#7C5CFC", "#4ECDC4", "#FF8C42", "#FF6B9D", "#FFD93D"];
   const color = badgeColors[index % badgeColors.length];
-  const category = p.productType === "ACCESSORY" ? "accessory" : "bear";
-  const badgeName = p.productType === "ACCESSORY" ? "Phụ kiện" : "Gấu";
+  
+  const isAccessory = p.productType === "ACCESSORY";
+  const category = isAccessory ? "accessory" : "bear";
+  const badgeName = isAccessory ? "Phụ kiện" : "Gấu";
+
+  const priceRange = p.minPrice && p.minPrice !== p.price 
+    ? `Từ ${formatPrice(p.minPrice)}` 
+    : null;
 
   return {
     id: p.productId,
@@ -360,12 +458,16 @@ const mapProductToAdmin = (p: ProductListItem, index: number): ProductAdmin => {
     badge: badgeName,
     badgeColor: color,
     category,
+    productType: p.productType,
     price: p.price,
-    stock: 50,
+    priceRange,
+    stock: p.onHand || 0,
+    reserved: p.reserved || 0,
     sold: p.totalSales,
     rating: p.averageRating,
     status: p.isActive ? "active" : "draft",
     popular: p.viewCountIn10Min > 5,
+    variants: (p as any).variants,
   };
 };
 
@@ -380,6 +482,16 @@ export default function ProductsGrid() {
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+
+  const toggleRow = (id: string) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const {
     data,
@@ -392,6 +504,10 @@ export default function ProductsGrid() {
   const handleRefresh = useCallback(() => {
     fetchProducts({ pageIndex: 1, pageSize: 50 });
   }, [fetchProducts]);
+
+  const handleEdit = async (p: ProductAdmin) => {
+    setEditingProductId(p.id);
+  };
 
   useEffect(() => {
     handleRefresh();
@@ -469,7 +585,10 @@ export default function ProductsGrid() {
               </button>
             ))}
           </div>
-          <button onClick={() => setCreateModalOpen(true)} className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap">
+          <button 
+            onClick={() => setCreateModalOpen(true)} 
+            className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap"
+          >
             <MdAdd className="text-base" /> Thêm mới
           </button>
         </div>
@@ -524,7 +643,7 @@ export default function ProductsGrid() {
               key={p.id}
               p={p}
               onView={p => setSelectedProductId(p.id)}
-              onEdit={p => setEditingProductId(p.id)}
+              onEdit={handleEdit}
               onDelete={handleDelete}
               isDeleting={isDeleting && deletingProduct?.id === p.id}
             />
@@ -547,9 +666,11 @@ export default function ProductsGrid() {
                   p={p}
                   index={i}
                   onView={p => setSelectedProductId(p.id)}
-                  onEdit={p => setEditingProductId(p.id)}
+                  onEdit={handleEdit}
                   onDelete={handleDelete}
                   isDeleting={isDeleting && deletingProduct?.id === p.id}
+                  isExpanded={expandedRows.has(p.id)}
+                  toggleExpand={() => toggleRow(p.id)}
                 />
               ))}
             </tbody>
@@ -564,6 +685,8 @@ export default function ProductsGrid() {
           isSubmitting={false}
         />
       )}
+
+
 
       {editingProductId && (
         <EditProductModal
@@ -582,6 +705,8 @@ export default function ProductsGrid() {
           isSubmitting={false}
         />
       )}
+
+
 
       {selectedProductId && (
         <ProductDetailModal

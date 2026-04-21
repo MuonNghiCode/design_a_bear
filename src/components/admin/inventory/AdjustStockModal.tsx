@@ -7,13 +7,15 @@ import { inventoryService, locationService } from "@/services";
 import type { Location } from "@/types";
 
 interface Props {
-  productId: string;
+  productId: string; // This will be AccessoryId if isAccessory is true
+  variantId?: string | null;
   productName: string;
+  isAccessory?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function AdjustStockModal({ productId, productName, onClose, onSuccess }: Props) {
+export default function AdjustStockModal({ productId, variantId, productName, isAccessory, onClose, onSuccess }: Props) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [delta, setDelta] = useState(0);
@@ -53,7 +55,13 @@ export default function AdjustStockModal({ productId, productName, onClose, onSu
 
     setIsSubmitting(true);
     try {
-      const res = await inventoryService.adjustStock(selectedLocationId, productId, delta);
+      const res = await inventoryService.adjustStock(
+        isAccessory ? null : productId, 
+        variantId, 
+        isAccessory ? productId : null,
+        delta, 
+        selectedLocationId
+      );
       if (res.isSuccess) {
         toast.success(`Đã điều chỉnh kho cho ${productName}`);
         onSuccess();

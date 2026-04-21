@@ -1,10 +1,16 @@
 export interface Inventory {
-  locationId: string;
+  variantId?: string | null;
   productId: string;
+  locationId: string;
+  locationName?: string;
+  onHand: number;
+  reserved: number;
   quantityAvailable: number;
-  quantityReserved: number;
-  updatedAt: string;
+  updatedAt?: string;
   location?: Location;
+  sizeTag?: string;
+  sizeDescription?: string;
+  sku?: string;
 }
 
 export interface Location {
@@ -22,5 +28,6 @@ export interface Location {
 export interface InventoryAdjustmentRequest {
   locationId: string;
   productId: string;
+  variantId?: string | null;
   delta: number;
 }

@@ -6,10 +6,14 @@ import { useTaxonomyApi } from "@/hooks";
 import { useToast } from "@/contexts/ToastContext";
 import { mediaService } from "@/services/media.service";
 import { productService } from "@/services/product.service";
-import { personalizationGroupService } from "@/services/personalization-group.service";
-import { personalizationRuleService } from "@/services/personalization-rule.service";
+import { accessoryService } from "@/services/accessory.service";
+// Accessory linking is now handled directly via accessoryService.addToProduct()
 import { generateSlug } from "@/utils/string";
-import { MdAddPhotoAlternate, MdDeleteOutline } from "react-icons/md";
+import { MdAddPhotoAlternate, MdDeleteOutline, MdAttachMoney } from "react-icons/md";
+import type { AccessoryResponse, ProductVariantInlineRequest } from "@/types";
+
+const STANDARD_SIZES = ["S", "M", "L", "XL", "XXL", "OS"] as const;
+const ROUNDING_BASE = 100000;
 
 interface Props {
   onClose: () => void;
@@ -35,15 +39,14 @@ export default function CreateProductModal({
   // Step 1 Data
   const [formData, setFormData] = useState({
     name: "",
-    productType: "BASE_BEAR",
     description: "",
     model3DUrl: "",
     isPersonalizable: false,
     isActive: true,
-    price: "",
     sku: "",
-    weightGram: "500",
     slug: "",
+    stockQuantity: 0,
+    variants: [] as ProductVariantInlineRequest[],
     media: [] as { url: string; altText: string; sortOrder: number }[],
   });
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -52,10 +55,21 @@ export default function CreateProductModal({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Step 2 Data
-  const [accessoryList, setAccessoryList] = useState<ProductListItem[]>([]);
+  const [accessoryList, setAccessoryList] = useState<AccessoryResponse[]>([]);
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<string[]>([]);
   const [comboImages, setComboImages] = useState<CreateProductComboImageRequest[]>([]);
   const [matrixUploadFiles, setMatrixUploadFiles] = useState<Record<string, File | null>>({});
+
+  // Helper to ensure key matching is order-independent and case-insensitive
+  const normalizeKey = (key: string) => {
+    if (!key) return "";
+    return key.toLowerCase()
+      .split("|")
+      .map(id => id.trim())
+      .filter(Boolean)
+      .sort()
+      .join("|");
+  };
 
   const {
     loading: taxonomyLoading,
@@ -64,42 +78,38 @@ export default function CreateProductModal({
     fetchTaxonomy,
   } = useTaxonomyApi();
 
-  const isBaseBear = formData.productType === "BASE_BEAR";
-  const isAccessory = formData.productType === "ACCESSORY";
 
   useEffect(() => {
     fetchTaxonomy();
   }, [fetchTaxonomy]);
 
-  // Fetch accessories when moving to Step 2
   useEffect(() => {
-    if (step === 2 && isBaseBear && accessoryList.length === 0) {
+    if (step === 2 && accessoryList.length === 0) {
       (async () => {
         try {
-          const res = await productService.getProducts({ productType: "ACCESSORY", pageSize: 100 });
-          if (res.isSuccess && res.value?.items) {
-            setAccessoryList(res.value.items);
+          const res = await accessoryService.getAll();
+          if (res.isSuccess && res.value) {
+            setAccessoryList(res.value);
           }
         } catch (err) {
           console.error("Failed to fetch accessories", err);
         }
       })();
     }
-  }, [step, isBaseBear, accessoryList.length]);
+  }, [step, accessoryList.length]);
 
   // ── Combination Matrix Logic (2^n - 1) ──
   const matrixAccessoryIds = useMemo(() => {
     return selectedAccessoryIds.filter(id => {
-      const acc = accessoryList.find(a => a.productId === id);
+      const acc = accessoryList.find(a => a.accessoryId === id);
       if (!acc) return false;
-      const type = (acc.productType || "").toUpperCase();
-      const name = (acc.name || "").toUpperCase();
-      return type !== "AI_PROCESSOR" && !name.includes("AI PROCESSOR");
+      const sku = (acc.sku || "").toUpperCase();
+      return !sku.includes("SMART-CHIP") && !sku.includes("AI-PROCESSOR");
     });
   }, [selectedAccessoryIds, accessoryList]);
 
   const allCombinations = useMemo(() => {
-    if (!isBaseBear || matrixAccessoryIds.length === 0) return [];
+    if (matrixAccessoryIds.length === 0) return [];
     
     const results: string[][] = [[]]; 
     for (const id of matrixAccessoryIds) {
@@ -112,10 +122,10 @@ export default function CreateProductModal({
     const combinations = results.filter(combo => combo.length > 0);
     
     return combinations.map(combo => ({
-      key: combo.sort((a, b) => a.localeCompare(b)).join("|"),
-      label: combo.map(id => accessoryList.find(a => a.productId === id)?.name || "N/A").join(" + ")
+      key: normalizeKey(combo.join("|")),
+      label: combo.map(id => accessoryList.find(a => a.accessoryId === id)?.name || "N/A").join(" + ")
     }));
-  }, [matrixAccessoryIds, isBaseBear, accessoryList]);
+  }, [matrixAccessoryIds, accessoryList]);
 
   // Sync comboImages state with combinations
   useEffect(() => {
@@ -123,7 +133,9 @@ export default function CreateProductModal({
       setComboImages(prev => {
         const next = [...prev];
         allCombinations.forEach(combo => {
-          if (!next.find(ci => ci.combinationKey === combo.key)) {
+          const comboKey = normalizeKey(combo.key);
+          const exists = next.find(ci => normalizeKey(ci.combinationKey) === comboKey);
+          if (!exists) {
             next.push({ combinationKey: combo.key, imageUrl: "" });
           }
         });
@@ -131,6 +143,50 @@ export default function CreateProductModal({
       });
     }
   }, [allCombinations]);
+
+  const calculatePrice = (base: number, assembly: number) => {
+    const totalCost = base + assembly;
+    const marginPrice = totalCost * 1.2;
+    return Math.ceil(marginPrice / ROUNDING_BASE) * ROUNDING_BASE;
+  };
+
+  const toggleSize = (size: string) => {
+    setFormData(prev => {
+      const exists = prev.variants.find(v => v.sizeTag === size);
+      if (exists) {
+        return { ...prev, variants: prev.variants.filter(v => v.sizeTag !== size) };
+      }
+      return {
+        ...prev,
+        variants: [
+          ...prev.variants,
+          {
+            sizeTag: size,
+            sizeDescription: size === "OS" ? "One Size" : `Kích thước chuẩn ${size}`,
+            baseCost: 0,
+            assemblyCost: 0,
+            weightGram: 500,
+            price: calculatePrice(0, 0),
+            stockQuantity: 0
+          }
+        ]
+      };
+    });
+  };
+
+  const updateVariant = (size: string, fields: Partial<ProductVariantInlineRequest>) => {
+    setFormData(prev => ({
+      ...prev,
+      variants: prev.variants.map(v => {
+        if (v.sizeTag === size) {
+          const next = { ...v, ...fields };
+          next.price = calculatePrice(next.baseCost, next.assemblyCost);
+          return next;
+        }
+        return v;
+      })
+    }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -174,7 +230,7 @@ export default function CreateProductModal({
 
   const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAccessory && selectedCategoryIds.length === 0) {
+    if (selectedCategoryIds.length === 0) {
       toast.error("Vui lòng chọn ít nhất 1 category cho sản phẩm.");
       return;
     }
@@ -182,17 +238,27 @@ export default function CreateProductModal({
     const payload: CreateProductRequest = {
       name: formData.name,
       slug: formData.slug || generateSlug(formData.name),
-      productType: formData.productType,
       description: formData.description,
-      model3DUrl: isAccessory ? "" : formData.model3DUrl,
-      isPersonalizable: isAccessory ? false : formData.isPersonalizable,
-      isActive: isAccessory ? true : formData.isActive,
-      price: Number(formData.price) || 0,
+      model3DUrl: formData.model3DUrl,
+      isPersonalizable: formData.isPersonalizable,
+      isActive: formData.isActive,
       sku: formData.sku || `SKU-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      weightGram: Number(formData.weightGram) || 0,
-      categoryIds: isAccessory ? [] : selectedCategoryIds,
-      characterIds: isAccessory ? [] : selectedCharacterIds,
-      media: formData.media,
+      categoryIds: selectedCategoryIds,
+      characterIds: selectedCharacterIds,
+      variants: formData.variants.map(v => ({
+        sizeTag: v.sizeTag,
+        sizeDescription: v.sizeDescription,
+        baseCost: v.baseCost,
+        assemblyCost: v.assemblyCost,
+        weightGram: v.weightGram,
+        price: v.price,
+        stockQuantity: v.stockQuantity
+      })),
+      media: formData.media.map(m => ({
+        url: m.url,
+        altText: m.altText,
+        sortOrder: m.sortOrder
+      })),
     };
 
     setInternalIsSubmitting(true);
@@ -200,7 +266,7 @@ export default function CreateProductModal({
       const res = await productService.createProduct(payload);
       if (res.isSuccess && res.value?.productId) {
         setCreatedProductId(res.value.productId);
-        if (isBaseBear && formData.isPersonalizable) {
+        if (formData.isPersonalizable) {
           setStep(2);
           toast.success("Đã tạo sản phẩm cốt lõi. Hãy chọn phụ kiện và tổ hợp ảnh.");
         } else {
@@ -234,39 +300,35 @@ export default function CreateProductModal({
 
     setInternalIsSubmitting(true);
     try {
-      const groupRes = await personalizationGroupService.createGroup({
-        name: "Phụ kiện đi kèm",
-        description: `Nhóm linh kiện cho ${formData.name}`
-      });
-      
-      if (!groupRes.isSuccess || !groupRes.value?.groupId) throw new Error("Không thể tạo nhóm phụ kiện");
-      const groupId = groupRes.value.groupId;
-
+      // Link accessories to product using the dedicated matrix API
       for (const accId of selectedAccessoryIds) {
-        await personalizationRuleService.createRule({
-          baseProductId: createdProductId,
-          groupId: groupId,
-          allowedComponentProductId: accId,
-          isRequired: false,
-          maxQuantity: 1,
-          ruleType: "ACCESSORY"
-        });
+        await accessoryService.addToProduct(createdProductId, accId);
       }
 
       await productService.updateProduct(createdProductId, {
         name: formData.name,
         slug: formData.slug || generateSlug(formData.name),
-        productType: formData.productType,
         description: formData.description,
         model3DUrl: formData.model3DUrl,
         isPersonalizable: formData.isPersonalizable,
         isActive: formData.isActive,
-        price: Number(formData.price),
         sku: formData.sku,
-        weightGram: Number(formData.weightGram),
         categoryIds: selectedCategoryIds,
         characterIds: selectedCharacterIds,
-        media: formData.media,
+        variants: formData.variants.map(v => ({
+          sizeTag: v.sizeTag,
+          sizeDescription: v.sizeDescription,
+          baseCost: v.baseCost,
+          assemblyCost: v.assemblyCost,
+          weightGram: v.weightGram,
+          price: v.price,
+          stockQuantity: v.stockQuantity
+        })),
+        media: formData.media.map(m => ({
+          url: m.url,
+          altText: m.altText,
+          sortOrder: m.sortOrder
+        })),
         comboImages: comboImages
       });
 
@@ -311,24 +373,92 @@ export default function CreateProductModal({
                     <input required name="name" value={formData.name} onChange={handleChange} placeholder="Vd: Gấu Nâu Dudu" className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Loại sản phẩm *</label>
-                    <CustomDropdown options={[{ label: "Gấu", value: "BASE_BEAR" }, { label: "Phụ kiện", value: "ACCESSORY" }]} value={formData.productType} onChange={(v) => setFormData(p => ({ ...p, productType: v }))} buttonClassName="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm flex items-center justify-between" />
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">SKU *</label>
+                    <input required name="sku" value={formData.sku} onChange={handleChange} placeholder="SKU-XXXXXX" className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Kho hàng & Tồn kho (Cơ bản)</label>
+                    <div className="flex gap-2">
+                       <div className="flex-1 relative">
+                          <select disabled className="w-full bg-[#F1F5F9] text-[#6B7280] text-xs font-bold rounded-xl pl-3 pr-8 py-3 appearance-none cursor-not-allowed">
+                             <option>Kho Tổng (Mặc định)</option>
+                          </select>
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#9CA3AF]">
+                             <MdExpandMore />
+                          </div>
+                       </div>
+                       <div className="w-24">
+                          <input type="number" name="stockQuantity" value={formData.stockQuantity} onChange={handleChange} placeholder="Số lượng" className="w-full bg-white text-sm font-black text-[#17409A] rounded-xl px-3 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm" />
+                       </div>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Slug (Đường dẫn) *</label>
                     <input required name="slug" value={formData.slug || generateSlug(formData.name)} onChange={handleChange} placeholder="vd: gau-bong-doraemon" className="w-full bg-white text-xs font-bold text-[#17409A] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">SKU *</label>
-                    <input required name="sku" value={formData.sku} onChange={handleChange} placeholder="SKU-XXXXXX" className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Giá bán (VND) *</label>
-                    <input required type="number" name="price" value={formData.price} onChange={handleChange} placeholder="500000" className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Cân nặng (Gram) *</label>
-                    <input required type="number" name="weightGram" value={formData.weightGram} onChange={handleChange} placeholder="500" className="w-full bg-white text-sm font-semibold text-[#1A1A2E] rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm" />
+                  <div className="space-y-1.5 md:col-span-2 p-5 bg-white/60 rounded-3xl border border-white space-y-5">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-2">
+                        <MdAttachMoney className="text-[#17409A] text-lg" />
+                        <h3 className="text-xs font-black text-[#1A1A2E] uppercase">Cấu hình Size & Giá (Variant)</h3>
+                      </div>
+                      <div className="flex gap-1.5">
+                        {STANDARD_SIZES.map(s => {
+                          const isSelected = formData.variants.some(v => v.sizeTag === s);
+                          return (
+                            <button key={s} type="button" onClick={() => toggleSize(s)} className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all border-2 ${isSelected ? 'bg-[#17409A] text-white border-[#17409A]' : 'bg-white text-[#6B7280] border-gray-100 hover:border-[#17409A]'}`}>{s}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {formData.variants.length === 0 ? (
+                        <div className="py-8 text-center bg-white/40 rounded-2xl border-2 border-dashed border-gray-100 italic text-xs text-[#9CA3AF] font-bold">Vui lòng chọn các size khả dụng của gấu</div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-3">
+                           {formData.variants.map((variant) => (
+                             <div key={variant.sizeTag} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-4 animate-in slide-in-from-left duration-200">
+                               <div className="w-10 h-10 rounded-xl bg-[#17409A] text-white flex items-center justify-center font-black text-xs shrink-0">{variant.sizeTag}</div>
+                               <div className="flex-1 w-full space-y-3">
+                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1 w-full">
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-black text-[#9CA3AF] uppercase">Giá vốn</label>
+                                      <input type="number" value={variant.baseCost} onChange={(e) => updateVariant(variant.sizeTag, { baseCost: Number(e.target.value) })} className="w-full bg-transparent text-sm font-black text-[#1A1A2E] outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-black text-[#9CA3AF] uppercase">Gia công</label>
+                                      <input type="number" value={variant.assemblyCost} onChange={(e) => updateVariant(variant.sizeTag, { assemblyCost: Number(e.target.value) })} className="w-full bg-transparent text-sm font-black text-[#1A1A2E] outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-black text-[#9CA3AF] uppercase">Cân nặng (g)</label>
+                                      <input type="number" value={variant.weightGram} onChange={(e) => updateVariant(variant.sizeTag, { weightGram: Number(e.target.value) })} className="w-full bg-transparent text-sm font-black text-[#1A1A2E] outline-none" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-black text-[#17409A] uppercase">Giá bán (+20%)</label>
+                                      <div className="text-sm font-black text-[#17409A]">{variant.price.toLocaleString()} đ</div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <label className="text-[9px] font-black text-[#EF4444] uppercase">Tồn kho</label>
+                                      <input type="number" value={variant.stockQuantity} onChange={(e) => updateVariant(variant.sizeTag, { stockQuantity: Number(e.target.value) })} className="w-full bg-[#F9FAFB] rounded-lg px-2 py-0.5 border border-[#EF4444]/20 text-sm font-black text-[#EF4444] outline-none focus:border-[#EF4444]" />
+                                    </div>
+                                 </div>
+                                 <div className="pt-2 border-t border-gray-50">
+                                    <input 
+                                      type="text" 
+                                      placeholder="Mô tả size (VD: Cao 30cm, Rộng 20cm...)" 
+                                      value={variant.sizeDescription} 
+                                      onChange={(e) => updateVariant(variant.sizeTag, { sizeDescription: e.target.value })} 
+                                      className="w-full bg-[#F9FAFB]/50 text-xs font-semibold text-[#1A1A2E] rounded-xl px-4 py-2 outline-none border-2 border-transparent focus:border-[#17409A]/10 transition-all placeholder:text-[#9CA3AF]" 
+                                    />
+                                 </div>
+                               </div>
+                               <button type="button" onClick={() => toggleSize(variant.sizeTag)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"><MdDeleteOutline className="text-lg" /></button>
+                             </div>
+                           ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -370,51 +500,47 @@ export default function CreateProductModal({
                   </div>
                 </div>
 
-                {!isAccessory && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Categories *</label>
-                      <CustomDropdown options={categories.map((c) => ({ label: c.name, value: c.categoryId }))} value={selectedCategoryIds[0] || ""} onChange={(v) => setSelectedCategoryIds(v ? [v] : [])} placeholder="Chọn 1 Category" buttonClassName="w-full bg-white text-sm font-semibold p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Characters *</label>
-                      <CustomDropdown options={characters.map((c) => ({ label: c.name, value: c.characterId }))} value={selectedCharacterIds[0] || ""} onChange={(v) => setSelectedCharacterIds(v ? [v] : [])} placeholder="Chọn 1 Character" buttonClassName="w-full bg-white text-sm font-semibold p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center" />
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Categories *</label>
+                    <CustomDropdown options={categories.map((c) => ({ label: c.name, value: c.categoryId }))} value={selectedCategoryIds[0] || ""} onChange={(v) => setSelectedCategoryIds(v ? [v] : [])} placeholder="Chọn 1 Category" buttonClassName="w-full bg-white text-sm font-semibold p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center" />
                   </div>
-                )}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Characters *</label>
+                    <CustomDropdown options={characters.map((c) => ({ label: c.name, value: c.characterId }))} value={selectedCharacterIds[0] || ""} onChange={(v) => setSelectedCharacterIds(v ? [v] : [])} placeholder="Chọn 1 Character" buttonClassName="w-full bg-white text-sm font-semibold p-3 rounded-xl border border-gray-100 shadow-sm flex justify-between items-center" />
+                  </div>
+                </div>
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">Mô tả sản phẩm</label>
                     <textarea name="description" value={formData.description} onChange={handleChange} rows={3} placeholder="Mô tả ngắn về sản phẩm..." className="w-full bg-white text-sm font-semibold p-4 rounded-xl border border-gray-100 shadow-sm outline-none focus:border-[#17409A]/20 resize-none" />
                   </div>
-                  {!isAccessory && (
-                    <div className="flex flex-wrap gap-6 pt-2">
-                       <label className="flex items-center gap-2 cursor-pointer group"><input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="w-5 h-5 rounded border-gray-300 text-[#17409A]" /><span className="text-sm font-bold text-[#1A1A2E]">Hiển thị cửa hàng</span></label>
-                       <label className="flex items-center gap-2 cursor-pointer group"><input type="checkbox" name="isPersonalizable" checked={formData.isPersonalizable} onChange={handleChange} className="w-5 h-5 rounded border-gray-300 text-[#7C5CFC]" /><span className="text-sm font-bold text-[#1A1A2E]">Hỗ trợ Custom & Phụ kiện</span></label>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-6 pt-2">
+                     <label className="flex items-center gap-2 cursor-pointer group"><input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} className="w-5 h-5 rounded border-gray-300 text-[#17409A]" /><span className="text-sm font-bold text-[#1A1A2E]">Hiển thị cửa hàng</span></label>
+                     <label className="flex items-center gap-2 cursor-pointer group"><input type="checkbox" name="isPersonalizable" checked={formData.isPersonalizable} onChange={handleChange} className="w-5 h-5 rounded border-gray-300 text-[#7C5CFC]" /><span className="text-sm font-bold text-[#1A1A2E]">Hỗ trợ Custom & Phụ kiện</span></label>
+                  </div>
                 </div>
              </form>
           ) : (
              <div className="space-y-8 animate-in slide-in-from-right duration-300">
                 <div className="space-y-3">
                    <p className="text-xs font-black text-[#17409A] uppercase tracking-widest">Bước 2: Chọn phụ kiện khả dụng</p>
-                   <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                      {accessoryList.map((acc) => {
-                         const isSelected = selectedAccessoryIds.includes(acc.productId);
-                         return (
-                            <button key={acc.productId} onClick={() => setSelectedAccessoryIds(prev => isSelected ? prev.filter(id => id !== acc.productId) : [...prev, acc.productId])} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${isSelected ? 'border-[#17409A] bg-[#F4F7FF]' : 'border-white bg-white hover:border-gray-200'}`}>
-                               <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-50 shrink-0"><img src={acc.imageUrl || '/teddy_bear.png'} className="w-full h-full object-cover" /></div>
-                               <div className="flex-1 text-left min-w-0">
-                                  <p className="text-[11px] font-black text-[#1A1A2E] truncate">{acc.name}</p>
-                                  <p className="text-[10px] font-bold text-[#9CA3AF]">{(acc.price || 0).toLocaleString()} đ</p>
-                               </div>
-                               {isSelected && <MdCheckCircle className="text-[#17409A] text-lg shrink-0" />}
-                            </button>
-                         );
-                      })}
-                   </div>
+                    <div className="grid grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                       {accessoryList.map((acc) => {
+                          const isSelected = selectedAccessoryIds.includes(acc.accessoryId);
+                          return (
+                             <button key={acc.accessoryId} onClick={() => setSelectedAccessoryIds(prev => isSelected ? prev.filter(id => id !== acc.accessoryId) : [...prev, acc.accessoryId])} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${isSelected ? 'border-[#17409A] bg-[#F4F7FF]' : 'border-white bg-white hover:border-gray-200'}`}>
+                                <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-50 shrink-0"><img src={acc.imageUrl || '/teddy_bear.png'} className="w-full h-full object-cover" /></div>
+                                <div className="flex-1 text-left min-w-0">
+                                   <p className="text-[11px] font-black text-[#1A1A2E] truncate">{acc.name}</p>
+                                   <p className="text-[10px] font-bold text-[#9CA3AF]">{(acc.targetPrice || 0).toLocaleString()} đ</p>
+                                </div>
+                                {isSelected && <MdCheckCircle className="text-[#17409A] text-lg shrink-0" />}
+                             </button>
+                          );
+                       })}
+                    </div>
                 </div>
 
                 {selectedAccessoryIds.length > 0 && (
@@ -460,7 +586,7 @@ export default function CreateProductModal({
             <>
                <button type="button" onClick={onClose} disabled={isSubmitting} className="px-6 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E5E7EB] transition-colors">Hủy bỏ</button>
                <button type="submit" form="createProductForm" disabled={isSubmitting} className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-white bg-[#17409A] hover:bg-[#0E2A66] shadow-lg transition-all disabled:opacity-50">
-                 {isSubmitting ? "Đang xử lý..." : (isBaseBear && formData.isPersonalizable ? <>Tiếp tục <MdArrowForward /></> : "Tạo sản phẩm") }
+                 {isSubmitting ? "Đang xử lý..." : (formData.isPersonalizable ? <>Tiếp tục <MdArrowForward /></> : "Tạo sản phẩm") }
                </button>
             </>
           )}

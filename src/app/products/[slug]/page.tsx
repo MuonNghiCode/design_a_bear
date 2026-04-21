@@ -15,16 +15,16 @@ import {
 } from "@/constants/seo";
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 const isUuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
-const getProductByParam = cache(async (id: string) => {
-  const response = isUuid(id)
-    ? await productService.getProductById(id)
-    : await productService.getProductBySlug(id);
+const getProductByParam = cache(async (slug: string) => {
+  const response = isUuid(slug)
+    ? await productService.getProductById(slug)
+    : await productService.getProductBySlug(slug);
 
   if (response.isFailure || !response.value) {
     return null;
@@ -34,26 +34,26 @@ const getProductByParam = cache(async (id: string) => {
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const product = await getProductByParam(id);
+  const { slug } = await params;
+  const product = await getProductByParam(slug);
 
   if (!product) {
     return {
-      title: "San pham khong ton tai",
-      description: "Khong tim thay san pham ban dang tim.",
+      title: "Sản phẩm không tồn tại",
+      description: "Không tìm thấy sản phẩm bạn đang tìm.",
       robots: PUBLIC_ROBOTS,
       alternates: { canonical: "/products" },
     };
   }
 
-  const productPath = `/products/${product.slug || id}`;
+  const productPath = `/products/${product.slug || slug}`;
   const imageUrl =
     product.media?.[0]?.url ||
     DEFAULT_OG_IMAGE;
   const pageTitle = `${product.name} - ${SITE_NAME}`;
   const pageDescription =
     product.description?.slice(0, 155) ||
-    `San pham ${product.name} tai ${SITE_NAME}.`;
+    `Sản phẩm ${product.name} tại ${SITE_NAME}.`;
 
   return {
     title: pageTitle,
@@ -79,10 +79,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductDetailPage({ params }: Props) {
-  const { id } = await params;
+  const { slug } = await params;
 
   try {
-    const product = await getProductByParam(id);
+    const product = await getProductByParam(slug);
 
     if (!product) {
       notFound();
@@ -134,7 +134,7 @@ export default async function ProductDetailPage({ params }: Props) {
       console.error("Failed to fetch related products", e);
     }
 
-    const productPath = `/products/${product.slug || id}`;
+    const productPath = `/products/${product.slug || slug}`;
     const productImage =
       product.media?.[0]?.url ||
       `${SITE_URL}${DEFAULT_OG_IMAGE}`;

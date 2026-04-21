@@ -8,29 +8,61 @@ class InventoryService extends BaseApiService {
     return this.get<Inventory[]>(url, undefined, { withCredentials: false });
   }
 
+  async getByAccessoryId(accessoryId: string): Promise<ApiResponse<Inventory[]>> {
+    const url = API_ENDPOINTS.INVENTORIES.BY_ACCESSORY.replace("{accessoryId}", accessoryId);
+    return this.get<Inventory[]>(url, undefined, { withCredentials: false });
+  }
+
   async getTotalAvailable(productId: string): Promise<ApiResponse<{ totalAvailable: number }>> {
     const url = API_ENDPOINTS.INVENTORIES.TOTAL_AVAILABLE.replace("{productId}", productId);
     return this.get<{ totalAvailable: number }>(url, undefined, { withCredentials: false });
   }
 
-  /**
-   * Adjusts stock for a specific location and product
-   * @param locationId The warehouse location ID
-   * @param productId The product ID
-   * @param delta Positive to restock, negative to deduct
-   */
-  async adjustStock(locationId: string, productId: string, delta: number): Promise<ApiResponse<null>> {
-    const url = `${API_ENDPOINTS.INVENTORIES.ADJUST}?locationId=${locationId}&productId=${productId}&delta=${delta}`;
+  async adjustStock(
+    productId: string | null, 
+    variantId: string | null | undefined, 
+    accessoryId: string | null | undefined,
+    delta: number, 
+    locationId: string
+  ): Promise<ApiResponse<null>> {
+    let params = `delta=${delta}&locationId=${locationId}`;
+    if (productId) params += `&productId=${productId}`;
+    if (variantId) params += `&variantId=${variantId}`;
+    if (accessoryId) params += `&accessoryId=${accessoryId}`;
+    
+    const url = `${API_ENDPOINTS.INVENTORIES.ADJUST}?${params}`;
     return this.post<null>(url, {}, { withCredentials: false });
   }
 
-  async reserveStock(locationId: string, productId: string, quantity: number): Promise<ApiResponse<null>> {
-    const url = `${API_ENDPOINTS.INVENTORIES.RESERVE}?locationId=${locationId}&productId=${productId}&quantity=${quantity}`;
+  async reserveStock(
+    productId: string | null, 
+    variantId: string | null | undefined, 
+    accessoryId: string | null | undefined,
+    quantity: number, 
+    locationId: string
+  ): Promise<ApiResponse<null>> {
+    let params = `quantity=${quantity}&locationId=${locationId}`;
+    if (productId) params += `&productId=${productId}`;
+    if (variantId) params += `&variantId=${variantId}`;
+    if (accessoryId) params += `&accessoryId=${accessoryId}`;
+
+    const url = `${API_ENDPOINTS.INVENTORIES.RESERVE}?${params}`;
     return this.post<null>(url, {}, { withCredentials: false });
   }
 
-  async releaseReservation(locationId: string, productId: string, quantity: number): Promise<ApiResponse<null>> {
-    const url = `${API_ENDPOINTS.INVENTORIES.RELEASE}?locationId=${locationId}&productId=${productId}&quantity=${quantity}`;
+  async releaseReservation(
+    productId: string | null, 
+    variantId: string | null | undefined, 
+    accessoryId: string | null | undefined,
+    quantity: number, 
+    locationId: string
+  ): Promise<ApiResponse<null>> {
+    let params = `quantity=${quantity}&locationId=${locationId}`;
+    if (productId) params += `&productId=${productId}`;
+    if (variantId) params += `&variantId=${variantId}`;
+    if (accessoryId) params += `&accessoryId=${accessoryId}`;
+
+    const url = `${API_ENDPOINTS.INVENTORIES.RELEASE}?${params}`;
     return this.post<null>(url, {}, { withCredentials: false });
   }
 }

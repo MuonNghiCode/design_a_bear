@@ -56,6 +56,11 @@ class OrderService extends BaseApiService {
     const url = API_ENDPOINTS.ORDERS.CANCEL.replace("{orderId}", orderId);
     return this.post<null>(url, {}, { withCredentials: false });
   }
+
+  async reorder(orderId: string): Promise<ApiResponse<null>> {
+    const url = API_ENDPOINTS.ORDERS.REORDER.replace("{orderId}", orderId);
+    return this.post<null>(url, undefined, { withCredentials: false });
+  }
 }
 
 export const orderService = new OrderService();

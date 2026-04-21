@@ -9,6 +9,7 @@ import ProductCard, { type ProductCardProps } from "../shared/ProductCard";
 import ProductCardSkeleton from "../shared/ProductCardSkeleton";
 import type { ProductListItem } from "@/types";
 import { inventoryService } from "@/services/inventory.service";
+import { useProductApi } from "@/hooks";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -56,7 +57,9 @@ export default function FeaturedProducts() {
             })
           );
           const newMap: Record<string, number> = {};
-          results.forEach(r => { newMap[r.id] = r.total; });
+          results.forEach(r => { 
+            if (r.id) newMap[r.id] = r.total; 
+          });
           setInventoryMap(newMap);
         } catch (err) {
           console.error("Failed to sync featured stock:", err);

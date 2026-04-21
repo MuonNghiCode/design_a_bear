@@ -29,14 +29,15 @@ type ToastItem = {
 type ToastOptions = {
   type?: ToastType;
   duration?: number;
+  id?: string | number;
 };
 
 type ToastContextValue = {
   showToast: (message: string, options?: ToastOptions) => void;
-  success: (message: string, duration?: number) => void;
-  error: (message: string, duration?: number) => void;
-  info: (message: string, duration?: number) => void;
-  warning: (message: string, duration?: number) => void;
+  success: (message: string, options?: number | ToastOptions) => void;
+  error: (message: string, options?: number | ToastOptions) => void;
+  info: (message: string, options?: number | ToastOptions) => void;
+  warning: (message: string, options?: number | ToastOptions) => void;
 };
 
 const DEFAULT_DURATION = 3200;
@@ -117,14 +118,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ToastContextValue>(
     () => ({
       showToast,
-      success: (message: string, duration?: number) =>
-        showToast(message, { type: "success", duration }),
-      error: (message: string, duration?: number) =>
-        showToast(message, { type: "error", duration }),
-      info: (message: string, duration?: number) =>
-        showToast(message, { type: "info", duration }),
-      warning: (message: string, duration?: number) =>
-        showToast(message, { type: "warning", duration }),
+      success: (message: string, options?: number | ToastOptions) => {
+        const opts = typeof options === "number" ? { duration: options } : options;
+        showToast(message, { ...opts, type: "success" });
+      },
+      error: (message: string, options?: number | ToastOptions) => {
+        const opts = typeof options === "number" ? { duration: options } : options;
+        showToast(message, { ...opts, type: "error" });
+      },
+      info: (message: string, options?: number | ToastOptions) => {
+        const opts = typeof options === "number" ? { duration: options } : options;
+        showToast(message, { ...opts, type: "info" });
+      },
+      warning: (message: string, options?: number | ToastOptions) => {
+        const opts = typeof options === "number" ? { duration: options } : options;
+        showToast(message, { ...opts, type: "warning" });
+      },
     }),
     [showToast],
   );

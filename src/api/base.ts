@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse } from 'axios';
 
-import { API_BASE_URL, API_HEADERS, STORAGE_KEYS } from '../constants';
+import { API_BASE_URL, API_HEADERS, STORAGE_KEYS, API_ERROR_MESSAGES } from '../constants';
 import { ApiResponse } from '../types';
 
 
@@ -23,35 +23,42 @@ class BaseApiService {
     private extractErrorMessage(error: unknown): string {
         const axiosError = error as AxiosError<{
             title?: string;
-            error?: { description?: string };
-            errors?: Record<string, string[]>;
+            error?: { code?: string; description?: string };
+            errors?: Record<string, string[] | string>;
+            message?: string;
         }>;
 
         const data = axiosError.response?.data;
+        
+        // Log detailed error for debugging
+        console.error('[API Error Detail]:', {
+            status: axiosError.response?.status,
+            url: axiosError.config?.url,
+            data: data,
+            fullError: axiosError
+        });
 
-        if (data?.error?.description) {
+        if (!data) return API_ERROR_MESSAGES.NETWORK_ERROR;
+
+        // 1. Handle our custom Result structure
+        if (data.error?.description) {
             return data.error.description;
         }
 
-        const modelStateErrors = data?.errors;
-        if (modelStateErrors && typeof modelStateErrors === 'object') {
-            const firstFieldErrors = Object.values(modelStateErrors).find(
-                (fieldErrors) => Array.isArray(fieldErrors) && fieldErrors.length > 0
-            );
-            if (firstFieldErrors?.[0]) {
-                return firstFieldErrors[0];
-            }
-        }
 
         if (data?.title) {
             return data.title;
+        }
+
+        if (data?.message) {
+            return data.message;
         }
 
         if (axiosError.message) {
             return axiosError.message;
         }
 
-        return 'Đã có lỗi xảy ra';
+        return 'Đã có lỗi xảy ra. Vui lòng thử lại sau.';
     }
 
     private setupInterceptors(): void {

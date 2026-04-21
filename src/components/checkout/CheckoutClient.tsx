@@ -32,6 +32,7 @@ import { inventoryService } from "@/services/inventory.service";
 import { STORAGE_KEYS } from "@/constants";
 import type { Address } from "@/types";
 import { normalizePhoneNumber } from "@/utils/address";
+import { getComponentsForValidation } from "@/utils/stock_utils";
 /*  Main Component */
 export default function CheckoutClient() {
   const [step, setStep] = useState(1);
@@ -463,34 +464,70 @@ export default function CheckoutClient() {
 
   /**
    * Final validation of stock for all items in the cart before placing the order.
+   * "Deep Validation": Manually checks every component (Base + Accessories) 
+   * to ensure no hidden bottlenecks are missed by the server-side calculation.
    */
   const validateCartStock = async (): Promise<boolean> => {
-    setStockErrors({});
-    const newErrors: Record<string, string> = {};
-    let hasError = false;
+    try {
+      setSubmitting(true);
+      setStockErrors({});
+      const newErrors: Record<string, string> = {};
+      let hasError = false;
 
-    for (const item of items) {
-      // Use the server-enriched availableStock property
-      const stock = item.availableStock ?? 0;
+      // 1. Collect all unique identities to check
+      const identitiesToCheck: { identityId: string; isAccessory: boolean }[] = [];
+      const itemComponentsMap = new Map<string, { identityId: string; isAccessory: boolean }[]>();
 
-      if (stock <= 0) {
-        newErrors[item.cartItemId] = "Sản phẩm này hiện đã hết hàng.";
-        hasError = true;
-      } else if (item.quantity > stock) {
-        newErrors[item.cartItemId] = `Chỉ còn ${stock} sản phẩm sẵn có.`;
-        hasError = true;
+      for (const item of items) {
+        const components = await getComponentsForValidation(item);
+        identitiesToCheck.push(...components);
+        itemComponentsMap.set(item.cartItemId, components);
       }
-    }
 
-    if (hasError) {
-      setStockErrors(newErrors);
-      toast.error(
-        "Có sản phẩm trong giỏ hàng không đủ tồn kho. Vui lòng kiểm tra lại.",
-      );
+      // 2. Fetch all at once (Simulated Batch)
+      const uniqueIdentities = Array.from(
+        new Set(identitiesToCheck.map((i) => JSON.stringify(i))),
+      ).map((s) => JSON.parse(s));
+
+      const stockMap = await inventoryService.batchCheck(uniqueIdentities);
+
+      // 3. Validate each item against its components' bottlenecks
+      for (const item of items) {
+        const components = itemComponentsMap.get(item.cartItemId) || [];
+        let minAvailable = Infinity;
+
+        for (const comp of components) {
+          const available = stockMap[comp.identityId] ?? 0;
+          minAvailable = Math.min(minAvailable, available);
+        }
+
+        if (minAvailable === Infinity || minAvailable <= 0) {
+          newErrors[item.cartItemId] = "Sản phẩm này hiện đã hết hàng.";
+          hasError = true;
+        } else if (item.quantity > minAvailable) {
+          newErrors[item.cartItemId] = `Chỉnh còn ${minAvailable} sản phẩm sẵn có.`;
+          hasError = true;
+        }
+      }
+
+      if (hasError) {
+        setStockErrors(newErrors);
+        toast.error(
+          "Có sản phẩm trong giỏ hàng không đủ tồn kho. Vui lòng kiểm tra lại.",
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Deep stock validation error:", error);
+      toast.error("Không thể xác thực tồn kho. Vui lòng thử lại.");
       return false;
+    } finally {
+      setSubmitting(false);
     }
-    return true;
   };
+
+
 
   const goNext = useCallback(() => {
     if (submitting || isSubmittingRef.current) return;

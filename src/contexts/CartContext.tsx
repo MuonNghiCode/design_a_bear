@@ -16,7 +16,12 @@ import {
 import { useCartApi } from "@/hooks/useCartApi";
 import { STORAGE_KEYS } from "@/constants";
 import type { CartItem as ApiCartItem, Build } from "@/types/responses";
+import BaseApiService from "@/api/base";
+import { getComponentsForValidation } from "@/utils/stock_utils";
 import { buildService } from "@/services/build.service";
+import { inventoryService } from "@/services/inventory.service";
+import { accessoryService } from "@/services/accessory.service";
+import { useToast } from "@/contexts/ToastContext";
 
 const CartContext = createContext<CartContextType | null>(null);
 
@@ -58,6 +63,7 @@ function mapApiToUI(
       previousItem?.sizeTag,
     sizeDetails: previousItem?.sizeDetails, // Often found in variant description if available
     accessories: previousItem?.accessories, // Fallback to previous if available
+    baseVariantId: buildDetail?.baseVariantId || apiItem.productId,
     availableStock: apiItem.availableStock,
   };
 }
@@ -65,6 +71,7 @@ function mapApiToUI(
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<UICartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const toast = useToast();
   const {
     getCart,
     createCart,
@@ -129,6 +136,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     "Phụ kiện",
                   price: c.priceSnapshot,
                 }));
+                mapped.baseVariantId = buildDetail.baseVariantId;
               }
 
               return mapped;
@@ -180,6 +188,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(STORAGE_KEYS.CART_ID, cartId!);
         }
 
+        // --- Pre-check Stock (Required by Unified Inventory Guide) ---
+        const tempItem: any = {
+          product,
+          accessories,
+          baseVariantId: buildId ? undefined : (product as any).productId || product.id
+        };
+        const components = await getComponentsForValidation(tempItem);
+
+        // Perform batch check (sequential on FE simulator)
+        const stockMap = await inventoryService.batchCheck(components);
+        
+        // Check for any failures
+        for (const comp of components) {
+          const available = stockMap[comp.identityId] || 0;
+          if (available < (quantity || 1)) {
+            toast.error(`Sản phẩm không đủ hàng trong kho (Còn lại: ${available})`);
+            return;
+          }
+        }
+        // -----------------------------------------------------------
+
         const addRes = await addItemToCart({
           cartId: cartId!,
           productId: buildId ? undefined : (product as any).productId || product.id,
@@ -188,14 +217,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : (product as any).productId
               ? product.id
               : undefined,
-          buildId: buildId || undefined,
+          buildId: buildId || null,
           quantity,
           unitPriceSnapshot: product.price,
           sizeTag,
-          productName: product.name,
-          productImageUrl: product.image ?? null,
-          productNameSnapshot: product.name,
-          productImageUrlSnapshot: product.image ?? null,
+          productImageUrlSnapshot: product.image || null,
         });
 
         if (addRes?.cartId && addRes.cartId !== cartId) {

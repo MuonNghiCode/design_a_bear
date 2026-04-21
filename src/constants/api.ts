@@ -128,15 +128,17 @@ export const API_ENDPOINTS = {
   INVENTORIES: {
     BASE: "/api/Inventories",
     BY_PRODUCT: "/api/Inventories/product/{productId}",
-    TOTAL_AVAILABLE: "/api/Inventories/product/{productId}/total",
+    TOTAL: "/api/Inventories/total",
     ADJUST: "/api/Inventories/adjust",
     RESERVE: "/api/Inventories/reserve",
     RELEASE: "/api/Inventories/release",
-    BY_LOCATION_PRODUCT:
-      "/api/Inventories/location/{locationId}/product/{productId}",
-    BY_ACCESSORY: "/api/Inventories/accessory/{accessoryId}",
+    // Note: Legacy endpoints kept for compatibility if needed, 
+    // but preference is the unified /total and /adjust endpoints.
     VARIANT_ADJUST: "/api/Inventories/variant/adjust",
     ACCESSORY_ADJUST: "/api/Inventories/accessory/adjust",
+    BY_ACCESSORY: "/api/Inventories/accessory/{accessoryId}",
+    BY_LOCATION_PRODUCT:
+      "/api/Inventories/location/{locationId}/product/{productId}",
   },
   LOCATIONS: {
     BASE: "/api/Locations",

@@ -205,10 +205,9 @@ export interface AddToCartRequest {
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
-  productName?: string;
-  productImageUrl?: string | null;
-  productNameSnapshot?: string;
   productImageUrlSnapshot?: string | null;
+  sizeTag?: string;
+  sizeDescription?: string;
 }
 
 /* ── Personalization Group API Requests ── */
@@ -313,13 +312,25 @@ export interface ToggleFavoriteRequest {
 /* ── Accessory API Requests ── */
 
 export interface CreateAccessoryRequest {
-  name: string;
-  description: string;
   sku: string;
-  price: number;
-  weightGram: number;
+  baseCost: number;
+  assemblyCost: number;
+  targetPrice: number;
+  stockQuantity: number;
   imageUrl: string;
   categoryId: string;
+  isActive?: boolean;
 }
 
-export type UpdateAccessoryRequest = Partial<CreateAccessoryRequest>;
+export interface UpdateAccessoryRequest {
+  name?: string;
+  description?: string;
+  sku?: string;
+  baseCost?: number;
+  assemblyCost?: number;
+  targetPrice?: number;
+  stockQuantity?: number;
+  imageUrl?: string;
+  categoryId?: string;
+  isActive?: boolean;
+}

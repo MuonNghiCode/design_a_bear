@@ -1,79 +1,93 @@
 import BaseApiService from "@/api/base";
 import { API_ENDPOINTS } from "@/constants";
-import type { Inventory, ApiResponse } from "@/types";
+import type { Inventory } from "@/types/inventory";
+import { ApiResponse } from "@/types";
 
 class InventoryService extends BaseApiService {
-  async getByProductId(productId: string): Promise<ApiResponse<Inventory[]>> {
-    const url = API_ENDPOINTS.INVENTORIES.BY_PRODUCT.replace("{productId}", productId);
-    return this.get<Inventory[]>(url, undefined, { withCredentials: false });
-  }
-
-  async getByAccessoryId(accessoryId: string): Promise<ApiResponse<Inventory[]>> {
-    const url = API_ENDPOINTS.INVENTORIES.BY_ACCESSORY.replace("{accessoryId}", accessoryId);
-    return this.get<Inventory[]>(url);
-  }
-
-  async getTotalAvailable(productId: string, variantId?: string): Promise<ApiResponse<{ totalAvailable: number }>> {
-    let url = API_ENDPOINTS.INVENTORIES.TOTAL_AVAILABLE.replace("{productId}", productId);
-    if (variantId) url += `?variantId=${variantId}`;
-    return this.get<{ totalAvailable: number }>(url);
+  /**
+   * Get inventory for a specific location and identity.
+   * GET /api/Inventories/location/{locationId}/identity/{identityId}?isAccessory=bool
+   */
+  async getAtLocation(locationId: string, identityId: string, isAccessory: boolean = false): Promise<ApiResponse<Inventory>> {
+    const url = `${API_ENDPOINTS.INVENTORIES.BASE}/location/${locationId}/identity/${identityId}?isAccessory=${isAccessory}`;
+    return super.get<Inventory>(url);
   }
 
   /**
-   * Adjusts stock for a specific location and item
+   * Get all inventory records for a specific product across all locations.
+   * Matches Backend's InventoriesController: GET /api/Inventories/product/{productId}
    */
-  async adjustStock(
-    locationId: string,
-    delta: number,
-    productId?: string | null,
-    variantId?: string | null,
-    accessoryId?: string | null
-  ): Promise<ApiResponse<null>> {
-    const params = new URLSearchParams();
-    params.append("locationId", locationId);
-    params.append("delta", delta.toString());
-    if (productId) params.append("productId", productId);
-    if (variantId) params.append("variantId", variantId);
-    if (accessoryId) params.append("accessoryId", accessoryId);
-
-    const url = `${API_ENDPOINTS.INVENTORIES.ADJUST}?${params.toString()}`;
-    return this.post<null>(url, {});
+  async getByProductId(productId: string): Promise<ApiResponse<Inventory[]>> {
+    const url = `${API_ENDPOINTS.INVENTORIES.BASE}/product/${productId}`;
+    return this.get<Inventory[]>(url, undefined, { withCredentials: false });
   }
 
-  async reserveStock(
-    locationId: string,
-    quantity: number,
-    productId?: string | null,
-    variantId?: string | null,
-    accessoryId?: string | null
-  ): Promise<ApiResponse<null>> {
-    const params = new URLSearchParams();
-    params.append("locationId", locationId);
-    params.append("quantity", quantity.toString());
-    if (productId) params.append("productId", productId);
-    if (variantId) params.append("variantId", variantId);
-    if (accessoryId) params.append("accessoryId", accessoryId);
-
-    const url = `${API_ENDPOINTS.INVENTORIES.RESERVE}?${params.toString()}`;
-    return this.post<null>(url, {});
+  /**
+   * Get all inventory records for a specific accessory across all locations.
+   * Matches Backend's InventoriesController: GET /api/Inventories/accessory/{accessoryId}
+   */
+  async getByAccessoryId(accessoryId: string): Promise<ApiResponse<Inventory[]>> {
+    const url = `${API_ENDPOINTS.INVENTORIES.BASE}/accessory/${accessoryId}`;
+    return this.get<Inventory[]>(url, undefined, { withCredentials: false });
   }
 
-  async releaseReservation(
-    locationId: string,
-    quantity: number,
-    productId?: string | null,
-    variantId?: string | null,
-    accessoryId?: string | null
-  ): Promise<ApiResponse<null>> {
-    const params = new URLSearchParams();
-    params.append("locationId", locationId);
-    params.append("quantity", quantity.toString());
-    if (productId) params.append("productId", productId);
-    if (variantId) params.append("variantId", variantId);
-    if (accessoryId) params.append("accessoryId", accessoryId);
+  /**
+   * Get total available stock across all locations for a specific identity.
+   * Matches Backend's InventoriesController: GET /api/Inventories/total?identityId=...&isAccessory=...
+   */
+  async getTotalAvailable(identityId: string, isAccessory: boolean = false): Promise<ApiResponse<{ totalAvailable: number }>> {
+    const params = {
+      identityId,
+      isAccessory
+    };
+    return this.get<{ totalAvailable: number }>(API_ENDPOINTS.INVENTORIES.TOTAL, params);
+  }
 
-    const url = `${API_ENDPOINTS.INVENTORIES.RELEASE}?${params.toString()}`;
-    return this.post<null>(url, {});
+  /**
+   * Batch check stock sequentially.
+   */
+  async batchCheck(items: { identityId: string; isAccessory: boolean }[]): Promise<Record<string, number>> {
+    const results: Record<string, number> = {};
+    for (const item of items) {
+      try {
+        const res = await this.getTotalAvailable(item.identityId, item.isAccessory);
+        results[item.identityId] = res.isSuccess ? res.value.totalAvailable : 0;
+      } catch {
+        results[item.identityId] = 0;
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Unified Stock Adjustment.
+   * Matches Backend's InventoriesController: POST /api/Inventories/adjust?identityId=...&isAccessory=...&delta=...&locationId=...
+   */
+  async adjustStock(identityId: string, isAccessory: boolean, delta: number, locationId?: string): Promise<ApiResponse<null>> {
+    const params: any = {
+      identityId,
+      isAccessory,
+      delta
+    };
+    if (locationId) params.locationId = locationId;
+
+    return this.post<null>(API_ENDPOINTS.INVENTORIES.ADJUST, null, { params });
+  }
+
+  /**
+   * Unified Reservation.
+   */
+  async reserveStock(identityId: string, isAccessory: boolean, quantity: number, locationId: string): Promise<ApiResponse<null>> {
+    const params = { identityId, isAccessory, quantity, locationId };
+    return this.post<null>(API_ENDPOINTS.INVENTORIES.RESERVE, null, { params });
+  }
+
+  /**
+   * Unified Release Reservation.
+   */
+  async releaseReservation(identityId: string, isAccessory: boolean, quantity: number, locationId: string): Promise<ApiResponse<null>> {
+    const params = { identityId, isAccessory, quantity, locationId };
+    return this.post<null>(API_ENDPOINTS.INVENTORIES.RELEASE, null, { params });
   }
 }
 

@@ -10,7 +10,6 @@ import {
 } from "react-icons/io5";
 import gsap from "gsap";
 import { useCart } from "@/contexts/CartContext";
-import { inventoryService } from "@/services/inventory.service";
 import { useState } from "react";
 
 /* ────────────────────────────────────────────

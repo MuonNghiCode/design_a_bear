@@ -49,7 +49,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const productPath = `/products/${product.slug || id}`;
   const imageUrl =
     product.media?.[0]?.url ||
-    product.variants?.[0]?.imageUrl ||
     DEFAULT_OG_IMAGE;
   const pageTitle = `${product.name} - ${SITE_NAME}`;
   const pageDescription =
@@ -138,7 +137,6 @@ export default async function ProductDetailPage({ params }: Props) {
     const productPath = `/products/${product.slug || id}`;
     const productImage =
       product.media?.[0]?.url ||
-      product.variants?.[0]?.imageUrl ||
       `${SITE_URL}${DEFAULT_OG_IMAGE}`;
 
     const productJsonLd = {
@@ -147,7 +145,7 @@ export default async function ProductDetailPage({ params }: Props) {
       name: product.name,
       description: product.description,
       image: [productImage],
-      sku: product.variants?.[0]?.sku || undefined,
+      sku: product.sku || undefined,
       url: `${SITE_URL}${productPath}`,
       brand: {
         "@type": "Brand",

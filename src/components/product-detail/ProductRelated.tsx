@@ -78,6 +78,7 @@ export default function ProductRelated({ products }: Props) {
                 image={product.image}
                 badge={product.badge}
                 badgeColor={product.badgeColor}
+                availableStock={product.availableStock}
               />
             </div>
           ))}

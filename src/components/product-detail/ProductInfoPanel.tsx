@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { type ProductItem } from "@/types/products";
 import { useCart } from "@/contexts/CartContext";
-import {
-  type ProductVariant,
-  type PersonalizationRule,
-} from "@/types/responses";
+import { type PersonalizationRule } from "@/types/responses";
 import { buildService } from "@/services/build.service";
 import { STORAGE_KEYS } from "@/constants";
 import { useToast } from "@/contexts/ToastContext";
+import { useFavorite } from "@/contexts/FavoriteContext";
 
 /* ── Inline SVG icons (no emoji, no react-icons) ── */
 function IconMinus() {
@@ -64,13 +62,13 @@ function IconCart() {
   );
 }
 
-function IconHeart() {
+function IconHeart({ filled }: { filled?: boolean }) {
   return (
     <svg
       width="20"
       height="20"
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
@@ -158,32 +156,59 @@ const DELIVERY_INFO = [
 
 interface Props {
   product: ProductItem;
-  variants?: ProductVariant[];
-  selectedVariant: ProductVariant | null;
-  onSelectVariant: (v: ProductVariant) => void;
   personalizationRules?: PersonalizationRule[];
   quantity: number;
   setQuantity: (q: number) => void;
+  selectedAccessories: PersonalizationRule[];
+  setSelectedAccessories: React.Dispatch<
+    React.SetStateAction<PersonalizationRule[]>
+  >;
 }
-
 export default function ProductInfoPanel({
   product,
-  variants = [],
-  selectedVariant,
-  onSelectVariant,
   personalizationRules = [],
   quantity,
   setQuantity,
+  selectedAccessories,
+  setSelectedAccessories,
 }: Props) {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
-  const accent = product.badgeColor || "#17409A";
   const { addItem } = useCart();
-  const toast = useToast();
+  const { warning, success, error } = useToast();
+  const {
+    isFavorited,
+    toggleFavorite,
+    loading: favoriteLoading,
+  } = useFavorite();
   const [addingToCart, setAddingToCart] = useState(false);
-  const [selectedAccessories, setSelectedAccessories] = useState<
-    PersonalizationRule[]
-  >([]);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    product.variants && product.variants.length > 0
+      ? product.variants[0].variantId
+      : null,
+  );
+
+  const selectedVariant = useMemo(() => {
+    if (!selectedVariantId || !product.variants) return null;
+    return product.variants.find((v) => v.variantId === selectedVariantId);
+  }, [product.variants, selectedVariantId]);
+
+  const accent = product.badgeColor || "#17409A";
+
+  const isOutOfStock =
+    product.variants !== undefined && product.variants.length === 0;
+
+  const favorited = isFavorited(product.id);
+
+  const handleToggleFavorite = async () => {
+    await toggleFavorite(product.id);
+  };
+
+  const currentAvailable = useMemo(() => {
+    return selectedVariant
+      ? selectedVariant.available
+      : (product.available ?? 0);
+  }, [product.available, selectedVariant]);
 
   // Calculate total price
   const basePrice = selectedVariant ? selectedVariant.price : product.price;
@@ -209,19 +234,20 @@ export default function ProductInfoPanel({
 
   const addToCartInternal = async (goCheckout: boolean) => {
     if (!isAuthenticated) {
-      router.push("/auth");
+      warning("Vui lòng đăng nhập để thực hiện chức năng này");
+      setTimeout(() => {
+        router.push("/auth");
+      }, 1500);
       return;
     }
 
     try {
       setAddingToCart(true);
 
-      const baseVariantId = selectedVariant
-        ? selectedVariant.variantId
-        : product.id;
-      const variantLabel = selectedVariant?.variantName?.trim();
-      const itemName = variantLabel
-        ? `${product.name} (${variantLabel})`
+      const productId = product.id;
+      const variantId = selectedVariant?.variantId || productId;
+      const itemName = selectedVariant
+        ? `${product.name} (${selectedVariant.sizeTag})`
         : product.name;
       let targetBuildId: string | null = null;
 
@@ -238,13 +264,11 @@ export default function ProductInfoPanel({
 
         const buildRes = await buildService.createBuild({
           customerId,
-          baseVariantId,
+          baseProductId: productId,
           buildName: `Thiết kế ${product.name}`,
           personalizationNote: "Mua kèm phụ kiện",
           buildComponents: selectedAccessories.map((acc) => ({
-            optionVariantId:
-              acc.addonProduct.variants?.[0]?.variantId ||
-              acc.addonProduct.productId,
+            optionProductId: acc.addonProduct.productId,
           })),
         });
 
@@ -256,9 +280,8 @@ export default function ProductInfoPanel({
       // 2. ONLY 1 AddToCart REQUEST is needed! We send the buildId.
       await addItem(
         {
-          id: baseVariantId,
+          id: variantId,
           name: itemName,
-          variantName: variantLabel,
           description:
             selectedAccessories.length > 0
               ? `Combo Gấu + ${selectedAccessories.length} Phụ kiện`
@@ -270,18 +293,26 @@ export default function ProductInfoPanel({
         },
         quantity,
         targetBuildId,
+        selectedVariant?.sizeTag,
+        selectedVariant?.sizeDescription,
+        selectedAccessories.map((acc) => ({
+          id: acc.addonProduct.productId,
+          name: acc.addonProduct.name,
+          price: acc.addonProduct.price,
+          image: acc.addonProduct.imageUrl || undefined,
+        })),
       );
 
       if (goCheckout) {
-        toast.success(
+        success(
           `Đã thêm "${product.name}" vào giỏ. Đang chuyển đến thanh toán...`,
         );
         router.push("/checkout");
       } else {
-        toast.success(`Đã thêm "${product.name}" vào giỏ hàng!`);
+        success(`Đã thêm "${product.name}" vào giỏ hàng!`);
       }
     } catch (err) {
-      toast.error(
+      error(
         "Thêm vào giỏ hàng thất bại: " +
           (err instanceof Error ? err.message : "Vui lòng thử lại"),
       );
@@ -314,6 +345,18 @@ export default function ProductInfoPanel({
         </span>
       </nav>
 
+      {/* ── Weight Display (Subtle) ── */}
+      {selectedVariant && (
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">
+            Khối lượng dự kiến:
+          </span>
+          <span className="text-xs font-black text-[#1A1A2E]">
+            {selectedVariant.weightGram}g
+          </span>
+        </div>
+      )}
+
       {/* ── Price (FIRST — unconventional luxury placement) ── */}
       <div>
         <p className="text-xs font-bold tracking-[0.3em] uppercase text-[#9CA3AF] mb-2">
@@ -341,24 +384,43 @@ export default function ProductInfoPanel({
         </h1>
       </div>
 
-      {/* ── Variants selector ── */}
-      {variants.length > 0 && (
-        <div className="space-y-3">
-          <p className="font-bold text-[#1A1A2E]">Phân loại:</p>
-          <div className="flex flex-wrap gap-3">
-            {variants.map((v) => {
-              const isSelected = selectedVariant?.variantId === v.variantId;
+      {/* ── Size Selection Grid ── */}
+      {product.variants && product.variants.length > 1 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-black tracking-[0.2em] uppercase text-[#1A1A2E]">
+              Chọn kích thước
+            </p>
+            {selectedVariant && (
+              <span className="text-[10px] font-bold text-[#6B7280]">
+                {selectedVariant.sizeDescription}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {product.variants.map((v) => {
+              const isSelected = selectedVariantId === v.variantId;
               return (
                 <button
                   key={v.variantId}
-                  onClick={() => onSelectVariant(v)}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
+                  onClick={() => setSelectedVariantId(v.variantId)}
+                  className={`relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 ${
                     isSelected
-                      ? "border-[#17409A] bg-[#17409A] text-white shadow-md shadow-[#17409A]/20"
-                      : "border-gray-200 text-gray-600 hover:border-[#17409A]/50 hover:bg-[#F4F7FF]"
+                      ? "border-[#17409A] bg-[#17409A]/5 ring-4 ring-[#17409A]/10"
+                      : "border-gray-100 bg-white hover:border-[#17409A]/30"
                   }`}
                 >
-                  {v.variantName}
+                  <span
+                    className={`text-sm font-black ${isSelected ? "text-[#17409A]" : "text-[#4B5563]"}`}
+                  >
+                    {v.sizeTag}
+                  </span>
+                  <span className="text-[9px] font-bold text-[#9CA3AF] mt-0.5">
+                    {formatPrice(v.price)}
+                  </span>
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#17409A]" />
+                  )}
                 </button>
               );
             })}
@@ -445,9 +507,15 @@ export default function ProductInfoPanel({
         <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#17409A]/10 text-[#17409A] tracking-wide">
           {CATEGORY_LABELS[product.category] || product.category}
         </span>
-        <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#4ECDC4]/20 text-[#4ECDC4] tracking-wide">
-          Còn hàng
-        </span>
+        {currentAvailable > 0 ? (
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#4ECDC4]/20 text-[#059669] tracking-wide border border-[#4ECDC4]/30">
+            Sẵn có: {currentAvailable} sản phẩm
+          </span>
+        ) : (
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold bg-[#FF6B9D]/15 text-[#FF6B9D] tracking-wide border border-[#FF6B9D]/30">
+            Hết hàng
+          </span>
+        )}
       </div>
 
       {(product.categories?.length || product.characters?.length) && (
@@ -494,7 +562,13 @@ export default function ProductInfoPanel({
       <div className="h-px bg-[#E5E7EB]" />
 
       {/* ── Quantity selector ── */}
-      <div>
+      <div
+        className={
+          currentAvailable <= 0
+            ? "opacity-40 grayscale pointer-events-none"
+            : ""
+        }
+      >
         <p className="text-xs font-black tracking-[0.25em] uppercase text-[#1A1A2E] mb-3">
           Số lượng
         </p>
@@ -502,7 +576,12 @@ export default function ProductInfoPanel({
           <button
             type="button"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer"
+            disabled={quantity <= 1 || currentAvailable <= 0}
+            className={`w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer ${
+              quantity <= 1 || currentAvailable <= 0
+                ? "opacity-30 cursor-not-allowed"
+                : ""
+            }`}
             aria-label="Giảm số lượng"
           >
             <IconMinus />
@@ -515,41 +594,72 @@ export default function ProductInfoPanel({
           </div>
           <button
             type="button"
-            onClick={() => setQuantity(Math.min(10, quantity + 1))}
-            className="w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer"
+            onClick={() =>
+              setQuantity(Math.min(currentAvailable || 1, quantity + 1))
+            }
+            disabled={quantity >= currentAvailable || currentAvailable <= 0}
+            className={`w-12 h-12 flex items-center justify-center text-[#6B7280] hover:bg-[#F4F7FF] transition-colors cursor-pointer ${
+              quantity >= currentAvailable || currentAvailable <= 0
+                ? "opacity-30 cursor-not-allowed"
+                : ""
+            }`}
             aria-label="Tăng số lượng"
           >
             <IconPlus />
           </button>
         </div>
+        {currentAvailable > 0 && currentAvailable < 5 && (
+          <p className="mt-2 text-xs font-bold" style={{ color: "#FF8C42" }}>
+            Chỉ còn {currentAvailable} sản phẩm cuối cùng!
+          </p>
+        )}
+        {currentAvailable <= 0 && (
+          <p className="mt-2 text-xs font-bold text-[#FF6B9D]">
+            Sản phẩm hiện đang tạm hết hàng.
+          </p>
+        )}
       </div>
 
       {/* ── CTA Buttons ── */}
       <div className="flex flex-col sm:flex-row gap-4">
+        {currentAvailable <= 0 ? (
+          <div className="flex-1 bg-gray-100 text-gray-500 py-4 px-8 rounded-2xl font-black text-center uppercase tracking-widest border-2 border-dashed border-gray-200">
+            Sản phẩm tạm hết hàng
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={addingToCart}
+              className="flex-1 py-4 px-8 rounded-2xl text-white font-black text-base tracking-wide shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              style={{ backgroundColor: accent }}
+            >
+              {addingToCart ? "Đang xử lý..." : "Mua ngay"}
+            </button>
+            <button
+              type="button"
+              onClick={onAddToCart}
+              disabled={addingToCart}
+              className="flex-1 py-4 px-8 rounded-2xl font-black text-base tracking-wide border-2 border-[#17409A] text-[#17409A] hover:bg-[#17409A] hover:text-white transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              <IconCart />
+              {addingToCart ? "Đang thêm..." : "Thêm vào giỏ"}
+            </button>
+          </>
+        )}
         <button
           type="button"
-          onClick={handleBuyNow}
-          disabled={addingToCart}
-          className="flex-1 py-4 px-8 rounded-2xl text-white font-black text-base tracking-wide shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-          style={{ backgroundColor: accent }}
-        >
-          {addingToCart ? "Đang xử lý..." : "Mua ngay"}
-        </button>
-        <button
-          type="button"
-          onClick={onAddToCart}
-          disabled={addingToCart}
-          className="flex-1 py-4 px-8 rounded-2xl font-black text-base tracking-wide border-2 border-[#17409A] text-[#17409A] hover:bg-[#17409A] hover:text-white transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <IconCart />
-          {addingToCart ? "Đang thêm..." : "Thêm vào giỏ"}
-        </button>
-        <button
-          type="button"
-          className="w-14 h-14 rounded-2xl flex items-center justify-center border-2 border-[#E5E7EB] text-[#FF6B9D] hover:bg-[#FF6B9D] hover:text-white hover:border-[#FF6B9D] transition-all duration-300 hover:scale-[1.02] cursor-pointer shrink-0"
+          onClick={handleToggleFavorite}
+          disabled={favoriteLoading}
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-all duration-300 hover:scale-[1.02] cursor-pointer shrink-0 ${
+            favorited
+              ? "bg-[#FF6B9D] text-white border-[#FF6B9D]"
+              : "border-[#E5E7EB] text-[#FF6B9D] hover:bg-[#FF6B9D] hover:text-white hover:border-[#FF6B9D]"
+          } ${favoriteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           aria-label="Yêu thích"
         >
-          <IconHeart />
+          <IconHeart filled={favorited} />
         </button>
       </div>
 

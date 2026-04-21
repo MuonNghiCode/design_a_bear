@@ -22,6 +22,7 @@ type UserVisibleProduct = ProductListItem & {
 /* ── Map API item → ProductCardProps ── */
 function mapToCard(item: ProductListItem): ProductCardProps {
   const image = item.imageUrl || item.media?.[0]?.url || "/teddy_bear.png";
+  const stock = item.available;
 
   return {
     id: item.productId,
@@ -32,6 +33,7 @@ function mapToCard(item: ProductListItem): ProductCardProps {
     badge: item.discountRate > 0 ? `-${item.discountRate}%` : undefined,
     badgeColor: item.discountRate > 0 ? "#FF6B9D" : "#17409A",
     href: `/products/${item.slug}`,
+    availableStock: stock,
   };
 }
 
@@ -129,8 +131,11 @@ export default function ProductsClient({
 
   const pagedProducts = useMemo(() => {
     const start = (pageIndex - 1) * PAGE_SIZE;
-    return filteredProducts.slice(start, start + PAGE_SIZE).map(mapToCard);
+    return filteredProducts
+      .slice(start, start + PAGE_SIZE)
+      .map((item) => mapToCard(item));
   }, [filteredProducts, pageIndex]);
+
 
   const pageNumbers = useMemo(() => {
     const pages: number[] = [];

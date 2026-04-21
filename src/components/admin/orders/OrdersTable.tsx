@@ -11,7 +11,6 @@ import {
   MdAutorenew,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
-import { useAdminOrdersApi } from "@/hooks/useAdminOrdersApi";
 import { orderService } from "@/services/order.service";
 import { addressService } from "@/services/address.service";
 import { useToast } from "@/contexts/ToastContext";
@@ -105,8 +104,14 @@ const API_STATUS_TO_UI: Record<string, OrderStatus> = {
   REFUNDED: "refunded",
 };
 
-export default function OrdersTable() {
-  const { data, loading, fetchOrders, usersMap } = useAdminOrdersApi();
+interface OrdersTableProps {
+  orders: OrderListItem[];
+  loading: boolean;
+  usersMap: Record<string, any>;
+  onRefresh: () => void;
+}
+
+export default function OrdersTable({ orders, loading, usersMap, onRefresh }: OrdersTableProps) {
   const [tab, setTab] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
@@ -138,17 +143,19 @@ export default function OrdersTable() {
         setSelected(res.value);
       } else {
         console.error("Failed to fetch order details", res.error);
-        const localData = data?.items.find((o) => o.orderId === orderId);
+        toastError(res.error?.description || "Không thể tải chi tiết đơn hàng");
+        const localData = orders.find((o) => o.orderId === orderId);
         if (localData) setSelected(localData);
       }
 
       if (addressRes?.isSuccess && addressRes.value) {
         setSelectedAddress(addressRes.value);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toastError(e.message || "Đã có lỗi xảy ra khi tải dữ liệu");
       // Fallback
-      const localData = data?.items.find((o) => o.orderId === orderId);
+      const localData = orders.find((o) => o.orderId === orderId);
       if (localData) setSelected(localData);
     } finally {
       setLoadingDetails(null);
@@ -159,16 +166,9 @@ export default function OrdersTable() {
   const { success, error: toastError } = useToast();
 
   const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      await fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
-      setPageIndex(1);
-      success("Đã làm mới dữ liệu!");
-    } catch (e) {
-      toastError("Lỗi khi làm mới dữ liệu!");
-    } finally {
-      setRefreshing(false);
-    }
+    setRefreshing(true);
+    await onRefresh();
+    setRefreshing(false);
   };
 
   const handleStatusUpdate = async (newStatus: string) => {
@@ -182,7 +182,7 @@ export default function OrdersTable() {
       if (res.isSuccess || res.value === null) {
         success("Thay đổi trạng thái thành công!");
         setSelected({ ...selected, status: newStatus });
-        fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
+        onRefresh();
         setPageIndex(1);
       } else {
         toastError("Không thể thay đổi trạng thái!");
@@ -194,12 +194,6 @@ export default function OrdersTable() {
       setUpdatingStatus(null);
     }
   };
-
-  useEffect(() => {
-    fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
-  }, [fetchOrders, pageSize]);
-
-  const orders = useMemo(() => data?.items || [], [data?.items]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: orders.length };

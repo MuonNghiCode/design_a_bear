@@ -122,19 +122,21 @@ export interface UpdateReplyReviewRequest {
   content: string;
 }
 
-export interface CreateProductVariantRequest {
-  sku: string;
-  variantName: string;
-  price: number;
-  currency: string;
-  imageUrl: string;
-  weightGram: number;
-}
-
 export interface CreateProductMediaRequest {
   url: string;
   altText: string;
   sortOrder: number;
+}
+
+export interface CreateProductVariantRequest {
+  sku: string;
+  price: number;
+  weightGram: number;
+  sizeTag: string; // XS, S, M, L, XL, XXL, OS
+  sizeDescription: string; // Real dimensions e.g. "25cm"
+  baseCost: number;
+  assemblyCost: number;
+  stockQuantity: number;
 }
 
 export interface CreateProductRequest {
@@ -142,13 +144,24 @@ export interface CreateProductRequest {
   slug: string;
   productType: string;
   description: string;
-  model3DUrl: string;
   isPersonalizable: boolean;
   isActive: boolean;
+  price: number;
+  sku: string;
+  weightGram: number;
+  stockQuantity: number;
+  model3DUrl?: string;
   categoryIds: string[];
   characterIds: string[];
-  variants: CreateProductVariantRequest[];
+  accessoryIds: string[];
   media: CreateProductMediaRequest[];
+  comboImages?: CreateProductComboImageRequest[];
+  variants?: CreateProductVariantRequest[];
+}
+
+export interface CreateProductComboImageRequest {
+  combinationKey: string;
+  imageUrl: string;
 }
 
 export type UpdateProductRequest = CreateProductRequest;
@@ -157,10 +170,10 @@ export type UpdateProductRequest = CreateProductRequest;
 
 export interface CreateBuildRequest {
   customerId: string | null;
-  baseVariantId: string;
+  baseProductId: string;
   buildName: string;
   personalizationNote: string;
-  buildComponents: { optionVariantId: string }[];
+  buildComponents: { optionProductId: string }[];
 }
 
 export interface CreateOrderFromCartRequest {
@@ -174,7 +187,7 @@ export interface CreateOrderFromCartRequest {
   shippingTotal: number;
   grandTotal: number;
   notes?: string;
-  promoCode?: string;
+  promoCodes?: string[];
 }
 
 /* ── Cart API Requests ── */
@@ -186,15 +199,14 @@ export interface CreateCartRequest {
 
 export interface AddToCartRequest {
   cartId: string;
-  variantId: string;
+  productId: string;
+  variantId?: string | null;
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
   productName?: string;
-  variantName?: string | null;
   productImageUrl?: string | null;
   productNameSnapshot?: string;
-  variantNameSnapshot?: string | null;
   productImageUrlSnapshot?: string | null;
 }
 
@@ -248,8 +260,33 @@ export interface UpdateOrderStatusRequest {
 
 /* ── Promotion & Payment Requests ── */
 
+export interface CreatePromotionRequest {
+  code: string;
+  discountType: string;
+  value: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  minOrderAmount: number;
+  maxUsageCount: number | null;
+  maxUsagePerUser: number | null;
+  description: string | null;
+}
+
+export type UpdatePromotionRequest = CreatePromotionRequest;
+
 export interface ValidatePromotionRequest {
   code: string;
+  userId?: string;
+  orderAmount?: number;
+  shippingAmount?: number;
+}
+
+export interface ApplyPromotionRequest {
+  code: string;
+  userId: string;
+  orderAmount: number;
+  shippingAmount: number;
 }
 
 export interface CreatePaymentRequest {
@@ -267,3 +304,21 @@ export interface GetRevenueReportRequest {
   startDate: string;
   endDate: string;
 }
+
+export interface ToggleFavoriteRequest {
+  productId: string;
+}
+
+/* ── Accessory API Requests ── */
+
+export interface CreateAccessoryRequest {
+  name: string;
+  description: string;
+  sku: string;
+  price: number;
+  weightGram: number;
+  imageUrl: string;
+  categoryId: string;
+}
+
+export type UpdateAccessoryRequest = Partial<CreateAccessoryRequest>;

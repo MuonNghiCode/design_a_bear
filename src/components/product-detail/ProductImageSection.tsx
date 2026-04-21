@@ -3,10 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { type ProductItem } from "@/types/products";
-import {
-  type PersonalizationRule,
-  type ProductVariant,
-} from "@/types/responses";
+
 
 /* ── Inline paw SVG ── */
 function PawSVG({
@@ -40,38 +37,39 @@ function PawSVG({
 
 interface Props {
   product: ProductItem;
-  selectedVariant?: ProductVariant | null;
+  overrideMainImage?: string | null;
 }
 
 export default function ProductImageSection({
   product,
-  selectedVariant,
+  overrideMainImage,
 }: Props) {
   const accent = product.badgeColor || "#17409A";
 
-  // Build gallery: prioritize variant image if selected, otherwise use product images
-  let gallery: string[] = [];
-  if (selectedVariant?.imageUrl) {
-    // If variant has an image, put it first, then add product images
-    gallery = [selectedVariant.imageUrl];
-    if (product.images && product.images.length > 0) {
-      gallery.push(...product.images);
+  // Build gallery: use overrideMainImage if provided, otherwise standard product images
+  const gallery: string[] = useMemo(() => {
+    let list: string[] = [];
+    if (overrideMainImage) {
+      list.push(overrideMainImage);
     }
-  } else {
-    // Fall back to product images
-    gallery =
-      product.images && product.images.length > 0
-        ? product.images
-        : [product.image, product.image, product.image, product.image];
-  }
+    if (product.images && product.images.length > 0) {
+      list.push(...product.images);
+    } else if (product.image) {
+      list.push(product.image);
+    }
+    // De-duplicate if needed
+    return Array.from(new Set(list));
+  }, [product.images, product.image, overrideMainImage]);
 
   const [activeIdx, setActiveIdx] = useState(0);
-  const activeSrc = gallery[activeIdx];
+  const activeSrc = gallery[activeIdx] || product.image || "/teddy_bear.png";
 
-  // Reset to first image (variant image) when variant changes
+  // If overrideMainImage changes, we want to show it immediately (it becomes the first item in gallery)
   useEffect(() => {
-    setActiveIdx(0);
-  }, [selectedVariant?.variantId]);
+    if (overrideMainImage) {
+      setActiveIdx(0);
+    }
+  }, [overrideMainImage]);
 
   // Auto-advance every 5 seconds; pause on manual selection
   const next = useCallback(

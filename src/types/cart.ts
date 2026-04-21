@@ -5,6 +5,14 @@ export interface CartItem {
   buildId?: string | null;
   product: ProductCardProps;
   quantity: number;
+  sizeTag?: string;
+  sizeDetails?: string;
+  accessories?: {
+    id: string;
+    name: string;
+    price: number;
+    image?: string;
+  }[];
 }
 
 export interface CartContextType {
@@ -13,10 +21,13 @@ export interface CartContextType {
     product: ProductCardProps,
     quantity?: number,
     buildId?: string | null,
-  ) => void;
-  removeItem: (cartItemId: string) => void;
-  updateQuantity: (cartItemId: string, quantity: number) => void;
-  clearCart: () => void;
+    sizeTag?: string,
+    sizeDetails?: string,
+    accessories?: { id: string; name: string; price: number; image?: string }[],
+  ) => Promise<void>;
+  removeItem: (cartItemId: string) => Promise<void>;
+  updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   totalItems: number;
   totalPrice: number;
   isOpen: boolean;

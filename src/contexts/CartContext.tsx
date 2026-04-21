@@ -15,89 +15,49 @@ import {
 } from "@/types/cart";
 import { useCartApi } from "@/hooks/useCartApi";
 import { STORAGE_KEYS } from "@/constants";
-import type { CartItem as ApiCartItem } from "@/types/responses";
+import type { CartItem as ApiCartItem, Build } from "@/types/responses";
+import { buildService } from "@/services/build.service";
 
 const CartContext = createContext<CartContextType | null>(null);
 
-type VariantMeta = {
-  productName: string;
-  variantName: string | null;
-  image: string | null;
-  href: string | null;
-  description: string | null;
-};
-
-function parseNameParts(name: string): {
-  productName: string;
-  variantName: string | null;
-} {
-  const trimmed = name.trim();
-  const match = trimmed.match(/^(.*)\s\(([^)]+)\)$/);
-  if (!match) return { productName: trimmed, variantName: null };
-  return {
-    productName: match[1].trim(),
-    variantName: match[2].trim(),
-  };
-}
-
-function getVariantMetaMap(): Record<string, VariantMeta> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.CART_VARIANT_META);
-    return raw ? (JSON.parse(raw) as Record<string, VariantMeta>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function setVariantMetaMap(map: Record<string, VariantMeta>) {
-  localStorage.setItem(STORAGE_KEYS.CART_VARIANT_META, JSON.stringify(map));
-}
-
 function mapApiToUI(
   apiItem: ApiCartItem,
+  buildDetail?: Build | null,
   previousItem?: UICartItem,
 ): UICartItem {
-  const variantMeta = getVariantMetaMap()[apiItem.variantId];
   const safeProductName =
-    apiItem.productName ??
     apiItem.productNameSnapshot ??
-    variantMeta?.productName ??
+    apiItem.productName ??
     previousItem?.product.name ??
     "Sản phẩm";
-  const safeVariantName =
-    apiItem.variantName?.trim() ??
-    variantMeta?.variantName ??
-    previousItem?.product.variantName ??
-    null;
-  const composedName = safeVariantName
-    ? `${safeProductName} (${safeVariantName})`
-    : safeProductName;
 
   return {
     cartItemId: apiItem.cartItemId,
     buildId: apiItem.buildId,
     product: {
-      id: apiItem.variantId,
-      name: composedName,
+      id: apiItem.productId,
+      name: safeProductName,
       description: apiItem.sku
         ? `Mã SP: ${apiItem.sku}`
-        : variantMeta?.description ??
-          previousItem?.product.description ??
-          "Sản phẩm trong giỏ",
+        : (previousItem?.product.description ?? "Sản phẩm trong giỏ"),
       price: apiItem.unitPriceSnapshot ?? apiItem.variantPrice ?? 0,
       image:
         apiItem.productImageUrl ??
-        variantMeta?.image ??
         previousItem?.product.image ??
         "/teddy_bear.png",
       badge: apiItem.productType === "BASE_BEAR" ? "Gấu bông" : "Sản phẩm",
       badgeColor: "#17409A",
       href: apiItem.productSlug
         ? `/products/${apiItem.productSlug}`
-        : variantMeta?.href ?? previousItem?.product.href,
-      variantName: safeVariantName ?? undefined,
+        : previousItem?.product.href,
     },
     quantity: apiItem.quantity,
+    // Build details
+    sizeTag:
+      apiItem.variantNameSnapshot?.match(/\((.*?)\)/)?.[1] ||
+      previousItem?.sizeTag,
+    sizeDetails: previousItem?.sizeDetails, // Often found in variant description if available
+    accessories: previousItem?.accessories, // Fallback to previous if available
   };
 }
 
@@ -119,17 +79,65 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (cartId) {
         const cart = await getCart(cartId);
         if (cart && cart.cartItems) {
-          setItems((prev) => {
-            // Map previous items by cartItemId for stable metadata persistence
-            const prevMap = new Map(prev.map((i) => [i.cartItemId, i]));
-            return cart.cartItems.map((apiItem) =>
-              mapApiToUI(apiItem, prevMap.get(apiItem.cartItemId)),
+          // Fetch build details in parallel if they exist
+          const buildDetailsMap = new Map<string, Build>();
+          const buildIds = Array.from(
+            new Set(
+              cart.cartItems
+                .map((i) => i.buildId)
+                .filter((id): id is string => !!id),
+            ),
+          );
+
+          if (buildIds.length > 0) {
+            await Promise.all(
+              buildIds.map(async (id) => {
+                try {
+                  const res = await buildService.getBuildById(id);
+                  if (res.isSuccess && res.value) {
+                    buildDetailsMap.set(id, res.value);
+                  }
+                } catch (err) {
+                  console.error(`Failed to fetch build ${id}`, err);
+                }
+              }),
             );
+          }
+
+          setItems((prev) => {
+            const prevByCartItemId = new Map(
+              prev.map((item) => [item.cartItemId, item]),
+            );
+
+            return cart.cartItems.reverse().map((apiItem) => {
+              const buildDetail = apiItem.buildId
+                ? buildDetailsMap.get(apiItem.buildId)
+                : null;
+              const mapped = mapApiToUI(
+                apiItem,
+                buildDetail,
+                prevByCartItemId.get(apiItem.cartItemId),
+              );
+
+              if (buildDetail && buildDetail.buildComponents) {
+                mapped.accessories = buildDetail.buildComponents.map((c) => ({
+                  id: c.optionVariantId,
+                  name:
+                    (c as any).optionProductName ||
+                    (c as any).name ||
+                    "Phụ kiện",
+                  price: c.priceSnapshot,
+                }));
+              }
+
+              return mapped;
+            });
           });
           return cartId;
         }
       }
-    } catch {
+    } catch (err) {
+      console.error("Cart load failed:", err);
       localStorage.removeItem(STORAGE_KEYS.CART_ID);
     }
     return null;
@@ -145,9 +153,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       product: ProductCardProps,
       quantity = 1,
       buildId: string | null = null,
+      sizeTag?: string,
+      sizeDetails?: string,
+      accessories?: {
+        id: string;
+        name: string;
+        price: number;
+        image?: string;
+      }[],
     ) => {
       try {
-        let cartId = await loadCart();
+        let cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
+
         if (!cartId) {
           const userObj = localStorage.getItem(STORAGE_KEYS.USER);
           let userId = null;
@@ -159,29 +176,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
           }
           const newCart = await createCart({ userId, currency: "VND" });
           cartId = newCart.cartId;
-          localStorage.setItem(STORAGE_KEYS.CART_ID, cartId);
+          localStorage.setItem(STORAGE_KEYS.CART_ID, cartId!);
         }
 
-        const nameParts = parseNameParts(product.name);
-        const variantMetaMap = getVariantMetaMap();
-        variantMetaMap[product.id] = {
-          productName: nameParts.productName,
-          variantName: product.variantName ?? nameParts.variantName,
-          image: product.image ?? null,
-          href: product.href ?? null,
-          description: product.description ?? null,
-        };
-        setVariantMetaMap(variantMetaMap);
-
         const addRes = await addItemToCart({
-          cartId,
-          variantId: product.id,
+          cartId: cartId!,
+          productId: product.id,
           buildId: buildId,
           quantity,
           unitPriceSnapshot: product.price,
           productName: product.name,
-          variantName: product.variantName ?? null,
           productImageUrl: product.image ?? null,
+          productNameSnapshot: product.name,
+          productImageUrlSnapshot: product.image ?? null,
         });
 
         if (addRes?.cartId && addRes.cartId !== cartId) {
@@ -189,26 +196,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(STORAGE_KEYS.CART_ID, cartId);
         }
 
+        // Optimistic update — inject item directly into state
         if (addRes) {
           setItems((prev) => {
-            // Find existing item with SAME variantId AND SAME buildId
             const existingIndex = prev.findIndex(
-              (i) => i.product.id === product.id && i.buildId === buildId,
+              (i) => i.cartItemId === addRes.cartItemId,
             );
 
             if (existingIndex >= 0) {
-              return prev.map((item, idx) =>
+              return prev.map((i, idx) =>
                 idx === existingIndex
                   ? {
-                      ...item,
-                      cartItemId: addRes.cartItemId, // Sync with latest ID from server
-                      quantity: item.quantity + quantity,
+                      ...i,
+                      quantity: i.quantity + quantity,
+                      sizeTag: sizeTag || i.sizeTag,
+                      sizeDetails: sizeDetails || i.sizeDetails,
+                      accessories: accessories || i.accessories,
                     }
-                  : item,
+                  : i,
               );
             } else {
               return [
-                ...prev,
                 {
                   cartItemId: addRes.cartItemId,
                   buildId: buildId,
@@ -217,7 +225,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
                     href: product.href || `/products/${product.id}`,
                   },
                   quantity,
+                  sizeTag,
+                  sizeDetails,
+                  accessories,
                 },
+                ...prev,
               ];
             }
           });
@@ -233,33 +245,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeItem = useCallback(
     async (cartItemId: string) => {
-      // Find item before filtering to keep it for the catch block sync
-      const itemToDelete = items.find((i) => i.cartItemId === cartItemId);
-
-      // Optimistic delete
+      // Optimistic update
       setItems((prev) => prev.filter((i) => i.cartItemId !== cartItemId));
 
-      if (cartItemId) {
-        try {
-          await removeCartItem(cartItemId);
-          if (itemToDelete) {
-            const variantMetaMap = getVariantMetaMap();
-            delete variantMetaMap[itemToDelete.product.id];
-            setVariantMetaMap(variantMetaMap);
-          }
-        } catch (err) {
-          console.error("Failed to remove item from cart", err);
-          loadCart(); // Sync on fail
-        }
+      try {
+        await removeCartItem(cartItemId);
+      } catch (err) {
+        console.error("Failed to remove item from cart", err);
       }
     },
-    [items, removeCartItem, loadCart],
+    [removeCartItem, loadCart],
   );
 
   const updateQuantity = useCallback(
     async (cartItemId: string, quantity: number) => {
       if (quantity <= 0) {
-        removeItem(cartItemId);
+        await removeItem(cartItemId);
         return;
       }
 
@@ -275,13 +276,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         loadCart(); // Sync on fail
       }
     },
-    [updateItemQuantity, removeItem, loadCart],
+    [removeItem, updateItemQuantity, loadCart],
   );
-
 
   const clearCart = useCallback(async () => {
     setItems([]); // Optimistic
-    localStorage.removeItem(STORAGE_KEYS.CART_VARIANT_META);
 
     const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
     if (cartId && items.length > 0) {

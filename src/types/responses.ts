@@ -152,6 +152,8 @@ export interface ProductListItem {
   isActive: boolean;
   imageUrl: string | null;
   price: number;
+  sku: string;
+  weightGram: number;
   shortDescription: string;
   totalSales: number;
   minPrice: number;
@@ -159,6 +161,9 @@ export interface ProductListItem {
   discountRate: number;
   averageRating: number;
   reviewCount: number;
+  onHand: number;
+  reserved: number;
+  available: number;
   media: ProductMedia[];
 }
 
@@ -170,18 +175,6 @@ export interface GetProductsResponseData {
   hasPreviousPage: boolean;
   hasNextPage: boolean;
   items: ProductListItem[];
-}
-
-export interface ProductVariant {
-  variantId: string;
-  productId: string;
-  sku: string;
-  variantName: string;
-  price: number;
-  currency: string;
-  isSoldOut: boolean;
-  imageUrl: string | null;
-  weightGram: number;
 }
 
 export interface ProductCategory {
@@ -228,6 +221,88 @@ export interface ReviewReply {
   createdAt: string;
 }
 
+export interface Product {
+  productId: string;
+  name: string;
+  slug: string;
+  productType: string; // BASE_BEAR, ACCESSORY, COMPLETE_SET
+  description?: string;
+  isPersonalizable: boolean;
+  isActive: boolean;
+  price: number;
+  sku: string;
+  weightGram: number;
+  imageUrl?: string | null;
+  stockQuantity?: number;
+  onHand?: number;
+  reserved?: number;
+  available?: number;
+  totalSales?: number;
+  model3DUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  media: ProductMedia[];
+}
+
+export interface ProductDetail extends Product {
+  categories: ProductCategory[];
+  characters: CharacterItem[];
+  reviews?: ProductReview[];
+  comboImages: ProductComboImage[];
+  variants: ProductVariantResponse[];
+  accessories: AccessoryResponse[];
+}
+
+export interface ProductComboImage {
+  comboId: string;
+  combinationKey: string;
+  imageUrl: string;
+}
+
+export interface ProductVariantResponse {
+  variantId: string;
+  productId: string;
+  sizeTag?: string;
+  sizeDescription?: string;
+  sku: string;
+  price: number;
+  baseCost: number;
+  assemblyCost: number;
+  weightGram: number;
+  isActive: boolean;
+  onHand: number;
+  reserved: number;
+  available: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccessoryResponse {
+  accessoryId: string;
+  name: string;
+  sku: string;
+  description?: string;
+  imageUrl?: string;
+  baseCost: number;
+  assemblyCost: number;
+  targetPrice: number;
+  weightGram?: number;
+  isActive: boolean;
+  onHand: number;
+  reserved: number;
+  available: number;
+  categoryIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductListResponseData {
+  items: Product[];
+  totalCount: number;
+  pageIndex: number;
+  pageSize: number;
+}
+
 export interface GetProductReviewsResponseData {
   pageIndex: number;
   pageSize: number;
@@ -238,31 +313,12 @@ export interface GetProductReviewsResponseData {
   items: ProductReview[];
 }
 
-export interface ProductDetail {
-  productId: string;
-  name: string;
-  slug: string;
-  productType: string;
-  description: string;
-  isPersonalizable: boolean;
-  isActive: boolean;
-  price: number;
-  createdAt: string;
-  updatedAt: string;
-  model3DUrl: string | null;
-  media: ProductMedia[];
-  variants: ProductVariant[];
-  categories: ProductCategory[];
-  characters?: CharacterItem[];
-  reviews: ProductReview[];
-}
-
 /* ── Cart API Responses ── */
 
 export interface CartItem {
   cartItemId: string;
   cartId: string;
-  variantId: string;
+  productId: string;
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
@@ -376,8 +432,33 @@ export interface AddressDetail {
   createdAt: string;
 }
 
+export interface Promotion {
+  promotionId: string;
+  code: string;
+  discountType: string;
+  value: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  minOrderAmount: number;
+  maxUsageCount: number | null;
+  usageCount: number;
+  maxUsagePerUser: number | null;
+  description: string | null;
+}
+
 export interface PromotionResponseData {
-  // value is empty array as per backend spec
+  items: Promotion[];
+  totalCount: number;
+  pageIndex: number;
+  pageSize: number;
+}
+
+export interface PromotionApplyResponseData {
+  productDiscount: number;
+  shippingDiscount: number;
+  totalDiscount: number;
+  discountType: string;
 }
 
 export interface CreatePaymentResponseData {
@@ -521,6 +602,7 @@ export type CreatePersonalizationRuleResponse =
 export type UpdatePersonalizationRuleResponse = ApiResponse<null>;
 export type DeletePersonalizationRuleResponse = ApiResponse<null>;
 export type PromotionResponse = ApiResponse<PromotionResponseData>;
+export type PromotionApplyResponse = ApiResponse<PromotionApplyResponseData>;
 export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
 export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;
 export type MediaUploadResponse = ApiResponse<MediaUploadData>;
@@ -534,3 +616,28 @@ export type GetOrderDetailResponse = ApiResponse<Order>;
 export type CreateOrderResponse = ApiResponse<Order>;
 export type LogoutResponse = ApiResponse<LogoutResponseData>;
 export type LoginResponse = ApiResponse<LoginResponseData>;
+
+export interface FavoriteResponse {
+  favoriteId: string;
+  productId: string;
+  productName: string;
+  productImageUrl?: string;
+  productPrice: number;
+  createdAt: string;
+}
+
+export interface GetMyFavoritesResponseData {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: FavoriteResponse[];
+}
+
+export type GetMyFavoritesResponse = ApiResponse<GetMyFavoritesResponseData>;
+export type ToggleFavoriteResponse = ApiResponse<{
+  isAdded: boolean;
+  message: string;
+}>;

@@ -20,6 +20,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { useFavorite } from "@/contexts/FavoriteContext";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -30,6 +31,8 @@ interface HeaderProps {
 export default function Header({ hideOnHero = false }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems, openCart } = useCart();
+  const { favorites } = useFavorite();
+  const favoriteCount = favorites.size;
   const router = useRouter();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -367,12 +370,21 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </div>
 
               {/* Wishlist - Hidden on small mobile */}
-              <button
-                className="hidden sm:block text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110"
+              <Link
+                href="/favorites"
+                className="hidden sm:block text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110 relative"
                 aria-label="Yêu thích"
               >
                 <IoHeartOutline className="text-2xl" />
-              </button>
+                {favoriteCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 min-w-4.5 h-4.5 rounded-full flex items-center justify-center text-[10px] font-black text-white"
+                    style={{ backgroundColor: "#FF6B9D", padding: "0 3px" }}
+                  >
+                    {favoriteCount}
+                  </span>
+                )}
+              </Link>
 
               {/* Cart - Always visible */}
               <button
@@ -455,7 +467,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                           Đơn hàng
                         </Link>
                         <Link
-                          href="/profile?tab=wishlist"
+                          href="/favorites"
                           onClick={() => setShowUserMenu(false)}
                           className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
                         >
@@ -675,11 +687,21 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </Link>
             )}
             <Link
-              href="/wishlist"
+              href="/favorites"
               onClick={() => setShowMobileMenu(false)}
-              className="flex items-center gap-3 text-gray-800 hover:text-blue-600 transition-colors"
+              className="flex items-center gap-3 text-gray-800 hover:text-blue-600 transition-colors relative w-fit"
             >
-              <IoHeartOutline className="text-2xl" />
+              <div className="relative">
+                <IoHeartOutline className="text-2xl" />
+                {favoriteCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 min-w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white"
+                    style={{ backgroundColor: "#FF6B9D", padding: "0 2px" }}
+                  >
+                    {favoriteCount}
+                  </span>
+                )}
+              </div>
               <span className="font-medium">Yêu thích</span>
             </Link>
           </div>

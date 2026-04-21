@@ -28,6 +28,7 @@ import { addressService } from "@/services/address.service";
 import { orderService } from "@/services/order.service";
 import { paymentService } from "@/services/payment.service";
 import { shippingService } from "@/services/shipping.service";
+import { inventoryService } from "@/services/inventory.service";
 import { STORAGE_KEYS } from "@/constants";
 import type { Address } from "@/types";
 import { normalizePhoneNumber } from "@/utils/address";
@@ -48,8 +49,16 @@ export default function CheckoutClient() {
     note: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [coupon, setCoupon] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupons, setAppliedCoupons] = useState<
+    {
+      code: string;
+      productDiscount: number;
+      shippingDiscount: number;
+      totalDiscount: number;
+      discountType: string;
+    }[]
+  >([]);
   const [agreed, setAgreed] = useState(false);
   const [showDeliveryErrors, setShowDeliveryErrors] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -57,15 +66,17 @@ export default function CheckoutClient() {
     () => "DAB" + Math.random().toString(36).slice(2, 8).toUpperCase(),
   );
 
-  const [orderDetails, setOrderDetails] = useState<any>(null); // Save response order for SuccessScreen
+  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [stockErrors, setStockErrors] = useState<Record<string, string>>({});
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const isSubmittingRef = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { totalPrice, clearCart, totalItems, closeCart } = useCart();
+  const { items, totalPrice, clearCart, totalItems, closeCart } = useCart();
   const { isAuthenticated } = useAuth();
   const toast = useToast();
 
@@ -75,9 +86,19 @@ export default function CheckoutClient() {
     null,
   );
 
-  // const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
-  const DISCOUNT = couponApplied ? 50_000 : 0;
-  const FINAL_TOTAL = totalPrice + shippingFee - DISCOUNT;
+  // Calculated from applied coupons
+  const totalProductDiscount = appliedCoupons.reduce(
+    (sum, c) => sum + c.productDiscount,
+    0,
+  );
+  const totalShippingDiscount = appliedCoupons.reduce(
+    (sum, c) => sum + c.shippingDiscount,
+    0,
+  );
+  const DISCOUNT = totalProductDiscount + totalShippingDiscount;
+  const FINAL_TOTAL =
+    totalPrice + (shippingFee - totalShippingDiscount) - totalProductDiscount;
+  const couponApplied = appliedCoupons.length > 0;
 
   useEffect(() => {
     closeCart();
@@ -96,6 +117,12 @@ export default function CheckoutClient() {
     const handlePaymentReturn = async () => {
       try {
         setSubmitting(true);
+
+        // 1. Mark as CANCELLED if cancelled or failed to trigger backend stock release
+        if (cancel === "true" || (status && status.toUpperCase() !== "PAID")) {
+          // No manual stock release here, handled by status update below
+        }
+
         const pendingOrder = localStorage.getItem(
           STORAGE_KEYS.PENDING_PAYMENT_ORDER,
         );
@@ -105,16 +132,7 @@ export default function CheckoutClient() {
             try {
               const parsed = JSON.parse(pendingOrder);
               if (parsed?.orderDetails?.orderId) {
-                await orderService.updateOrderStatus(
-                  parsed.orderDetails.orderId,
-                  {
-                    status: "CANCELLED",
-                    notes:
-                      cancel === "true"
-                        ? "Khách hàng hủy thanh toán"
-                        : `Thanh toán thất bại với trạng thái: ${status}`,
-                  },
-                );
+                await orderService.cancelOrder(parsed.orderDetails.orderId);
               }
             } catch {}
           }
@@ -144,6 +162,10 @@ export default function CheckoutClient() {
           localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
         }
 
+        if (orderPlaced) {
+          // Order placed successfully
+        }
+
         setOrderPlaced(true);
         clearCart();
         toast.success("Thanh toán thành công!");
@@ -157,6 +179,83 @@ export default function CheckoutClient() {
     handlePaymentReturn();
   }, [searchParams, clearCart, toast]);
 
+  const handleApplyCoupon = async () => {
+    const input = couponInput.trim();
+    if (!input) {
+      toast.error("Vui lòng nhập mã khuyến mãi");
+      return;
+    }
+
+    // Split by comma, space or semicolon
+    const codes = input
+      .split(/[,\s;]+/)
+      .map((c) => c.trim().toUpperCase())
+      .filter((c) => c !== "");
+
+    if (codes.length === 0) {
+      toast.error("Vui lòng nhập mã khuyến mãi hợp lệ");
+      return;
+    }
+
+    setSubmitting(true);
+    let successCount = 0;
+
+    try {
+      const userObj = localStorage.getItem(STORAGE_KEYS.USER);
+      const userId = userObj ? JSON.parse(userObj).id : null;
+
+      for (const code of codes) {
+        // Check for duplicate in already applied list
+        if (appliedCoupons.some((c) => c.code === code)) {
+          toast.info(`Mã ${code} đã được áp dụng rồi.`);
+          continue;
+        }
+
+        try {
+          const res = await paymentService.applyPromotion({
+            code,
+            userId,
+            orderAmount: totalPrice,
+            shippingAmount: shippingFee,
+          });
+
+          if (res.isSuccess && res.value) {
+            setAppliedCoupons((prev) => [
+              ...prev,
+              {
+                code,
+                productDiscount: res.value.productDiscount,
+                shippingDiscount: res.value.shippingDiscount,
+                totalDiscount: res.value.totalDiscount,
+                discountType: res.value.discountType,
+              },
+            ]);
+            successCount++;
+            toast.success(`Áp dụng mã ${code} thành công!`);
+          } else {
+            toast.error(
+              `Mã ${code}: ${res.error?.description || "Không hợp lệ"}`,
+            );
+          }
+        } catch (err) {
+          toast.error(`Mã ${code}: Lỗi kết nối`);
+        }
+      }
+
+      if (successCount > 0) {
+        setCouponInput("");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi xử thực mã khuyến mãi");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemoveCoupon = (codeToRemove: string) => {
+    setAppliedCoupons((prev) => prev.filter((c) => c.code !== codeToRemove));
+  };
+
   // Fetch initial profile & address data
   useEffect(() => {
     if (!isAuthenticated) {
@@ -164,6 +263,8 @@ export default function CheckoutClient() {
       router.push("/auth");
       return;
     }
+
+    // Initial load logic
 
     if (totalItems === 0) {
       setLoadingInitial(false);
@@ -360,7 +461,59 @@ export default function CheckoutClient() {
     return () => clearTimeout(timer);
   }, [form, step, loadingInitial, resolvedAddressId]);
 
+  /**
+   * Final validation of stock for all items in the cart before placing the order.
+   */
+  const validateCartStock = async (): Promise<boolean> => {
+    try {
+      setSubmitting(true);
+      setStockErrors({});
+      const newErrors: Record<string, string> = {};
+      let hasError = false;
+
+      // Check stock for each item in parallel
+      const stockResults = await Promise.all(
+        items.map(async (item) => {
+          const res = await inventoryService.getByProductId(item.product.id);
+          const totalAvailable =
+            res.isSuccess && res.value
+              ? res.value.reduce((acc, inv) => acc + (inv.onHand || 0), 0)
+              : 0;
+          return { item, totalAvailable };
+        }),
+      );
+
+      for (const { item, totalAvailable } of stockResults) {
+        if (totalAvailable <= 0) {
+          newErrors[item.cartItemId] = "Sản phẩm này hiện đã hết hàng.";
+          hasError = true;
+        } else if (item.quantity > totalAvailable) {
+          newErrors[item.cartItemId] =
+            `Chênh lệch tồn kho: Chỉ còn ${totalAvailable} sản phẩm.`;
+          hasError = true;
+        }
+      }
+
+      if (hasError) {
+        setStockErrors(newErrors);
+        toast.error(
+          "Có sản phẩm trong giỏ hàng không đủ tồn kho. Vui lòng kiểm tra lại.",
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Stock validation error:", error);
+      toast.error("Không thể xác thực tồn kho. Vui lòng thử lại.");
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const goNext = useCallback(() => {
+    if (submitting || isSubmittingRef.current) return;
+
     if (step === 1) {
       const result = deliverySchema.safeParse({
         name: form.name,
@@ -393,11 +546,30 @@ export default function CheckoutClient() {
       return;
     }
 
+    if (step === 2) {
+      (async () => {
+        const isValid = await validateCartStock();
+        if (isValid) {
+          transition(step + 1, 1);
+        }
+      })();
+      return;
+    }
+
     if (step < 3) transition(step + 1, 1);
     else {
-      setSubmitting(true);
       (async () => {
         try {
+          if (isSubmittingRef.current) return;
+          isSubmittingRef.current = true;
+          setSubmitting(true);
+
+          // ── Step 3: Skip manual reservation as backend handles it ──
+          console.log(
+            "[Checkout] Creating order (Backend will handle reservation)...",
+          );
+
+          // ── Proceed with Order Creation ──
           const addrId = await getOrResolveAddressId();
 
           const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
@@ -416,7 +588,9 @@ export default function CheckoutClient() {
             shippingTotal: shippingFee,
             grandTotal: FINAL_TOTAL,
             notes: form.note || "Order from Design a Bear",
-            promoCode: couponApplied ? coupon : undefined,
+            promoCodes: couponApplied
+              ? appliedCoupons.map((c) => c.code)
+              : undefined,
           };
 
           const orderRes = await orderService.createOrderFromCart(
@@ -535,6 +709,7 @@ export default function CheckoutClient() {
         } catch (error: any) {
           toast.error(error.message || "Đã có lỗi xảy ra");
         } finally {
+          isSubmittingRef.current = false;
           setSubmitting(false);
         }
       })();
@@ -549,7 +724,7 @@ export default function CheckoutClient() {
     shippingFee,
     FINAL_TOTAL,
     couponApplied,
-    coupon,
+    appliedCoupons,
     toast,
     totalItems,
   ]);
@@ -715,11 +890,14 @@ export default function CheckoutClient() {
                     <StepPayment
                       method={paymentMethod}
                       onChange={setPaymentMethod}
-                      coupon={coupon}
-                      onCouponChange={setCoupon}
-                      couponApplied={couponApplied}
-                      onCouponApplied={setCouponApplied}
-                      discount={DISCOUNT}
+                      couponInput={couponInput}
+                      onCouponInputChange={setCouponInput}
+                      appliedCoupons={appliedCoupons}
+                      onApplyCoupon={handleApplyCoupon}
+                      onRemoveCoupon={handleRemoveCoupon}
+                      totalDiscount={DISCOUNT}
+                      totalPrice={totalPrice}
+                      shippingFee={shippingFee}
                       isLoading={submitting}
                     />
                   )}
@@ -761,10 +939,7 @@ export default function CheckoutClient() {
                   disabled={(step === 3 && !agreed) || submitting}
                   className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-black text-white transition-all duration-200 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{
-                    background:
-                      step === 3 && !agreed
-                        ? "#D1D5DB"
-                        : "linear-gradient(135deg, #17409A 0%, #0E2A66 100%)",
+                    background: step === 3 && !agreed ? "#D1D5DB" : "#17409A",
                     boxShadow:
                       step === 3 && !agreed
                         ? "none"
@@ -801,11 +976,13 @@ export default function CheckoutClient() {
           isCalculatingShipping={isCalculatingShipping}
           discount={DISCOUNT}
           finalTotal={FINAL_TOTAL}
-          coupon={coupon}
-          onCouponChange={setCoupon}
-          onApplyCoupon={() => setCouponApplied(true)}
-          couponApplied={couponApplied}
+          couponInput={couponInput}
+          onCouponInputChange={setCouponInput}
+          onApplyCoupon={handleApplyCoupon}
+          appliedCoupons={appliedCoupons}
+          onRemoveCoupon={handleRemoveCoupon}
           step={step}
+          stockErrors={stockErrors}
         />
       </div>
 
@@ -831,7 +1008,7 @@ export default function CheckoutClient() {
             disabled={(step === 3 && !agreed) || submitting}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black text-white transition-all duration-200 disabled:opacity-50"
             style={{
-              background: "linear-gradient(135deg, #17409A 0%, #4ECDC4 100%)",
+              background: "#17409A",
             }}
           >
             {submitting ? (

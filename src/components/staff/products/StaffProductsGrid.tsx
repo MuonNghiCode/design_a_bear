@@ -474,7 +474,7 @@ export default function StaffProductsGrid({
                         {p.category}
                       </td>
                       <td className="px-4 py-3 text-xs font-black text-[#17409A] whitespace-nowrap">
-                        {p.price.toLocaleString("vi-VN")}₫
+                        {(p.price ?? 0).toLocaleString("vi-VN")}₫
                       </td>
                       <td className="px-4 py-3">
                         <StockBadge stock={p.stock} />

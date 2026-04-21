@@ -15,8 +15,9 @@ import {
   IoSparkles,
   IoWarning,
 } from "react-icons/io5";
+import { useEffect } from "react";
 
-type ToastType = "success" | "error" | "info";
+type ToastType = "success" | "error" | "info" | "warning";
 
 type ToastItem = {
   id: number;
@@ -35,6 +36,7 @@ type ToastContextValue = {
   success: (message: string, duration?: number) => void;
   error: (message: string, duration?: number) => void;
   info: (message: string, duration?: number) => void;
+  warning: (message: string, duration?: number) => void;
 };
 
 const DEFAULT_DURATION = 3200;
@@ -48,12 +50,16 @@ function toastAccent(type: ToastType): string {
   if (type === "error") {
     return "bg-[#FF6B9D]";
   }
+  if (type === "warning") {
+    return "bg-[#FF8C42]";
+  }
   return "bg-[#17409A]";
 }
 
 function toastTypeLabel(type: ToastType): string {
   if (type === "success") return "Thành công";
   if (type === "error") return "Lỗi";
+  if (type === "warning") return "Cảnh báo";
   return "Thông báo";
 }
 
@@ -61,6 +67,8 @@ function ToastIcon({ type }: { type: ToastType }) {
   if (type === "success")
     return <IoCheckmarkCircle className="text-lg text-[#4ECDC4]" />;
   if (type === "error") return <IoWarning className="text-lg text-[#FF6B9D]" />;
+  if (type === "warning")
+    return <IoWarning className="text-lg text-[#FF8C42]" />;
   return <IoInformationCircle className="text-lg text-[#17409A]" />;
 }
 
@@ -90,6 +98,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [removeToast],
   );
 
+
   const value = useMemo<ToastContextValue>(
     () => ({
       showToast,
@@ -99,6 +108,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         showToast(message, { type: "error", duration }),
       info: (message: string, duration?: number) =>
         showToast(message, { type: "info", duration }),
+      warning: (message: string, duration?: number) =>
+        showToast(message, { type: "warning", duration }),
     }),
     [showToast],
   );

@@ -20,10 +20,10 @@ export const metadata: Metadata = {
 };
 
 interface Props {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; search?: string }>;
 }
 
 export default async function ProductsPage({ searchParams }: Props) {
-  const { category } = await searchParams;
-  return <ProductsClient initialCategory={category} />;
+  const { category, search } = await searchParams;
+  return <ProductsClient initialCategory={category} initialSearch={search} />;
 }

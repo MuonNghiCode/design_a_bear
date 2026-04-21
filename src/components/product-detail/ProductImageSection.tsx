@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { type ProductItem } from "@/types/products";
+
 
 /* ── Inline paw SVG ── */
 function PawSVG({
@@ -36,19 +37,39 @@ function PawSVG({
 
 interface Props {
   product: ProductItem;
+  overrideMainImage?: string | null;
 }
 
-export default function ProductImageSection({ product }: Props) {
+export default function ProductImageSection({
+  product,
+  overrideMainImage,
+}: Props) {
   const accent = product.badgeColor || "#17409A";
 
-  // Build gallery: use product.images if provided, else repeat the single image 4x
-  const gallery: string[] =
-    product.images && product.images.length > 0
-      ? product.images
-      : [product.image, product.image, product.image, product.image];
+  // Build gallery: use overrideMainImage if provided, otherwise standard product images
+  const gallery: string[] = useMemo(() => {
+    let list: string[] = [];
+    if (overrideMainImage) {
+      list.push(overrideMainImage);
+    }
+    if (product.images && product.images.length > 0) {
+      list.push(...product.images);
+    } else if (product.image) {
+      list.push(product.image);
+    }
+    // De-duplicate if needed
+    return Array.from(new Set(list));
+  }, [product.images, product.image, overrideMainImage]);
 
   const [activeIdx, setActiveIdx] = useState(0);
-  const activeSrc = gallery[activeIdx];
+  const activeSrc = gallery[activeIdx] || product.image || "/teddy_bear.png";
+
+  // If overrideMainImage changes, we want to show it immediately (it becomes the first item in gallery)
+  useEffect(() => {
+    if (overrideMainImage) {
+      setActiveIdx(0);
+    }
+  }, [overrideMainImage]);
 
   // Auto-advance every 5 seconds; pause on manual selection
   const next = useCallback(

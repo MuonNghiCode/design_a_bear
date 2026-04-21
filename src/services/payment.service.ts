@@ -2,10 +2,12 @@ import BaseApiService from "@/api/base";
 import { API_ENDPOINTS } from "@/constants";
 import type {
   ValidatePromotionRequest,
+  ApplyPromotionRequest,
   CreatePaymentRequest,
 } from "@/types/requests";
 import type {
   PromotionResponse,
+  PromotionApplyResponse,
   CreatePaymentResponse,
   ConfirmPaymentResponse,
 } from "@/types/responses";
@@ -23,6 +25,17 @@ class PaymentService extends BaseApiService {
   }
 
   /**
+   * Apply promotion to get structured discount data
+   */
+  async applyPromotion(
+    req: ApplyPromotionRequest
+  ): Promise<PromotionApplyResponse> {
+    return this.post(API_ENDPOINTS.PROMOTIONS.APPLY, req, {
+      withCredentials: false,
+    });
+  }
+
+  /**
    * Create payment for an order
    */
   async createPayment(
@@ -30,6 +43,7 @@ class PaymentService extends BaseApiService {
   ): Promise<CreatePaymentResponse> {
     return this.post(API_ENDPOINTS.PAYMENTS.CREATE, req, {
       withCredentials: false,
+      timeout: 60000,
     });
   }
 

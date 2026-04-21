@@ -5,34 +5,49 @@ import {
   IoGiftOutline,
   IoShieldCheckmarkOutline,
   IoLockClosedOutline,
+  IoCloseCircle,
 } from "react-icons/io5";
 import { useCart } from "@/contexts/CartContext";
 import { PawPrint, fmt } from "./checkout.atoms";
 import { FREE_SHIP } from "./checkout.config";
 
+interface AppliedCoupon {
+  code: string;
+  productDiscount: number;
+  shippingDiscount: number;
+  totalDiscount: number;
+  discountType: string;
+}
+
 interface OrderSummaryProps {
   shippingFee: number;
   discount: number;
   finalTotal: number;
-  coupon: string;
-  onCouponChange: (v: string) => void;
+  couponInput: string;
+  onCouponInputChange: (v: string) => void;
   onApplyCoupon: () => void;
-  couponApplied: boolean;
+  appliedCoupons: AppliedCoupon[];
+  onRemoveCoupon: (code: string) => void;
   step: number;
+  isCalculatingShipping?: boolean;
+  stockErrors?: Record<string, string>;
 }
 
 export function OrderSummary({
   shippingFee,
   discount,
   finalTotal,
-  coupon,
-  onCouponChange,
+  couponInput,
+  onCouponInputChange,
   onApplyCoupon,
-  couponApplied,
+  appliedCoupons,
+  onRemoveCoupon,
+  isCalculatingShipping = false,
+  stockErrors = {},
 }: OrderSummaryProps) {
   const { items, totalItems, totalPrice } = useCart();
-  const freeShip = totalPrice >= FREE_SHIP;
-  const barWidth = Math.min((totalPrice / FREE_SHIP) * 100, 100);
+  // const freeShip = totalPrice >= FREE_SHIP;
+  // const barWidth = Math.min((totalPrice / FREE_SHIP) * 100, 100);
 
   return (
     <div
@@ -59,7 +74,7 @@ export function OrderSummary({
         </p>
       </div>
 
-      {/* Free-ship progress */}
+      {/* Free-ship progress - Tạm thời ẩn theo yêu cầu
       <div
         className="mx-7 mt-5 mb-4 p-4 rounded-2xl shrink-0"
         style={{ backgroundColor: "#F4F7FF" }}
@@ -91,17 +106,18 @@ export function OrderSummary({
             className="h-full rounded-full transition-all duration-700"
             style={{
               width: `${barWidth}%`,
-              background: "linear-gradient(90deg, #4ECDC4, #45B7D1)",
+              background: "#4ECDC4",
             }}
           />
         </div>
       </div>
+      */}
 
       {/* Items list */}
       <div className="flex-1 overflow-y-auto px-7 space-y-3 pb-4">
         {items.map((item) => (
           <div
-            key={item.product.id}
+            key={item.cartItemId}
             className="flex gap-3.5 items-center py-3"
             style={{ borderBottom: "1px solid #F3F4F6" }}
           >
@@ -130,6 +146,35 @@ export function OrderSummary({
               >
                 {item.product.name}
               </p>
+
+              {/* Build Details (Size & Accessories) */}
+              {(item.sizeTag || (item.accessories && item.accessories.length > 0)) && (
+                <div className="mt-1 space-y-1">
+                  {item.sizeTag && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-[#9CA3AF]">
+                        Size:
+                      </span>
+                      <span className="text-[10px] font-black text-[#17409A]">
+                        {item.sizeTag} {item.sizeDetails && <span className="text-[9px] font-bold text-[#9CA3AF] ml-1">({item.sizeDetails})</span>}
+                      </span>
+                    </div>
+                  )}
+                  {item.accessories && item.accessories.length > 0 && (
+                    <div className="flex flex-col gap-1">
+                      <div className="space-y-0.5">
+                        {item.accessories.map((acc, idx) => (
+                          <p key={idx} className="text-[9px] font-bold text-[#6B7280] flex items-start gap-1">
+                            <span className="text-[#17409A]">•</span>
+                            {acc.name}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {item.product.badge && (
                 <span
                   className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5"
@@ -141,61 +186,87 @@ export function OrderSummary({
                   {item.product.badge}
                 </span>
               )}
+
+              {/* Stock Error Message */}
+              {stockErrors[item.cartItemId] && (
+                <p className="text-[10px] font-bold text-[#FF6B9D] mt-1 animate-pulse">
+                  {stockErrors[item.cartItemId]}
+                </p>
+              )}
             </div>
 
-            <p
-              className="text-sm font-black shrink-0"
-              style={{ color: "#17409A" }}
-            >
-              {fmt(item.product.price * item.quantity)}
-            </p>
+            <div className="text-right shrink-0">
+              <p
+                className="text-sm font-black"
+                style={{ color: stockErrors[item.cartItemId] ? "#FF6B9D" : "#17409A" }}
+              >
+                {fmt(item.product.price * item.quantity)}
+              </p>
+            </div>
           </div>
         ))}
       </div>
 
       {/* Coupon input */}
-      {!couponApplied && (
-        <div className="px-7 mb-4 shrink-0">
-          <div
-            className="flex gap-2 items-center rounded-2xl px-4 py-3"
-            style={{
-              backgroundColor: "#F4F7FF",
-              border: "1.5px dashed #17409A40",
-            }}
-          >
-            <IoGiftOutline
-              className="text-base shrink-0"
-              style={{ color: "#9CA3AF" }}
-            />
-            <input
-              value={coupon}
-              onChange={(e) => onCouponChange(e.target.value.toUpperCase())}
-              placeholder="Mã giảm giá"
-              className="flex-1 text-sm bg-transparent outline-none"
-              style={{ color: "#1A1A2E", fontFamily: "'Nunito', sans-serif" }}
-            />
-            {coupon.length > 0 && (
-              <button
-                onClick={onApplyCoupon}
-                className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 shrink-0"
-                style={{ backgroundColor: "#17409A", color: "white" }}
-              >
-                Áp dụng
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {couponApplied && (
+      <div className="px-7 mb-4 shrink-0">
         <div
-          className="mx-7 mb-4 px-4 py-2.5 rounded-2xl flex items-center gap-2 shrink-0"
-          style={{ backgroundColor: "rgba(78,205,196,0.12)" }}
+          className="flex gap-2 items-center rounded-2xl px-4 py-3"
+          style={{
+            backgroundColor: "#F4F7FF",
+            border: "1.5px dashed #17409A40",
+          }}
         >
-          <IoGiftOutline style={{ color: "#4ECDC4" }} />
-          <p className="text-xs font-bold" style={{ color: "#4ECDC4" }}>
-            Mã <b>{coupon}</b> — Giảm {fmt(50_000)}
-          </p>
+          <IoGiftOutline
+            className="text-base shrink-0"
+            style={{ color: "#9CA3AF" }}
+          />
+          <input
+            value={couponInput}
+            onChange={(e) => onCouponInputChange(e.target.value.toUpperCase())}
+            placeholder="Mã giảm giá"
+            className="flex-1 text-sm bg-transparent outline-none"
+            style={{ color: "#1A1A2E", fontFamily: "'Nunito', sans-serif" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && couponInput.trim()) {
+                onApplyCoupon();
+              }
+            }}
+          />
+          {couponInput.length > 0 && (
+            <button
+              onClick={onApplyCoupon}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all duration-200 hover:scale-105 shrink-0"
+              style={{ backgroundColor: "#17409A", color: "white" }}
+            >
+              Thêm
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Applied coupons */}
+      {appliedCoupons.length > 0 && (
+        <div className="px-7 mb-4 space-y-1.5 shrink-0">
+          {appliedCoupons.map((c) => (
+            <div
+              key={c.code}
+              className="px-4 py-2 rounded-2xl flex items-center justify-between"
+              style={{ backgroundColor: "rgba(78,205,196,0.12)" }}
+            >
+              <div className="flex items-center gap-2">
+                <IoGiftOutline style={{ color: "#4ECDC4" }} />
+                <p className="text-xs font-bold" style={{ color: "#4ECDC4" }}>
+                  <b>{c.code}</b> — Giảm {fmt(c.totalDiscount)}
+                </p>
+              </div>
+              <button
+                onClick={() => onRemoveCoupon(c.code)}
+                className="text-red-400 hover:text-red-600 transition-colors"
+              >
+                <IoCloseCircle size={16} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -209,7 +280,11 @@ export function OrderSummary({
             ["Tạm tính", fmt(totalPrice)],
             [
               "Phí vận chuyển",
-              shippingFee === 0 ? "Miễn phí" : fmt(shippingFee),
+              isCalculatingShipping
+                ? "Đang tính..."
+                : shippingFee === 0
+                  ? "Miễn phí"
+                  : fmt(shippingFee),
             ],
             ...(discount > 0 ? [["Giảm giá", `−${fmt(discount)}`]] : []),
           ].map(([k, v]) => (

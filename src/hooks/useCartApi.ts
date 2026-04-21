@@ -107,7 +107,7 @@ export function useCartApi() {
     }, []);
 
     const handleAddToCart = useCallback(
-        async (variantId: string, quantity: number, unitPrice: number, buildId: string | null = null): Promise<CartItem> => {
+        async (productId: string, quantity: number, unitPrice: number, buildId: string | null = null): Promise<CartItem> => {
             let cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
 
             // Check if cart exists and is valid
@@ -122,21 +122,21 @@ export function useCartApi() {
 
             if (!cartId) {
                 const userObj = localStorage.getItem(STORAGE_KEYS.USER);
-                let customerId = null;
+                let userId = null;
                 if (userObj) {
                     try {
                         const user = JSON.parse(userObj);
-                        customerId = user.id || null;
+                        userId = user.id || null;
                     } catch { }
                 }
-                const newCart = await createCart({ customerId, currency: "VND" });
+                const newCart = await createCart({ userId, currency: "VND" });
                 cartId = newCart.cartId;
                 localStorage.setItem(STORAGE_KEYS.CART_ID, cartId);
             }
 
             return await addItemToCart({
                 cartId,
-                variantId,
+                productId,
                 buildId,
                 quantity,
                 unitPriceSnapshot: unitPrice

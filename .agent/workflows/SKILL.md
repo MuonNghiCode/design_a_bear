@@ -1,5 +1,4 @@
 ---
-name: workflows
 description: Hướng dẫn thiết kế giao diện cho trang thương mại điện tử Design a Bear — bán gấu bông thông minh tích hợp IoT & AI, dạy học cho trẻ em. Phong cách sang trọng, sáng tạo, thân thiện với trẻ em.
 ---
 
@@ -15,6 +14,12 @@ description: Hướng dẫn thiết kế giao diện cho trang thương mại đ
 - **Sáng tạo** (Creative): layout phá cách, micro-interactions, hiệu ứng bất ngờ
 - **Trẻ em** (Child-friendly): vui tươi, gần gũi, dễ sử dụng, gợi cảm giác an toàn & vui nhộn
 - **Công nghệ** (Tech-savvy): gợi lên sự hiện đại của IoT & AI nhưng vẫn ấm áp
+
+---
+
+## 🤖 Quy tắc Hoạt động của Agent (Agent Rules)
+
+- **KHÔNG sử dụng tool searching**: Tuyệt đối không sử dụng công cụ tìm kiếm web (`search_web`). Agent phải dựa vào mã nguồn hiện tại, các tệp tin trong workspace và kiến thức nội bộ để giải quyết vấn đề.
 
 ---
 

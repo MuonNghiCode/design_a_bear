@@ -4,33 +4,25 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrderApi } from "@/hooks/useOrderApi";
-import type { Order } from "@/types";
+import type { Order, ProductIssueReport } from "@/types";
 import { formatShortOrderCode } from "@/utils/order";
+import ProductIssueModal from "@/components/orders/ProductIssueModal";
+import { productIssueService } from "@/services/productIssue.service";
+import { formatDateTime } from "@/utils/date";
 
 const STATUS_STYLE: Record<
   string,
   { label: string; color: string; bg: string }
 > = {
-  PAID: { label: "Đã thanh toán", color: "#4ECDC4", bg: "#4ECDC418" },
-  DONE: { label: "Hoàn tất", color: "#4ECDC4", bg: "#4ECDC418" },
   PENDING: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
+  PAID: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
   CANCELLED: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
-  PROCESSING: { label: "Đang xử lý", color: "#17409A", bg: "#17409A18" },
-  SHIPPING: { label: "Đang giao", color: "#7C5CFC", bg: "#7C5CFC18" },
-  SHIPPED: { label: "Đang giao", color: "#7C5CFC", bg: "#7C5CFC18" },
-  DELIVERED: { label: "Đã giao", color: "#4ECDC4", bg: "#4ECDC418" },
+  PROCESSING: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
+  COMPLETED: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
+  REFUNDED: { label: "Đã hoàn tiền", color: "#6B7280", bg: "#6B728018" },
 };
 
-function formatDate(dateText: string) {
-  const date = new Date(dateText);
-  return date.toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const BILLABLE_STATUSES = new Set(["PAID", "PROCESSING", "COMPLETED"]);
 
 function formatMoney(amount: number, currency: string) {
   const locale = currency === "USD" ? "en-US" : "vi-VN";
@@ -54,6 +46,14 @@ export default function OrdersTab() {
   const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Issues Modal State
+  const [issueModalOpen, setIssueModalOpen] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState("");
+  const [selectedItemName, setSelectedItemName] = useState("");
+  const [reportedItemMap, setReportedItemMap] = useState<
+    Record<string, ProductIssueReport>
+  >({});
+
   useEffect(() => {
     const loadOrders = async () => {
       if (!user?.id) return;
@@ -72,10 +72,35 @@ export default function OrdersTab() {
     loadOrders();
   }, [user?.id, getOrdersByUserId]);
 
+  useEffect(() => {
+    const loadIssues = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await productIssueService.getMyIssues({
+          pageIndex: 1,
+          pageSize: 200,
+        });
+        if (res.isSuccess && res.value) {
+          const data = Array.isArray(res.value)
+            ? res.value
+            : (res.value as any).items || [];
+          const map: Record<string, ProductIssueReport> = {};
+          data.forEach((issue: ProductIssueReport) => {
+            map[issue.orderItemId] = issue;
+          });
+          setReportedItemMap(map);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadIssues();
+  }, [user?.id]);
+
   const totalSpent = useMemo(
     () =>
       orders
-        .filter((o) => o.status === "PAID" || o.status === "DONE")
+        .filter((o) => BILLABLE_STATUSES.has(o.status?.toUpperCase()))
         .reduce((sum, o) => sum + o.grandTotal, 0),
     [orders],
   );
@@ -154,8 +179,9 @@ export default function OrdersTab() {
       )}
 
       {pagedOrders.map((order) => {
-        const st = STATUS_STYLE[order.status] ?? {
-          label: order.status,
+        const normalizedStatus = order.status?.toUpperCase() || "";
+        const st = STATUS_STYLE[normalizedStatus] ?? {
+          label: "Trạng thái không xác định",
           color: "#17409A",
           bg: "#17409A18",
         };
@@ -207,7 +233,7 @@ export default function OrdersTab() {
                 </p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className="text-[#9CA3AF] text-xs font-semibold">
-                    {formatDate(order.createdAt)}
+                    {formatDateTime(order.createdAt)}
                   </span>
                   <span
                     className="text-[10px] font-black px-2.5 py-1 rounded-full"
@@ -320,7 +346,10 @@ export default function OrdersTab() {
                                   <span>SL: {item.quantity}</span>
                                   <span>
                                     Đơn giá:{" "}
-                                    {formatMoney(item.unitPrice, detail.currency)}
+                                    {formatMoney(
+                                      item.unitPrice,
+                                      detail.currency,
+                                    )}
                                   </span>
                                   <span>
                                     Line total:{" "}
@@ -332,6 +361,63 @@ export default function OrdersTab() {
                                     )}
                                   </span>
                                 </div>
+                                {order.status === "COMPLETED" &&
+                                  (reportedItemMap[item.orderItemId] ? (
+                                    <div className="mt-2 flex items-center gap-2 text-xs font-black">
+                                      <span className="text-[#9CA3AF]">
+                                        Bảo hành:
+                                      </span>
+                                      {(() => {
+                                        const status =
+                                          reportedItemMap[item.orderItemId]
+                                            .status;
+                                        let style =
+                                          "bg-[#FF8C42]/20 text-[#FF8C42]";
+                                        let label = "Chờ tiếp nhận";
+
+                                        if (status === "CLOSED") {
+                                          style =
+                                            "bg-[#4ECDC4]/20 text-[#4ECDC4]";
+                                          label = "Đã đóng";
+                                        } else if (status === "RESOLVED") {
+                                          style =
+                                            "bg-[#1D4ED8]/20 text-[#1D4ED8]";
+                                          label = "Đã có hướng xử lý";
+                                        } else if (status === "REJECTED") {
+                                          style = "bg-red-100 text-red-600";
+                                          label = "Từ chối";
+                                        } else if (status === "PROCESSING") {
+                                          style =
+                                            "bg-[#7C5CFC]/20 text-[#7C5CFC]";
+                                          label = "Đang xử lý";
+                                        }
+
+                                        return (
+                                          <span
+                                            className={`px-2 py-1 rounded-md text-[10px] ${style}`}
+                                          >
+                                            {label}
+                                          </span>
+                                        );
+                                      })()}
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedItemId(item.orderItemId);
+                                        setSelectedItemName(
+                                          item.productName ||
+                                            item.productNameSnapshot ||
+                                            "Sản phẩm",
+                                        );
+                                        setIssueModalOpen(true);
+                                      }}
+                                      className="mt-2 text-[#FF8C42] text-[10px] font-black underline hover:text-[#e07530] transition-colors"
+                                    >
+                                      Yêu cầu bảo hành / Báo lỗi
+                                    </button>
+                                  ))}
                               </div>
                             </div>
                           ))}
@@ -369,6 +455,22 @@ export default function OrdersTab() {
           </div>
         </div>
       )}
+
+      <ProductIssueModal
+        isOpen={issueModalOpen}
+        onClose={() => setIssueModalOpen(false)}
+        orderItemId={selectedItemId}
+        productName={selectedItemName}
+        onSuccess={() => {
+          setReportedItemMap((prev) => ({
+            ...prev,
+            [selectedItemId]: {
+              status: "PENDING",
+              orderItemId: selectedItemId,
+            } as ProductIssueReport,
+          }));
+        }}
+      />
     </div>
   );
 }

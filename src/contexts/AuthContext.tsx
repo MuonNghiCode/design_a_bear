@@ -9,6 +9,7 @@ import {
 } from "react";
 import { STORAGE_KEYS } from "@/constants";
 import { authService } from "@/services/auth.service";
+import { useToast } from "@/contexts/ToastContext";
 import type {
   GoogleCompleteProfileRequest,
   GoogleLoginResponseData,
@@ -62,8 +63,9 @@ type JwtPayload = {
   id?: string;
   email?: string;
   fullname?: string;
-  [ROLE_CLAIM]?: string;
-  role?: string;
+  [ROLE_CLAIM]?: string | number;
+  role?: string | number;
+  role_name?: string;
 };
 
 function decodeJwtPayload(token: string): JwtPayload | null {
@@ -80,10 +82,17 @@ function decodeJwtPayload(token: string): JwtPayload | null {
   }
 }
 
-function mapRole(rawRole?: string): UserRole {
-  if (!rawRole) return "user";
-  if (rawRole === "1" || rawRole.toLowerCase() === "admin") return "admin";
-  if (rawRole === "2" || rawRole.toLowerCase() === "staff") return "staff";
+function mapRole(rawRole?: string | number, roleName?: string): UserRole {
+  if (!rawRole && !roleName) return "user";
+
+  const roleValue = rawRole !== undefined ? String(rawRole).toLowerCase() : "";
+  const nameValue = roleName ? roleName.toLowerCase() : "";
+
+  if (roleValue === "1" || roleValue === "admin" || nameValue === "admin")
+    return "admin";
+  if (roleValue === "2" || roleValue === "staff" || nameValue === "staff")
+    return "staff";
+
   return "user";
 }
 
@@ -92,22 +101,34 @@ function buildUserFromToken(token: string): User | null {
   if (!payload) return null;
 
   const roleValue = payload[ROLE_CLAIM] ?? payload.role;
+  const roleName = payload.role_name;
+
+  console.log("[Auth] Decoding Token Payload:", {
+    email: payload.email,
+    roleValue,
+    roleName,
+  });
+
   const email = payload.email ?? "";
   const id = payload.id ?? email;
   if (!id || !email) return null;
+
+  const role = mapRole(roleValue, roleName);
+  console.log("[Auth] Mapped Role:", role);
 
   return {
     id,
     email,
     name: payload.fullname ?? email,
-    role: mapRole(roleValue),
+    role,
     avatar: "/teddy_bear.png",
   };
-}
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { error: toastError } = useToast();
   const [pendingVerification, setPendingVerification] = useState<{
     email: string;
   } | null>(null);
@@ -134,6 +155,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      toastError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      logout();
+
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth";
+        }
+      }, 1500);
+    };
+
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+
     const storedUser =
       localStorage.getItem(STORAGE_KEYS.USER) ??
       localStorage.getItem("dab_user");
@@ -146,6 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setLoading(false);
+
+    return () =>
+      window.removeEventListener("auth:unauthorized", handleUnauthorized);
   }, []);
 
   const login = async (email: string, password: string) => {

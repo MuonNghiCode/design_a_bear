@@ -1,97 +1,186 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { formatPrice } from "@/utils/currency";
+import { useDebounce } from "@/hooks";
 import {
   MdSearch,
-  MdCheckCircle,
-  MdLocalShipping,
-  MdInventory,
+  MdRemoveRedEye,
+  MdFileDownload,
+  MdClose,
+  MdAutorenew,
 } from "react-icons/md";
-import type { OrderListItem, UserDetail } from "@/types";
+import { GiPawPrint } from "react-icons/gi";
+import { useAdminOrdersApi } from "@/hooks/useAdminOrdersApi";
+import { orderService } from "@/services/order.service";
+import { addressService } from "@/services/address.service";
+import { useToast } from "@/contexts/ToastContext";
+import CustomDropdown from "@/components/shared/CustomDropdown";
+import type { OrderListItem, AddressDetail } from "@/types";
 import { formatShortOrderCode } from "@/utils/order";
 
-type StaffOrderUiStatus =
+export type StaffOrderStatus =
   | "pending"
-  | "packing"
-  | "shipping"
-  | "done"
-  | "cancelled";
+  | "processing"
+  | "printing"
+  | "ready_for_pickup"
+  | "shipping";
 
-interface StaffOrdersTableProps {
-  orders: OrderListItem[];
-  usersMap: Record<string, UserDetail>;
-  loading?: boolean;
-  onAdvanceStatus: (order: OrderListItem) => Promise<void> | void;
-  pageIndex: number;
-  totalPages: number;
-  totalCount: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-  onChangePage: (page: number) => void;
-}
+const STAFF_BACKEND_STATUSES: { value: string; label: string }[] = [
+  { value: "PENDING", label: "Chờ xử lý" },
+  { value: "PROCESSING", label: "Đang xử lý" },
+  { value: "PRINTING", label: "Đang in" },
+  { value: "READY_FOR_PICKUP", label: "Sẵn sàng lấy hàng" },
+  { value: "SHIPPING", label: "Đang giao" },
+];
 
-const STATUS_CFG: Record<
-  StaffOrderUiStatus,
+const STAFF_STATUS_CFG: Record<
+  StaffOrderStatus,
   { label: string; color: string; bg: string }
 > = {
   pending: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
-  packing: { label: "Đóng gói", color: "#7C5CFC", bg: "#7C5CFC18" },
-  shipping: { label: "Vận chuyển", color: "#17409A", bg: "#17409A18" },
-  done: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
-  cancelled: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
+  processing: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
+  printing: { label: "Đang in", color: "#06B6D4", bg: "#06B6D418" },
+  ready_for_pickup: {
+    label: "Sẵn sàng lấy hàng",
+    color: "#4ECDC4",
+    bg: "#4ECDC418",
+  },
+  shipping: { label: "Đang giao", color: "#14B8A6", bg: "#14B8A618" },
 };
 
-const TABS: { key: StaffOrderUiStatus | "all"; label: string }[] = [
+const STAFF_TABS: { key: StaffOrderStatus | "all"; label: string }[] = [
   { key: "all", label: "Tất cả" },
   { key: "pending", label: "Chờ xử lý" },
-  { key: "packing", label: "Đóng gói" },
-  { key: "shipping", label: "Vận chuyển" },
-  { key: "done", label: "Hoàn thành" },
+  { key: "processing", label: "Đang xử lý" },
+  { key: "printing", label: "Đang in" },
+  { key: "ready_for_pickup", label: "Sẵn sàng lấy" },
+  { key: "shipping", label: "Đang giao" },
 ];
 
-function mapApiStatus(status: string): StaffOrderUiStatus {
-  const s = status.toUpperCase();
-  if (s === "PENDING") return "pending";
-  if (s === "PACKING" || s === "PROCESSING") return "packing";
-  if (s === "SHIPPING" || s === "SHIPPED") return "shipping";
-  if (s === "DONE" || s === "DELIVERED" || s === "PAID") return "done";
-  if (s === "CANCELLED") return "cancelled";
-  return "pending";
-}
+const AVATAR_COLORS = [
+  "#17409A",
+  "#7C5CFC",
+  "#4ECDC4",
+  "#FF8C42",
+  "#FF6B9D",
+  "#FFD93D",
+];
 
-function formatDateTime(dateText: string) {
-  const d = new Date(dateText);
-  const date = d.toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-  const time = d.toLocaleTimeString("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return { date, time };
-}
+const COL_HEADS = [
+  "Mã đơn",
+  "Khách hàng",
+  "Sản phẩm",
+  "Thành tiền",
+  "Trạng thái",
+  "Ngày",
+  "",
+];
 
-export default function StaffOrdersTable({
-  orders,
-  usersMap,
-  loading = false,
-  onAdvanceStatus,
-  pageIndex,
-  totalPages,
-  totalCount,
-  hasPreviousPage,
-  hasNextPage,
-  onChangePage,
-}: StaffOrdersTableProps) {
-  const [tab, setTab] = useState<StaffOrderUiStatus | "all">("all");
+const STAFF_API_STATUS_TO_UI: Record<string, StaffOrderStatus> = {
+  PENDING: "pending",
+  PROCESSING: "processing",
+  PRINTING: "printing",
+  READY_FOR_PICKUP: "ready_for_pickup",
+  SHIPPING: "shipping",
+};
+
+export default function StaffOrdersTable() {
+  const { data, loading, fetchOrders, usersMap } = useAdminOrdersApi();
+  const [tab, setTab] = useState<StaffOrderStatus | "all">("all");
   const [search, setSearch] = useState("");
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(search, 350);
+  const [selected, setSelected] = useState<OrderListItem | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<AddressDetail | null>(
+    null,
+  );
+  const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
+  const [pageIndex, setPageIndex] = useState(1);
+  const [refreshing, setRefreshing] = useState(false);
+  const pageSize = 10;
+
+  const handleViewDetails = async (
+    orderId: string,
+    shippingAddressId?: string | null,
+  ) => {
+    try {
+      setLoadingDetails(orderId);
+      setSelectedAddress(null);
+
+      const orderAction = orderService.getOrderById(orderId);
+      const addressAction = shippingAddressId
+        ? addressService.getAddressById(shippingAddressId)
+        : Promise.resolve(null);
+
+      const [res, addressRes] = await Promise.all([orderAction, addressAction]);
+
+      if (res.isSuccess && res.value) {
+        setSelected(res.value);
+      } else {
+        const localData = data?.items.find((o) => o.orderId === orderId);
+        if (localData) setSelected(localData);
+      }
+
+      if (addressRes?.isSuccess && addressRes.value) {
+        setSelectedAddress(addressRes.value);
+      }
+    } catch (e) {
+      const localData = data?.items.find((o) => o.orderId === orderId);
+      if (localData) setSelected(localData);
+    } finally {
+      setLoadingDetails(null);
+    }
+  };
+
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const { success, error: toastError } = useToast();
+
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
+      setPageIndex(1);
+      success("Đã làm mới dữ liệu!");
+    } catch (e) {
+      toastError("Lỗi khi làm mới dữ liệu!");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus: string) => {
+    if (!selected) return;
+    try {
+      setUpdatingStatus(newStatus);
+      const res = await orderService.updateOrderStatus(selected.orderId, {
+        status: newStatus,
+        notes: `Cập nhật trạng thái thủ công thành ${newStatus}`,
+      });
+      if (res.isSuccess || res.value === null) {
+        success("Thay đổi trạng thái thành công!");
+        setSelected({ ...selected, status: newStatus });
+        fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
+        setPageIndex(1);
+      } else {
+        toastError("Không thể thay đổi trạng thái!");
+      }
+    } catch (e) {
+      toastError("Lỗi mạng khi đổi trạng thái!");
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders({ pageIndex: 1, pageSize, fetchAllPages: true });
+  }, [fetchOrders, pageSize]);
+
+  const orders = useMemo(() => data?.items || [], [data?.items]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: orders.length };
     orders.forEach((o) => {
-      const st = mapApiStatus(o.status);
+      const st = STAFF_API_STATUS_TO_UI[o.status] || "pending";
       c[st] = (c[st] ?? 0) + 1;
     });
     return c;
@@ -100,312 +189,529 @@ export default function StaffOrdersTable({
   const filtered = useMemo(
     () =>
       orders.filter((o) => {
-        const st = mapApiStatus(o.status);
+        const st = STAFF_API_STATUS_TO_UI[o.status] || "pending";
         if (tab !== "all" && st !== tab) return false;
-
-        if (search) {
-          const firstItem = o.orderItems[0];
-          const customerName =
-            (o.userId ? usersMap[o.userId]?.fullName : undefined) || "Khách lẻ";
-          const productName =
-            firstItem?.productName ||
-            firstItem?.productNameSnapshot ||
-            "Sản phẩm";
-          const q = search.toLowerCase();
-
-          return (
-            o.orderNumber.toLowerCase().includes(q) ||
-            formatShortOrderCode(o.orderNumber).toLowerCase().includes(q) ||
-            customerName.toLowerCase().includes(q) ||
-            productName.toLowerCase().includes(q)
-          );
-        }
-
-        return true;
+        const q = debouncedSearch.toLowerCase();
+        return (
+          o.orderNumber.toLowerCase().includes(q) ||
+          (o.userId || "").toLowerCase().includes(q) ||
+          (o.userId
+            ? (usersMap[o.userId]?.fullName || "").toLowerCase().includes(q)
+            : false)
+        );
       }),
-    [tab, search, orders, usersMap],
+    [tab, debouncedSearch, orders, usersMap],
   );
 
-  const handleAdvanceStatus = async (order: OrderListItem) => {
-    setUpdatingId(order.orderId);
-    try {
-      await onAdvanceStatus(order);
-    } finally {
-      setUpdatingId(null);
+  const localTotalCount = filtered.length;
+  const localTotalPages = Math.max(1, Math.ceil(localTotalCount / pageSize));
+  const pagedOrders = useMemo(() => {
+    const start = (pageIndex - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, pageIndex, pageSize]);
+
+  useEffect(() => {
+    if (pageIndex > localTotalPages) {
+      setPageIndex(localTotalPages);
     }
-  };
+  }, [localTotalPages, pageIndex]);
+
+  useEffect(() => {
+    setPageIndex(1);
+  }, [tab, debouncedSearch]);
 
   return (
-    <div className="bg-white rounded-3xl overflow-hidden">
-      <div className="p-5 border-b border-[#F4F7FF] flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative flex-1 w-full sm:max-w-xs">
-          <MdSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] text-lg" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm mã đơn, khách hàng..."
-            className="w-full bg-[#F4F7FF] rounded-2xl pl-10 pr-4 py-2.5 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/20 transition"
-          />
-        </div>
-        <div className="flex gap-1 flex-wrap">
-          {TABS.map(({ key, label }) => (
+    <>
+      <div className="bg-white rounded-3xl p-6">
+        {/* ── Header ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+          <div>
+            <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
+              Danh sách
+            </p>
+            <p className="text-[#1A1A2E] font-black text-xl">Tất cả đơn hàng</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] text-base pointer-events-none" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm đơn, khách hàng..."
+                className="bg-[#F4F7FF] text-[#1A1A2E] text-sm font-semibold placeholder:text-[#9CA3AF] rounded-xl pl-9 pr-4 py-2.5 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-colors w-52"
+              />
+            </div>
             <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                tab === key
-                  ? "bg-[#17409A] text-white"
-                  : "bg-[#F4F7FF] text-[#9CA3AF] hover:bg-[#EEF1FF] hover:text-[#17409A]"
-              }`}
+              onClick={handleRefresh}
+              disabled={refreshing || loading}
+              className="bg-[#17409A] hover:bg-[#17409A]/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl px-4 py-2.5 flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md"
+              title="Làm mới dữ liệu"
             >
-              {label}
-              <span
-                className={`rounded-lg px-1.5 py-0.5 text-[10px] font-black ${
-                  tab === key
-                    ? "bg-white/20 text-white"
-                    : "bg-white text-[#17409A]"
+              <MdAutorenew
+                className={`text-base ${refreshing ? "animate-spin" : ""}`}
+              />
+              <span className="hidden sm:inline">Làm mới</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── Status filter tabs ── */}
+        <div className="flex gap-1.5 flex-wrap mb-5 pb-1">
+          {STAFF_TABS.map(({ key, label }) => {
+            const active = tab === key;
+            const cfg =
+              key !== "all" ? STAFF_STATUS_CFG[key as StaffOrderStatus] : null;
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all duration-200 ${
+                  active
+                    ? "bg-[#17409A] text-white shadow-sm"
+                    : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEF9]"
                 }`}
               >
-                {counts[key] ?? 0}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="overflow-x-auto hidden sm:block">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#F4F7FF]">
-              {[
-                "Mã đơn",
-                "Khách hàng",
-                "Sản phẩm",
-                "Ngày",
-                "Trạng thái",
-                "Hành động",
-              ].map((h) => (
-                <th
-                  key={h}
-                  className="text-left text-[#9CA3AF] font-semibold text-xs uppercase tracking-wide px-5 py-3"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading && filtered.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="text-center text-[#9CA3AF] text-sm py-10"
-                >
-                  Đang tải đơn hàng...
-                </td>
-              </tr>
-            )}
-
-            {!loading && filtered.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="text-center text-[#9CA3AF] text-sm py-10"
-                >
-                  Không có đơn hàng nào
-                </td>
-              </tr>
-            ) : (
-              filtered.map((o) => {
-                const st = mapApiStatus(o.status);
-                const cfg = STATUS_CFG[st];
-                const canAdvance = st === "pending" || st === "packing";
-                const nextLabel =
-                  st === "pending" ? "Bắt đầu đóng gói" : "Gửi vận chuyển";
-                const firstItem = o.orderItems[0];
-                const productName =
-                  firstItem?.productName ||
-                  firstItem?.productNameSnapshot ||
-                  "Sản phẩm";
-                const customerName =
-                  (o.userId ? usersMap[o.userId]?.fullName : undefined) ||
-                  "Khách lẻ";
-                const avatar =
-                  customerName.trim().charAt(0).toUpperCase() || "?";
-                const { date, time } = formatDateTime(o.createdAt);
-
-                return (
-                  <tr
-                    key={o.orderId}
-                    className="border-b border-[#F4F7FF] last:border-0 hover:bg-[#F4F7FF]/60 transition-colors"
-                  >
-                    <td className="px-5 py-4">
-                      <span className="font-black text-[#17409A] text-xs">
-                        {formatShortOrderCode(o.orderNumber || o.orderId)}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0 bg-[#17409A]">
-                          {avatar}
-                        </div>
-                        <span className="font-semibold text-[#1A1A2E] whitespace-nowrap">
-                          {customerName}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <p className="text-[#374151] font-medium">
-                        {productName}
-                      </p>
-                    </td>
-
-                    <td className="px-5 py-4 whitespace-nowrap text-[#9CA3AF] text-xs">
-                      {date} {time}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span
-                        className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl"
-                        style={{ color: cfg.color, backgroundColor: cfg.bg }}
-                      >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full inline-block"
-                          style={{ backgroundColor: cfg.color }}
-                        />
-                        {cfg.label}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      {canAdvance ? (
-                        <button
-                          onClick={() => handleAdvanceStatus(o)}
-                          disabled={updatingId === o.orderId}
-                          className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50 ${
-                            st === "pending"
-                              ? "bg-[#7C5CFC]/10 text-[#7C5CFC] hover:bg-[#7C5CFC]/20"
-                              : "bg-[#17409A]/10 text-[#17409A] hover:bg-[#17409A]/20"
-                          }`}
-                        >
-                          {st === "pending" ? (
-                            <MdInventory className="text-sm" />
-                          ) : (
-                            <MdLocalShipping className="text-sm" />
-                          )}
-                          {updatingId === o.orderId
-                            ? "Đang cập nhật..."
-                            : nextLabel}
-                        </button>
-                      ) : (
-                        <span className="flex items-center gap-1.5 text-xs text-[#9CA3AF]">
-                          <MdCheckCircle className="text-[#4ECDC4]" />
-                          {st === "done"
-                            ? "Hoàn thành"
-                            : st === "cancelled"
-                              ? "Đã hủy"
-                              : "Vận chuyển"}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="sm:hidden flex flex-col divide-y divide-[#F4F7FF]">
-        {filtered.map((o) => {
-          const st = mapApiStatus(o.status);
-          const cfg = STATUS_CFG[st];
-          const canAdvance = st === "pending" || st === "packing";
-          const firstItem = o.orderItems[0];
-          const productName =
-            firstItem?.productName ||
-            firstItem?.productNameSnapshot ||
-            "Sản phẩm";
-          const customerName =
-            (o.userId ? usersMap[o.userId]?.fullName : undefined) || "Khách lẻ";
-          const avatar = customerName.trim().charAt(0).toUpperCase() || "?";
-
-          return (
-            <div key={o.orderId} className="p-4 flex flex-col gap-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-sm shrink-0 bg-[#17409A]">
-                    {avatar}
-                  </div>
-                  <div>
-                    <p className="font-bold text-[#1A1A2E] text-sm">
-                      {customerName}
-                    </p>
-                    <p className="text-[#9CA3AF] text-xs">{productName}</p>
-                    <p className="text-[#17409A] text-xs font-black">
-                      {formatShortOrderCode(o.orderNumber || o.orderId)}
-                    </p>
-                  </div>
-                </div>
+                {label}
                 <span
-                  className="text-xs font-bold px-2.5 py-1 rounded-xl"
-                  style={{ color: cfg.color, backgroundColor: cfg.bg }}
+                  className={`text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-4.5 text-center transition-all ${
+                    active ? "bg-white/20 text-white" : ""
+                  }`}
+                  style={
+                    !active && cfg
+                      ? { color: cfg.color, backgroundColor: cfg.bg }
+                      : !active
+                        ? { color: "#9CA3AF", backgroundColor: "#F4F7FF" }
+                        : undefined
+                  }
                 >
-                  {cfg.label}
+                  {counts[key] ?? 0}
                 </span>
-              </div>
+              </button>
+            );
+          })}
+        </div>
 
-              {canAdvance && (
-                <button
-                  onClick={() => handleAdvanceStatus(o)}
-                  disabled={updatingId === o.orderId}
-                  className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer self-start disabled:opacity-50"
-                >
-                  {st === "pending" ? <MdInventory /> : <MdLocalShipping />}
-                  {updatingId === o.orderId
-                    ? "Đang cập nhật..."
-                    : st === "pending"
-                      ? "Bắt đầu đóng gói"
-                      : "Gửi vận chuyển"}
-                </button>
+        {/* ── Table ── */}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-170">
+            <thead>
+              <tr>
+                {COL_HEADS.map((h, i) => (
+                  <th
+                    key={i}
+                    className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4 whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading && filtered.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="text-center py-6 text-sm text-[#9CA3AF]"
+                  >
+                    Đang tải...
+                  </td>
+                </tr>
+              ) : (
+                pagedOrders.map((order, i: number) => {
+                  const uiStatus =
+                    STAFF_API_STATUS_TO_UI[order.status] || "pending";
+                  const st = STAFF_STATUS_CFG[uiStatus];
+
+                  const userDetail = order.userId
+                    ? usersMap[order.userId]
+                    : null;
+                  const customerName = userDetail
+                    ? userDetail.fullName
+                    : order.userId
+                      ? "Thành viên (Id đang tải)"
+                      : "Khách vãng lai";
+
+                  const avatarColor =
+                    AVATAR_COLORS[
+                      (userDetail ? userDetail.email.charCodeAt(0) : i) %
+                        AVATAR_COLORS.length
+                    ];
+                  const avatarChar = customerName.charAt(0).toUpperCase();
+
+                  const dateObj = new Date(order.createdAt);
+                  const dateStr = dateObj.toLocaleDateString("vi-VN");
+                  const timeStr = dateObj.toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+
+                  return (
+                    <tr
+                      key={order.orderId}
+                      className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer"
+                    >
+                      <td className="py-3 pr-4">
+                        <span className="text-[11px] font-black text-[#17409A] bg-[#17409A]/8 px-2.5 py-1 rounded-lg tracking-wide font-mono">
+                          {formatShortOrderCode(
+                            order.orderNumber || order.orderId,
+                          )}
+                        </span>
+                      </td>
+
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white font-black text-xs group-hover:scale-105 transition-transform duration-200"
+                            style={{ backgroundColor: avatarColor }}
+                          >
+                            {avatarChar}
+                          </div>
+                          <div>
+                            <p className="text-[#1A1A2E] font-bold text-sm leading-tight">
+                              {customerName}
+                            </p>
+                            <p className="text-[#9CA3AF] text-[10px] font-semibold leading-tight">
+                              {order.userId ? "Đã đăng ký" : "Khách mới"}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3 pr-4">
+                        <p className="text-[#1A1A2E] font-semibold text-sm leading-tight">
+                          {order.orderItems && order.orderItems.length > 0
+                            ? `${order.orderItems.length} sản phẩm`
+                            : "Không có SP"}
+                        </p>
+                      </td>
+
+                      <td className="py-3 pr-4 whitespace-nowrap">
+                        <div className="text-[#17409A] font-black text-sm">
+                          {formatPrice(order.grandTotal)}
+                        </div>
+                      </td>
+
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ backgroundColor: st.color }}
+                          />
+                          <span
+                            className="text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap"
+                            style={{ color: st.color, backgroundColor: st.bg }}
+                          >
+                            {st.label}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="py-3 pr-4">
+                        <p className="text-[#4B5563] font-semibold text-[11px] leading-tight">
+                          {dateStr}
+                        </p>
+                        <p className="text-[#9CA3AF] text-[10px] font-semibold leading-tight">
+                          {timeStr}
+                        </p>
+                      </td>
+
+                      <td className="py-3">
+                        <button
+                          onClick={() =>
+                            handleViewDetails(
+                              order.orderId,
+                              order.shippingAddressId,
+                            )
+                          }
+                          disabled={loadingDetails === order.orderId}
+                          className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all duration-150 disabled:opacity-50"
+                          title="Xem chi tiết"
+                        >
+                          {loadingDetails === order.orderId ? (
+                            <MdAutorenew className="text-base animate-spin" />
+                          ) : (
+                            <MdRemoveRedEye className="text-base" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center py-12 text-center">
+              <GiPawPrint
+                className="text-[#E5E7EB] mb-3"
+                style={{ fontSize: 52 }}
+              />
+              <p className="text-[#9CA3AF] font-black text-sm">
+                Không có đơn hàng phù hợp
+              </p>
+              <p className="text-[#9CA3AF] text-[11px] font-semibold mt-1">
+                Thử thay đổi bộ lọc hoặc từ khoá tìm kiếm
+              </p>
+            </div>
+          )}
+        </div>
+
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#F4F7FF]">
+            <p className="text-[#9CA3AF] text-[11px] font-semibold">
+              Hiển thị{" "}
+              <span className="text-[#1A1A2E] font-black">
+                {pagedOrders.length}
+              </span>{" "}
+              / {localTotalCount} đơn hàng
+            </p>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: localTotalPages }, (_, i) => i + 1).map(
+                (p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPageIndex(p)}
+                    className={`w-7 h-7 rounded-lg text-[11px] font-black transition-colors ${
+                      p === pageIndex
+                        ? "bg-[#17409A] text-white"
+                        : "text-[#9CA3AF] hover:bg-[#F4F7FF]"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ),
               )}
             </div>
-          );
-        })}
-
-        {!loading && filtered.length === 0 && (
-          <p className="text-center text-[#9CA3AF] text-sm py-10">
-            Không có đơn hàng
-          </p>
+          </div>
         )}
       </div>
 
-      <div className="px-4 sm:px-5 py-4 border-t border-[#F4F7FF] flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-xs text-[#9CA3AF]">
-          Trang <span className="font-black text-[#1A1A2E]">{pageIndex}</span> /{" "}
-          {Math.max(1, totalPages)} · Tổng {totalCount} đơn
-        </p>
+      {/* Order detail modal */}
+      {selected &&
+        (() => {
+          const uiStatus = STAFF_API_STATUS_TO_UI[selected.status] || "pending";
+          const userDetail = selected.userId ? usersMap[selected.userId] : null;
+          const customerName = userDetail
+            ? userDetail.fullName
+            : selected.userId
+              ? "Thành viên (Id đang tải)"
+              : "Khách vãng lai";
+          const dateObj = new Date(selected.createdAt);
+          const dateStr = dateObj.toLocaleDateString("vi-VN");
+          const timeStr = dateObj.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onChangePage(Math.max(1, pageIndex - 1))}
-            disabled={!hasPreviousPage || loading}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E9EEFF] disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Trang trước
-          </button>
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                onClick={() => setSelected(null)}
+              />
+              <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div
+                  className="px-6 pt-5 pb-4"
+                  style={{ backgroundColor: STAFF_STATUS_CFG[uiStatus].bg }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span
+                      className="text-[10px] font-black tracking-[0.2em] uppercase"
+                      style={{ color: STAFF_STATUS_CFG[uiStatus].color }}
+                    >
+                      Chi tiết đơn hàng
+                    </span>
+                    <button
+                      onClick={() => setSelected(null)}
+                      className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#1A1A2E] hover:bg-white/60 transition-all"
+                    >
+                      <MdClose className="text-lg" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[#1A1A2E] font-black text-lg font-mono">
+                      {formatShortOrderCode(
+                        selected.orderNumber || selected.orderId,
+                      )}
+                    </span>
+                    <span
+                      className="text-[10px] font-black px-2.5 py-1 rounded-full"
+                      style={{
+                        color: STAFF_STATUS_CFG[uiStatus].color,
+                        backgroundColor:
+                          STAFF_STATUS_CFG[uiStatus].color + "28",
+                      }}
+                    >
+                      {STAFF_STATUS_CFG[uiStatus].label}
+                    </span>
+                  </div>
+                  <p className="text-[#1A1A2E] font-black text-3xl leading-none">
+                    {formatPrice(selected.grandTotal)}
+                  </p>
 
-          <button
-            onClick={() => onChangePage(Math.min(totalPages, pageIndex + 1))}
-            disabled={!hasNextPage || loading}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#17409A] text-white hover:bg-[#13357f] disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Trang sau
-          </button>
-        </div>
-      </div>
-    </div>
+                  <div className="mt-5 pt-4 border-t border-black/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[9px] font-black text-[#1A1A2E]/50 tracking-[0.15em] mb-0.5 uppercase">
+                        Trạng thái Đơn hàng
+                      </p>
+                      <p className="text-[#1A1A2E]/70 text-[10px] font-bold">
+                        Lưu thay đổi tự động
+                      </p>
+                    </div>
+
+                    <div className="relative w-full sm:w-37.5">
+                      <CustomDropdown
+                        options={STAFF_BACKEND_STATUSES.map((sts) => ({
+                          label: sts.label,
+                          value: sts.value,
+                        }))}
+                        value={selected.status}
+                        onChange={handleStatusUpdate}
+                        disabled={updatingStatus !== null}
+                        buttonClassName="w-full bg-white/60 backdrop-blur-sm border border-white hover:bg-white text-[11px] font-black tracking-wide text-[#1A1A2E] py-2.5 px-3 rounded-2xl cursor-pointer shadow-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                        chevronClassName="text-[#1A1A2E] text-sm opacity-60 transition-transform"
+                        menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-white bg-white shadow-xl py-1 overflow-hidden"
+                        optionClassName="w-full text-left px-3 py-2 text-[11px] font-bold text-[#1A1A2E] hover:bg-[#F4F7FF] transition-colors"
+                        activeOptionClassName="w-full text-left px-3 py-2 text-[11px] font-black text-[#17409A] bg-[#17409A]/10"
+                        ariaLabel="Cập nhật trạng thái đơn hàng"
+                      />
+                      {updatingStatus ? (
+                        <div className="pointer-events-none absolute inset-y-0 right-8 flex items-center text-[#1A1A2E]">
+                          <MdAutorenew className="animate-spin text-sm" />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 flex flex-col gap-4">
+                  <div>
+                    <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
+                      Khách hàng
+                    </p>
+                    <div className="flex items-center gap-3 bg-[#F8F9FF] rounded-2xl p-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0"
+                        style={{
+                          backgroundColor:
+                            AVATAR_COLORS[
+                              customerName.charCodeAt(0) % AVATAR_COLORS.length
+                            ],
+                        }}
+                      >
+                        {customerName.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="text-[#1A1A2E] font-bold text-sm">
+                          {customerName}
+                        </p>
+                        <p className="text-[#9CA3AF] text-[11px] font-semibold">
+                          {selected.userId ? "Đã đăng ký" : "Guest"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
+                      Sản phẩm
+                    </p>
+                    <div className="bg-[#F8F9FF] rounded-2xl p-3 space-y-2 max-h-48 overflow-y-auto">
+                      {selected.orderItems && selected.orderItems.length > 0 ? (
+                        selected.orderItems.map((item, idx) => {
+                          const itemName =
+                            item.productNameSnapshot ||
+                            item.productName ||
+                            "Sản phẩm";
+                          const variantLabel = item.variantName?.trim();
+                          const lineTotal =
+                            item.lineTotal ?? item.unitPrice * item.quantity;
+
+                          return (
+                            <div
+                              key={
+                                item.orderItemId || `${item.variantId}-${idx}`
+                              }
+                              className="bg-white rounded-xl p-2.5 border border-[#E5E7EB] flex items-start gap-2.5"
+                            >
+                              <img
+                                src={item.productImageUrl || "/teddy_bear.png"}
+                                alt={itemName}
+                                className="w-12 h-12 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-[#1A1A2E] font-bold text-sm leading-tight">
+                                  {variantLabel
+                                    ? `${itemName} (${variantLabel})`
+                                    : itemName}
+                                </p>
+                                <p className="text-[#6B7280] text-[11px] font-semibold mt-1">
+                                  SL: {item.quantity} x{" "}
+                                  {formatPrice(item.unitPrice)}
+                                </p>
+                                <p className="text-[#17409A] text-[11px] font-black mt-0.5">
+                                  Thành tiền: {formatPrice(lineTotal)}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="text-[#6B7280] font-semibold text-sm">
+                          Không có thông tin chi tiết sản phẩm
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedAddress && (
+                    <div>
+                      <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
+                        Giao hàng tới
+                      </p>
+                      <div className="bg-[#F8F9FF] rounded-2xl p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="text-[#1A1A2E] font-bold text-sm">
+                              {selectedAddress.fullName}
+                            </p>
+                            <p className="text-[#9CA3AF] text-xs font-semibold mt-0.5">
+                              {selectedAddress.phoneNumber}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-full h-px bg-[#E5E7EB] my-3" />
+                        <p className="text-[#4B5563] text-xs leading-relaxed font-medium">
+                          {selectedAddress.state}, {selectedAddress.city}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#F8F9FF] rounded-xl px-4 py-2.5">
+                      <p className="text-[9px] font-black tracking-wide text-[#9CA3AF] mb-0.5">
+                        NGÀY
+                      </p>
+                      <p className="text-[#1A1A2E] text-[11px] font-bold">
+                        {dateStr}
+                      </p>
+                    </div>
+                    <div className="bg-[#F8F9FF] rounded-xl px-4 py-2.5">
+                      <p className="text-[9px] font-black tracking-wide text-[#9CA3AF] mb-0.5">
+                        GIỜ
+                      </p>
+                      <p className="text-[#1A1A2E] text-[11px] font-bold">
+                        {timeStr}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+    </>
   );
 }

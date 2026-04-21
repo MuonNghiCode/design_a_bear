@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   THEME: 'theme',
   LANGUAGE: 'language',
   CART_ID: 'cart_id',
+  CART_VARIANT_META: 'cart_variant_meta',
   PENDING_PAYMENT_ORDER: 'pending_payment_order',
 } as const;
 

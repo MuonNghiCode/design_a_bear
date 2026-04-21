@@ -116,6 +116,27 @@ export function StepDelivery({
     });
   }, [form, districts, onChange]);
 
+  // Tự động chọn phường/xã khi wardName được điền sẵn từ địa chỉ đã lưu
+  useEffect(() => {
+    if (form.ward || !form.wardName || communes.length === 0) return;
+
+    const wanted = normalizeLocationName(form.wardName);
+    const matched = communes.find(
+      (c) =>
+        normalizeLocationName(c.name) === wanted ||
+        normalizeLocationName(c.name).includes(wanted) ||
+        wanted.includes(normalizeLocationName(c.name)),
+    );
+
+    if (!matched) return;
+
+    onChange({
+      ...form,
+      ward: matched.idCommune,
+      wardName: matched.name,
+    });
+  }, [form, communes, onChange]);
+
   const set = (k: keyof DeliveryForm) => (v: string) =>
     onChange({ ...form, [k]: v });
 

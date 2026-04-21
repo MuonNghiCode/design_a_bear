@@ -7,9 +7,15 @@ interface Props {
   furColor: string;
   themeColor?: string;
   themeId?: string;
+  activeAccessories?: string[];
 }
 
-export default function BearModel3D({ furColor, themeColor, themeId }: Props) {
+export default function BearModel3D({
+  furColor,
+  themeColor,
+  themeId,
+  activeAccessories = [],
+}: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -194,6 +200,11 @@ export default function BearModel3D({ furColor, themeColor, themeId }: Props) {
     pawR.position.set(0.68, -1.85, 0.3);
     bear.add(pawR);
 
+    /* Personalization Accessories */
+    if (activeAccessories.length > 0) {
+      addPersonalizationAccessories(bear, activeAccessories, furColor);
+    }
+
     /* Theme accessory */
     if (themeId && themeColor) {
       addThemeAccessory(bear, themeId, themeColor);
@@ -287,7 +298,7 @@ export default function BearModel3D({ furColor, themeColor, themeId }: Props) {
         mount.removeChild(renderer.domElement);
       }
     };
-  }, [furColor, themeColor, themeId]);
+  }, [furColor, themeColor, themeId, activeAccessories]);
 
   return (
     <div
@@ -297,6 +308,136 @@ export default function BearModel3D({ furColor, themeColor, themeId }: Props) {
       title="Kéo để xoay"
     />
   );
+}
+
+/* ── Personalization Accessories ── */
+function addPersonalizationAccessories(
+  bear: THREE.Group,
+  accessoryIds: string[],
+  furColor: string,
+) {
+  accessoryIds.forEach((id) => {
+    switch (id) {
+      case "bow": {
+        const bowColor = "#E11D48"; // Red
+        const mat = new THREE.MeshPhongMaterial({ color: bowColor });
+        const bowGroup = new THREE.Group();
+
+        const knot = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 16, 16),
+          mat,
+        );
+        bowGroup.add(knot);
+
+        const wingL = new THREE.Mesh(
+          new THREE.ConeGeometry(0.18, 0.35, 16),
+          mat,
+        );
+        wingL.rotation.z = Math.PI / 2;
+        wingL.position.set(-0.2, 0, 0);
+        bowGroup.add(wingL);
+
+        const wingR = new THREE.Mesh(
+          new THREE.ConeGeometry(0.18, 0.35, 16),
+          mat,
+        );
+        wingR.rotation.z = -Math.PI / 2;
+        wingR.position.set(0.2, 0, 0);
+        bowGroup.add(wingR);
+
+        bowGroup.position.set(0, 0.95, 0.95);
+        bowGroup.rotation.x = -0.2;
+        bear.add(bowGroup);
+        break;
+      }
+      case "glasses": {
+        const glassColor = "#1F2937"; // Dark gray/Black
+        const mat = new THREE.MeshPhongMaterial({ color: glassColor });
+
+        const glassL = new THREE.Mesh(
+          new THREE.TorusGeometry(0.2, 0.03, 12, 32),
+          mat,
+        );
+        glassL.position.set(-0.3, 2.04, 0.9);
+        glassL.rotation.x = Math.PI / 2 - 0.3;
+        bear.add(glassL);
+
+        const glassR = new THREE.Mesh(
+          new THREE.TorusGeometry(0.2, 0.03, 12, 32),
+          mat,
+        );
+        glassR.position.set(0.3, 2.04, 0.9);
+        glassR.rotation.x = Math.PI / 2 - 0.3;
+        bear.add(glassR);
+
+        const bridge = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.02, 0.02, 0.22, 8),
+          mat,
+        );
+        bridge.rotation.z = Math.PI / 2;
+        bridge.position.set(0, 2.04, 0.88);
+        bear.add(bridge);
+        break;
+      }
+      case "cat_ears": {
+        const outerMat = new THREE.MeshPhongMaterial({ color: furColor });
+        const innerMat = new THREE.MeshPhongMaterial({ color: "#FF6B9D" }); // Pink inner ear
+
+        const leftEar = new THREE.Group();
+        const baseL = new THREE.Mesh(
+          new THREE.ConeGeometry(0.25, 0.45, 4),
+          outerMat,
+        );
+        baseL.rotation.y = Math.PI / 4;
+        leftEar.add(baseL);
+        const insideL = new THREE.Mesh(
+          new THREE.ConeGeometry(0.15, 0.3, 4),
+          innerMat,
+        );
+        insideL.rotation.y = Math.PI / 4;
+        insideL.position.set(0, -0.05, 0.08);
+        leftEar.add(insideL);
+        leftEar.position.set(-0.6, 2.85, 0);
+        leftEar.rotation.z = 0.2;
+        bear.add(leftEar);
+
+        const rightEar = leftEar.clone();
+        rightEar.position.set(0.6, 2.85, 0);
+        rightEar.rotation.z = -0.2;
+        bear.add(rightEar);
+        break;
+      }
+      case "wool_hat": {
+        const hatColor = "#1D4ED8"; // Blue
+        const mat = new THREE.MeshPhongMaterial({ color: hatColor });
+        const mat2 = new THREE.MeshPhongMaterial({ color: "#ffffff" }); // White pom-pom
+
+        const hatBase = new THREE.Mesh(
+          new THREE.SphereGeometry(
+            0.88,
+            32,
+            32,
+            0,
+            Math.PI * 2,
+            0,
+            Math.PI / 2,
+          ),
+          mat,
+        );
+        hatBase.position.set(0, 2.1, 0);
+        hatBase.scale.set(1, 0.8, 1);
+        bear.add(hatBase);
+
+        const pomPom = new THREE.Mesh(
+          new THREE.SphereGeometry(0.18, 16, 16),
+          mat2,
+        );
+        pomPom.position.set(0, 3.0, 0);
+        bear.add(pomPom);
+        break;
+      }
+    }
+  });
 }
 
 /* ── Theme accessories ── */

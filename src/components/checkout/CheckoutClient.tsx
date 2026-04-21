@@ -20,6 +20,7 @@ import { StepPayment } from "./StepPayment";
 import { StepConfirm } from "./StepConfirm";
 import { SuccessScreen } from "./SuccessScreen";
 import { OrderSummary } from "./OrderSummary";
+import { ProcessingOverlay } from "./ProcessingOverlay";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -27,13 +28,12 @@ import { userService } from "@/services/user.service";
 import { addressService } from "@/services/address.service";
 import { orderService } from "@/services/order.service";
 import { paymentService } from "@/services/payment.service";
+import { shippingService } from "@/services/shipping.service";
+import { inventoryService } from "@/services/inventory.service";
 import { STORAGE_KEYS } from "@/constants";
 import type { Address } from "@/types";
-import {
-  composeAddressText,
-  normalizePhoneNumber,
-  parseAddressTextDetailed,
-} from "@/utils/address";
+import { normalizePhoneNumber } from "@/utils/address";
+import { getComponentsForValidation } from "@/utils/stock_utils";
 /*  Main Component */
 export default function CheckoutClient() {
   const [step, setStep] = useState(1);
@@ -51,8 +51,16 @@ export default function CheckoutClient() {
     note: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [coupon, setCoupon] = useState("");
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupons, setAppliedCoupons] = useState<
+    {
+      code: string;
+      productDiscount: number;
+      shippingDiscount: number;
+      totalDiscount: number;
+      discountType: string;
+    }[]
+  >([]);
   const [agreed, setAgreed] = useState(false);
   const [showDeliveryErrors, setShowDeliveryErrors] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -60,30 +68,47 @@ export default function CheckoutClient() {
     () => "DAB" + Math.random().toString(36).slice(2, 8).toUpperCase(),
   );
 
-  const [orderDetails, setOrderDetails] = useState<any>(null); // Save response order for SuccessScreen
+  const [orderDetails, setOrderDetails] = useState<any>(null);
+  const [stockErrors, setStockErrors] = useState<Record<string, string>>({});
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const isSubmittingRef = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { totalPrice, clearCart, totalItems, closeCart } = useCart();
+  const { items, totalPrice, clearCart, totalItems, closeCart } = useCart();
   const { isAuthenticated } = useAuth();
   const toast = useToast();
 
-  const SHIPPING_FEE = totalPrice >= FREE_SHIP || totalItems === 0 ? 0 : 30_000;
-  // const SHIPPING_FEE = 0;
-  const DISCOUNT = couponApplied ? 50_000 : 0;
-  const FINAL_TOTAL = totalPrice + SHIPPING_FEE - DISCOUNT;
+  const [shippingFee, setShippingFee] = useState(0);
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
+  const [resolvedAddressId, setResolvedAddressId] = useState<string | null>(
+    null,
+  );
 
-  // Ensure cart drawer is closed when arriving at checkout.
+  // Calculated from applied coupons
+  const totalProductDiscount = appliedCoupons.reduce(
+    (sum, c) => sum + c.productDiscount,
+    0,
+  );
+  const totalShippingDiscount = appliedCoupons.reduce(
+    (sum, c) => sum + c.shippingDiscount,
+    0,
+  );
+  const DISCOUNT = totalProductDiscount + totalShippingDiscount;
+  const FINAL_TOTAL =
+    totalPrice + (shippingFee - totalShippingDiscount) - totalProductDiscount;
+  const couponApplied = appliedCoupons.length > 0;
+
   useEffect(() => {
     closeCart();
   }, [closeCart]);
 
-  // Handle PayOS redirect callback: /checkout?orderCode=...&status=...
   useEffect(() => {
+    const cancel = searchParams.get("cancel") || "false";
+    const status = searchParams.get("status") || "";
     const orderCodeFromQuery =
       searchParams.get("orderCode") ||
       searchParams.get("paymentCode") ||
@@ -94,6 +119,34 @@ export default function CheckoutClient() {
     const handlePaymentReturn = async () => {
       try {
         setSubmitting(true);
+
+        // 1. Mark as CANCELLED if cancelled or failed to trigger backend stock release
+        if (cancel === "true" || (status && status.toUpperCase() !== "PAID")) {
+          // No manual stock release here, handled by status update below
+        }
+
+        const pendingOrder = localStorage.getItem(
+          STORAGE_KEYS.PENDING_PAYMENT_ORDER,
+        );
+
+        if (cancel === "true" || (status && status.toUpperCase() !== "PAID")) {
+          if (pendingOrder) {
+            try {
+              const parsed = JSON.parse(pendingOrder);
+              if (parsed?.orderDetails?.orderId) {
+                await orderService.cancelOrder(parsed.orderDetails.orderId);
+              }
+            } catch {}
+          }
+          localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
+          toast.error(
+            cancel === "true"
+              ? "Bạn đã hủy thanh toán. Đơn hàng đã chuyển CANCELLED."
+              : `Thanh toán thất bại: ${status}`,
+          );
+          return;
+        }
+
         const confirmRes =
           await paymentService.confirmPayment(orderCodeFromQuery);
 
@@ -103,15 +156,16 @@ export default function CheckoutClient() {
           );
         }
 
-        const pendingOrder = localStorage.getItem(
-          STORAGE_KEYS.PENDING_PAYMENT_ORDER,
-        );
         if (pendingOrder) {
           try {
             const parsed = JSON.parse(pendingOrder);
             setOrderDetails(parsed.orderDetails ?? null);
           } catch {}
           localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
+        }
+
+        if (orderPlaced) {
+          // Order placed successfully
         }
 
         setOrderPlaced(true);
@@ -127,6 +181,83 @@ export default function CheckoutClient() {
     handlePaymentReturn();
   }, [searchParams, clearCart, toast]);
 
+  const handleApplyCoupon = async () => {
+    const input = couponInput.trim();
+    if (!input) {
+      toast.error("Vui lòng nhập mã khuyến mãi");
+      return;
+    }
+
+    // Split by comma, space or semicolon
+    const codes = input
+      .split(/[,\s;]+/)
+      .map((c) => c.trim().toUpperCase())
+      .filter((c) => c !== "");
+
+    if (codes.length === 0) {
+      toast.error("Vui lòng nhập mã khuyến mãi hợp lệ");
+      return;
+    }
+
+    setSubmitting(true);
+    let successCount = 0;
+
+    try {
+      const userObj = localStorage.getItem(STORAGE_KEYS.USER);
+      const userId = userObj ? JSON.parse(userObj).id : null;
+
+      for (const code of codes) {
+        // Check for duplicate in already applied list
+        if (appliedCoupons.some((c) => c.code === code)) {
+          toast.info(`Mã ${code} đã được áp dụng rồi.`);
+          continue;
+        }
+
+        try {
+          const res = await paymentService.applyPromotion({
+            code,
+            userId,
+            orderAmount: totalPrice,
+            shippingAmount: shippingFee,
+          });
+
+          if (res.isSuccess && res.value) {
+            setAppliedCoupons((prev) => [
+              ...prev,
+              {
+                code,
+                productDiscount: res.value.productDiscount,
+                shippingDiscount: res.value.shippingDiscount,
+                totalDiscount: res.value.totalDiscount,
+                discountType: res.value.discountType,
+              },
+            ]);
+            successCount++;
+            toast.success(`Áp dụng mã ${code} thành công!`);
+          } else {
+            toast.error(
+              `Mã ${code}: ${res.error?.description || "Không hợp lệ"}`,
+            );
+          }
+        } catch (err) {
+          toast.error(`Mã ${code}: Lỗi kết nối`);
+        }
+      }
+
+      if (successCount > 0) {
+        setCouponInput("");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi xử thực mã khuyến mãi");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRemoveCoupon = (codeToRemove: string) => {
+    setAppliedCoupons((prev) => prev.filter((c) => c.code !== codeToRemove));
+  };
+
   // Fetch initial profile & address data
   useEffect(() => {
     if (!isAuthenticated) {
@@ -134,6 +265,8 @@ export default function CheckoutClient() {
       router.push("/auth");
       return;
     }
+
+    // Initial load logic
 
     if (totalItems === 0) {
       setLoadingInitial(false);
@@ -167,16 +300,17 @@ export default function CheckoutClient() {
             defaultForm.name = defAddr.fullName || defaultForm.name;
             defaultForm.phone = defAddr.phoneNumber || "";
             defaultForm.email = defAddr.email || defaultForm.email;
-            defaultForm.address = [defAddr.line1, defAddr.line2]
-              .filter(Boolean)
-              .join(", ");
+            defaultForm.address = defAddr.line1 || "";
+            defaultForm.wardName = defAddr.line2 || "";
+            defaultForm.note = defAddr.label || "";
             defaultForm.provinceName = defAddr.city || "";
             defaultForm.districtName = defAddr.state || "";
             setAddresses(addressRes.value);
-            // province/district mapping is tricky so user might have to re-select,
-            // but we can set city implicitly if we want.
-            // defaultForm.provinceName = defAddr.city;
-            // defaultForm.districtName = defAddr.state;
+
+            if (defAddr.addressId) {
+              setResolvedAddressId(defAddr.addressId);
+              calculateFee(defAddr.addressId);
+            }
           }
         } catch (e) {}
 
@@ -208,7 +342,197 @@ export default function CheckoutClient() {
     });
   }, []);
 
+  /**
+   * Resolve shipping address (reuse existing address if equivalent or create a new one)
+   * This is needed both for shipping fee calculation and final order placement.
+   */
+  const getOrResolveAddressId = async (): Promise<string> => {
+    const userObj = localStorage.getItem(STORAGE_KEYS.USER);
+    const userId = userObj ? JSON.parse(userObj).id : null;
+    const normalizedPhone = normalizePhoneNumber(form.phone);
+
+    const city = (form.provinceName || form.province).trim();
+    const state = (form.districtName || form.district).trim();
+
+    const normalizedCurrent = {
+      fullName: form.name.trim().toLowerCase(),
+      phoneNumber: normalizedPhone,
+      email: (form.email || "").trim().toLowerCase(),
+      line1: form.address.trim().toLowerCase(),
+      line2: (form.wardName || "").trim().toLowerCase(),
+      city: city.toLowerCase(),
+      state: state.toLowerCase(),
+    };
+
+    let addrId =
+      addresses.find((a) => {
+        return (
+          a.fullName.trim().toLowerCase() === normalizedCurrent.fullName &&
+          normalizePhoneNumber(a.phoneNumber) ===
+            normalizedCurrent.phoneNumber &&
+          (a.email || "").trim().toLowerCase() === normalizedCurrent.email &&
+          a.line1.trim().toLowerCase() === normalizedCurrent.line1 &&
+          (a.line2 || "").trim().toLowerCase() === normalizedCurrent.line2 &&
+          a.city.trim().toLowerCase() === normalizedCurrent.city &&
+          a.state.trim().toLowerCase() === normalizedCurrent.state
+        );
+      })?.addressId ?? null;
+
+    if (!addrId) {
+      if (!userId) {
+        throw new Error("Không xác định được người dùng để tạo địa chỉ.");
+      }
+
+      const createAddrRes = await addressService.createAddress({
+        userId,
+        fullName: form.name.trim(),
+        phoneNumber: normalizedPhone,
+        email: form.email.trim() || null,
+        city,
+        state,
+        line1: form.address.trim(),
+        line2: form.wardName || null,
+        label: form.note || null,
+        isDefaultShipping: true,
+        isDefaultBilling: true,
+        postalCode: null,
+        country: null,
+      });
+
+      if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
+        throw new Error("Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.");
+      }
+
+      addrId = createAddrRes.value.addressId;
+      // Update local address list to prevent duplicate creation next time
+      const freshAddrs = await addressService.getMyAddresses();
+      if (freshAddrs.isSuccess && freshAddrs.value) {
+        setAddresses(freshAddrs.value);
+      }
+    }
+
+    return addrId;
+  };
+
+  const calculateFee = async (addrId: string) => {
+    if (!addrId || isCalculatingShipping) return;
+    const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
+    if (!cartId) return;
+
+    try {
+      setIsCalculatingShipping(true);
+      const res = await shippingService.calculateShippingFee({
+        cartId,
+        addressId: addrId,
+        transport: "road",
+      });
+
+      if (res.isSuccess && res.value?.fee?.fee !== undefined) {
+        setShippingFee(res.value.fee.fee);
+      } else {
+        setShippingFee(0);
+      }
+    } catch (error) {
+      console.error("Lỗi tính phí vận chuyển:", error);
+      setShippingFee(0);
+    } finally {
+      setIsCalculatingShipping(false);
+    }
+  };
+
+  useEffect(() => {
+    if (step !== 1 || loadingInitial) return;
+
+    const timer = setTimeout(() => {
+      const result = deliverySchema.safeParse(form);
+      if (result.success) {
+        (async () => {
+          try {
+            const addrId = await getOrResolveAddressId();
+            if (addrId && addrId !== resolvedAddressId) {
+              setResolvedAddressId(addrId);
+              await calculateFee(addrId);
+            }
+          } catch (e) {
+            toast.error("Đã có lỗi xảy ra : " + e);
+          }
+        })();
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [form, step, loadingInitial, resolvedAddressId]);
+
+  /**
+   * Final validation of stock for all items in the cart before placing the order.
+   * "Deep Validation": Manually checks every component (Base + Accessories) 
+   * to ensure no hidden bottlenecks are missed by the server-side calculation.
+   */
+  const validateCartStock = async (): Promise<boolean> => {
+    try {
+      setSubmitting(true);
+      setStockErrors({});
+      const newErrors: Record<string, string> = {};
+      let hasError = false;
+
+      // 1. Collect all unique identities to check
+      const identitiesToCheck: { identityId: string; isAccessory: boolean }[] = [];
+      const itemComponentsMap = new Map<string, { identityId: string; isAccessory: boolean }[]>();
+
+      for (const item of items) {
+        const components = await getComponentsForValidation(item);
+        identitiesToCheck.push(...components);
+        itemComponentsMap.set(item.cartItemId, components);
+      }
+
+      // 2. Fetch all at once (Simulated Batch)
+      const uniqueIdentities = Array.from(
+        new Set(identitiesToCheck.map((i) => JSON.stringify(i))),
+      ).map((s) => JSON.parse(s));
+
+      const stockMap = await inventoryService.batchCheck(uniqueIdentities);
+
+      // 3. Validate each item against its components' bottlenecks
+      for (const item of items) {
+        const components = itemComponentsMap.get(item.cartItemId) || [];
+        let minAvailable = Infinity;
+
+        for (const comp of components) {
+          const available = stockMap[comp.identityId] ?? 0;
+          minAvailable = Math.min(minAvailable, available);
+        }
+
+        if (minAvailable === Infinity || minAvailable <= 0) {
+          newErrors[item.cartItemId] = "Sản phẩm này hiện đã hết hàng.";
+          hasError = true;
+        } else if (item.quantity > minAvailable) {
+          newErrors[item.cartItemId] = `Chỉnh còn ${minAvailable} sản phẩm sẵn có.`;
+          hasError = true;
+        }
+      }
+
+      if (hasError) {
+        setStockErrors(newErrors);
+        toast.error(
+          "Có sản phẩm trong giỏ hàng không đủ tồn kho. Vui lòng kiểm tra lại.",
+        );
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error("Deep stock validation error:", error);
+      toast.error("Không thể xác thực tồn kho. Vui lòng thử lại.");
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
+
   const goNext = useCallback(() => {
+    if (submitting || isSubmittingRef.current) return;
+
     if (step === 1) {
       const result = deliverySchema.safeParse({
         name: form.name,
@@ -224,104 +548,68 @@ export default function CheckoutClient() {
         return;
       }
       setShowDeliveryErrors(false);
-    }
-    if (step < 3) transition(step + 1, 1);
-    else {
-      // Place order via API
-      setSubmitting(true);
+
       (async () => {
         try {
-          // 1. Resolve shipping address (reuse existing address if equivalent)
-          const userObj = localStorage.getItem(STORAGE_KEYS.USER);
-          const userId = userObj ? JSON.parse(userObj).id : null;
-          const normalizedPhone = normalizePhoneNumber(form.phone);
-          const parsedAddress = parseAddressTextDetailed(form.address);
+          setSubmitting(true);
+          const addrId = await getOrResolveAddressId();
+          setResolvedAddressId(addrId);
+          await calculateFee(addrId);
+          transition(step + 1, 1);
+        } catch (error: any) {
+          toast.error(error.message || "Đã có lỗi xảy ra");
+        } finally {
+          setSubmitting(false);
+        }
+      })();
+      return;
+    }
 
-          const city = (
-            form.provinceName ||
-            form.province ||
-            parsedAddress.city
-          ).trim();
-          const state = (
-            form.districtName ||
-            form.district ||
-            parsedAddress.state
-          ).trim();
+    if (step === 2) {
+      (async () => {
+        const isValid = await validateCartStock();
+        if (isValid) {
+          transition(step + 1, 1);
+        }
+      })();
+      return;
+    }
 
-          const normalizedCurrent = {
-            fullName: form.name.trim().toLowerCase(),
-            phoneNumber: normalizedPhone,
-            email: (form.email || "").trim().toLowerCase(),
-            line1: parsedAddress.line1.trim().toLowerCase(),
-            line2: (parsedAddress.line2 || "").trim().toLowerCase(),
-            city: city.toLowerCase(),
-            state: state.toLowerCase(),
-          };
+    if (step < 3) transition(step + 1, 1);
+    else {
+      (async () => {
+        try {
+          if (isSubmittingRef.current) return;
+          isSubmittingRef.current = true;
+          setSubmitting(true);
 
-          let addressId =
-            addresses.find((a) => {
-              return (
-                a.fullName.trim().toLowerCase() ===
-                  normalizedCurrent.fullName &&
-                normalizePhoneNumber(a.phoneNumber) ===
-                  normalizedCurrent.phoneNumber &&
-                (a.email || "").trim().toLowerCase() ===
-                  normalizedCurrent.email &&
-                a.line1.trim().toLowerCase() === normalizedCurrent.line1 &&
-                (a.line2 || "").trim().toLowerCase() ===
-                  normalizedCurrent.line2 &&
-                a.city.trim().toLowerCase() === normalizedCurrent.city &&
-                a.state.trim().toLowerCase() === normalizedCurrent.state
-              );
-            })?.addressId ?? null;
+          // ── Step 3: Skip manual reservation as backend handles it ──
+          console.log(
+            "[Checkout] Creating order (Backend will handle reservation)...",
+          );
 
-          if (!addressId) {
-            if (!userId) {
-              throw new Error("Không xác định được người dùng để tạo địa chỉ.");
-            }
+          // ── Proceed with Order Creation ──
+          const addrId = await getOrResolveAddressId();
 
-            const createAddrRes = await addressService.createAddress({
-              userId,
-              fullName: form.name.trim(),
-              phoneNumber: normalizedPhone,
-              email: form.email.trim() || null,
-              city,
-              state,
-              line1: parsedAddress.line1,
-              line2: parsedAddress.line2 || form.note || null,
-              isDefaultShipping: true,
-              isDefaultBilling: true,
-              label: null,
-              postalCode: null,
-              country: null,
-            });
-
-            if (!createAddrRes.isSuccess || !createAddrRes.value?.addressId) {
-              throw new Error(
-                "Không thể tạo địa chỉ giao hàng. Vui lòng thử lại.",
-              );
-            }
-
-            addressId = createAddrRes.value.addressId;
-          }
-
-          // 2. Create Order
           const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
-
           if (!cartId) throw new Error("Chưa có giỏ hàng.");
 
           const orderPayload = {
-            userId,
-            shippingAddressId: addressId,
-            billingAddressId: addressId,
+            userId: localStorage.getItem(STORAGE_KEYS.USER)
+              ? JSON.parse(localStorage.getItem(STORAGE_KEYS.USER)!).id
+              : null,
+            shippingAddressId: addrId,
+            billingAddressId: addrId,
             currency: "VND",
             subtotal: totalPrice,
             discountTotal: DISCOUNT,
             taxTotal: 0,
-            shippingTotal: SHIPPING_FEE,
+            shippingTotal: shippingFee,
             grandTotal: FINAL_TOTAL,
-            notes: form.note || "Order from NextJS Frontend",
-            promoCode: couponApplied ? coupon : undefined,
+            notes: form.note || "Order from Design a Bear",
+            promoCodes: couponApplied
+              ? appliedCoupons.map((c) => c.code)
+              : undefined,
           };
 
           const orderRes = await orderService.createOrderFromCart(
@@ -336,12 +624,11 @@ export default function CheckoutClient() {
               25,
             );
 
-            // 3. Call create-payment
             const createPaymentRes = await paymentService.createPayment({
               orderId,
               itemName: "Design A Bear",
               quantity: Math.max(1, totalItems),
-              amount: FINAL_TOTAL,
+              amount: orderRes.value.grandTotal, // Use the server's calculated total
               description: safeDescription,
             });
 
@@ -403,7 +690,6 @@ export default function CheckoutClient() {
               throw new Error("Thiếu paymentCode/orderCode từ create-payment");
             }
 
-            // 4. Call confirm-payment
             const confirmPaymentRes =
               await paymentService.confirmPayment(paymentCode);
 
@@ -417,7 +703,6 @@ export default function CheckoutClient() {
             setOrderDetails(orderRes.value);
             toast.success("Đặt hàng thành công!");
 
-            // Animation out then show success
             gsap.to(contentRef.current, {
               scale: 0.96,
               opacity: 0,
@@ -443,6 +728,7 @@ export default function CheckoutClient() {
         } catch (error: any) {
           toast.error(error.message || "Đã có lỗi xảy ra");
         } finally {
+          isSubmittingRef.current = false;
           setSubmitting(false);
         }
       })();
@@ -454,10 +740,10 @@ export default function CheckoutClient() {
     clearCart,
     totalPrice,
     DISCOUNT,
-    SHIPPING_FEE,
+    shippingFee,
     FINAL_TOTAL,
     couponApplied,
-    coupon,
+    appliedCoupons,
     toast,
     totalItems,
   ]);
@@ -467,7 +753,6 @@ export default function CheckoutClient() {
     else router.back();
   }, [step, transition, router]);
 
-  /*  Entrance animation  */
   useEffect(() => {
     gsap.fromTo(
       contentRef.current,
@@ -476,7 +761,6 @@ export default function CheckoutClient() {
     );
   }, []);
 
-  /* Empty cart redirect */
   if (totalItems === 0 && !orderPlaced) {
     if (loadingInitial) return <div className="min-h-screen bg-[#F4F7FF]" />; // prevent flicker
 
@@ -523,6 +807,7 @@ export default function CheckoutClient() {
   }
 
   return (
+    <>
     <div
       className="flex min-h-screen"
       style={{
@@ -625,11 +910,14 @@ export default function CheckoutClient() {
                     <StepPayment
                       method={paymentMethod}
                       onChange={setPaymentMethod}
-                      coupon={coupon}
-                      onCouponChange={setCoupon}
-                      couponApplied={couponApplied}
-                      onCouponApplied={setCouponApplied}
-                      discount={DISCOUNT}
+                      couponInput={couponInput}
+                      onCouponInputChange={setCouponInput}
+                      appliedCoupons={appliedCoupons}
+                      onApplyCoupon={handleApplyCoupon}
+                      onRemoveCoupon={handleRemoveCoupon}
+                      totalDiscount={DISCOUNT}
+                      totalPrice={totalPrice}
+                      shippingFee={shippingFee}
                       isLoading={submitting}
                     />
                   )}
@@ -671,10 +959,7 @@ export default function CheckoutClient() {
                   disabled={(step === 3 && !agreed) || submitting}
                   className="flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-sm font-black text-white transition-all duration-200 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{
-                    background:
-                      step === 3 && !agreed
-                        ? "#D1D5DB"
-                        : "linear-gradient(135deg, #17409A 0%, #0E2A66 100%)",
+                    background: step === 3 && !agreed ? "#D1D5DB" : "#17409A",
                     boxShadow:
                       step === 3 && !agreed
                         ? "none"
@@ -701,20 +986,23 @@ export default function CheckoutClient() {
         </div>
       </div>
 
-      {/* RIGHT PANEL â€” Order Summary*/}
+      {/* RIGHT PANEL Order Summary*/}
       <div
         className="hidden lg:flex flex-col shrink-0 sticky top-0 h-screen overflow-hidden"
         style={{ width: 400 }}
       >
         <OrderSummary
-          shippingFee={SHIPPING_FEE}
+          shippingFee={shippingFee}
+          isCalculatingShipping={isCalculatingShipping}
           discount={DISCOUNT}
           finalTotal={FINAL_TOTAL}
-          coupon={coupon}
-          onCouponChange={setCoupon}
-          onApplyCoupon={() => setCouponApplied(true)}
-          couponApplied={couponApplied}
+          couponInput={couponInput}
+          onCouponInputChange={setCouponInput}
+          onApplyCoupon={handleApplyCoupon}
+          appliedCoupons={appliedCoupons}
+          onRemoveCoupon={handleRemoveCoupon}
           step={step}
+          stockErrors={stockErrors}
         />
       </div>
 
@@ -740,7 +1028,7 @@ export default function CheckoutClient() {
             disabled={(step === 3 && !agreed) || submitting}
             className="flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black text-white transition-all duration-200 disabled:opacity-50"
             style={{
-              background: "linear-gradient(135deg, #17409A 0%, #4ECDC4 100%)",
+              background: "#17409A",
             }}
           >
             {submitting ? (
@@ -757,5 +1045,7 @@ export default function CheckoutClient() {
         </div>
       )}
     </div>
+    {submitting && step === 3 && <ProcessingOverlay />}
+    </>
   );
 }

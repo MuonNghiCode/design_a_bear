@@ -96,7 +96,6 @@ export interface LogoutResponseData {
   message?: string;
 }
 
-
 export interface ProfileResponseData {
   userId: string;
   email: string;
@@ -153,6 +152,8 @@ export interface ProductListItem {
   isActive: boolean;
   imageUrl: string | null;
   price: number;
+  sku: string;
+  weightGram: number;
   shortDescription: string;
   totalSales: number;
   minPrice: number;
@@ -160,6 +161,9 @@ export interface ProductListItem {
   discountRate: number;
   averageRating: number;
   reviewCount: number;
+  onHand: number;
+  reserved: number;
+  available: number;
   media: ProductMedia[];
 }
 
@@ -173,28 +177,33 @@ export interface GetProductsResponseData {
   items: ProductListItem[];
 }
 
-export interface ProductVariant {
-  variantId: string;
-  productId: string;
-  sku: string;
-  variantName: string;
-  price: number;
-  currency: string;
-  isSoldOut: boolean;
-  imageUrl: string | null;
-}
-
 export interface ProductCategory {
   categoryId: string;
   parentId: string | null;
   name: string;
   slug: string;
+  isActive?: boolean;
 }
+
+export interface CharacterItem {
+  characterId: string;
+  name: string;
+  slug: string;
+  licenseBrand: string | null;
+}
+
+export type GetCategoriesResponse = ApiResponse<ProductCategory[]>;
+export type GetCategoryResponse = ApiResponse<ProductCategory>;
+
+export type GetCharactersResponse = ApiResponse<CharacterItem[]>;
+export type GetCharacterResponse = ApiResponse<CharacterItem>;
 
 export interface ProductReview {
   reviewId: string;
   productId: string;
   userId: string;
+  authorName?: string | null;
+  authorAvatar?: string | null;
   orderItemId: string | null;
   rating: number;
   title: string;
@@ -212,6 +221,88 @@ export interface ReviewReply {
   createdAt: string;
 }
 
+export interface Product {
+  productId: string;
+  name: string;
+  slug: string;
+  productType: string; // BASE_BEAR, ACCESSORY, COMPLETE_SET
+  description?: string;
+  isPersonalizable: boolean;
+  isActive: boolean;
+  price: number;
+  sku: string;
+  weightGram: number;
+  imageUrl?: string | null;
+  stockQuantity?: number;
+  onHand?: number;
+  reserved?: number;
+  available?: number;
+  totalSales?: number;
+  model3DUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  media: ProductMedia[];
+}
+
+export interface ProductDetail extends Product {
+  categories: ProductCategory[];
+  characters: CharacterItem[];
+  reviews?: ProductReview[];
+  comboImages: ProductComboImage[];
+  variants: ProductVariantResponse[];
+  accessories: AccessoryResponse[];
+}
+
+export interface ProductComboImage {
+  comboId: string;
+  combinationKey: string;
+  imageUrl: string;
+}
+
+export interface ProductVariantResponse {
+  variantId: string;
+  productId: string;
+  sizeTag?: string;
+  sizeDescription?: string;
+  sku: string;
+  price: number;
+  baseCost: number;
+  assemblyCost: number;
+  weightGram: number;
+  isActive: boolean;
+  onHand: number;
+  reserved: number;
+  available: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AccessoryResponse {
+  accessoryId: string;
+  name: string;
+  sku: string;
+  description?: string;
+  imageUrl?: string;
+  baseCost: number;
+  assemblyCost: number;
+  targetPrice: number;
+  weightGram?: number;
+  isActive: boolean;
+  onHand: number;
+  reserved: number;
+  available: number;
+  categoryIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductListResponseData {
+  items: Product[];
+  totalCount: number;
+  pageIndex: number;
+  pageSize: number;
+}
+
 export interface GetProductReviewsResponseData {
   pageIndex: number;
   pageSize: number;
@@ -222,30 +313,12 @@ export interface GetProductReviewsResponseData {
   items: ProductReview[];
 }
 
-export interface ProductDetail {
-  productId: string;
-  name: string;
-  slug: string;
-  productType: string;
-  description: string;
-  isPersonalizable: boolean;
-  isActive: boolean;
-  price: number;
-  createdAt: string;
-  updatedAt: string;
-  model3DUrl: string | null;
-  media: ProductMedia[];
-  variants: ProductVariant[];
-  categories: ProductCategory[];
-  reviews: ProductReview[];
-}
-
 /* ── Cart API Responses ── */
 
 export interface CartItem {
   cartItemId: string;
   cartId: string;
-  variantId: string;
+  productId: string;
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
@@ -253,13 +326,17 @@ export interface CartItem {
   variantPrice: number;
   sku: string;
   productName: string;
+  productImageUrl?: string | null;
+  productNameSnapshot?: string | null;
+  variantNameSnapshot?: string | null;
   productSlug: string;
   productType: string;
+  availableStock?: number;
 }
 
 export interface Cart {
   cartId: string;
-  customerId: string | null;
+  userId: string | null;
   currency: string;
   createdAt: string;
   updatedAt: string;
@@ -275,8 +352,24 @@ export interface PersonalizationRule {
   allowedComponentProductId: string;
   isRequired: boolean;
   maxQuantity: number;
-  ruleType: "OPTIONAL" | "REQUIRED";
+  ruleType: "OPTIONAL" | "REQUIRED" | "ACCESSORY" | string;
   addonProduct: ProductDetail;
+}
+
+export interface GetPersonalizationRulesAdminResponseData {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: PersonalizationRule[];
+}
+
+export interface PersonalizationGroup {
+  groupId: string;
+  name: string;
+  description: string | null;
 }
 
 /* ── Build API Responses ── */
@@ -340,8 +433,33 @@ export interface AddressDetail {
   createdAt: string;
 }
 
+export interface Promotion {
+  promotionId: string;
+  code: string;
+  discountType: string;
+  value: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  minOrderAmount: number;
+  maxUsageCount: number | null;
+  usageCount: number;
+  maxUsagePerUser: number | null;
+  description: string | null;
+}
+
 export interface PromotionResponseData {
-  // value is empty array as per backend spec
+  items: Promotion[];
+  totalCount: number;
+  pageIndex: number;
+  pageSize: number;
+}
+
+export interface PromotionApplyResponseData {
+  productDiscount: number;
+  shippingDiscount: number;
+  totalDiscount: number;
+  discountType: string;
 }
 
 export interface CreatePaymentResponseData {
@@ -357,6 +475,15 @@ export interface ConfirmPaymentResponseData {
   status: string;
   transactionId?: string;
   message?: string;
+}
+
+export interface MediaUploadData {
+  fileName: string;
+  filePath: string;
+  publicUrl: string;
+  fileSize: number;
+  contentType: string;
+  uploadedAt: string;
 }
 
 /* ── User API Responses ── */
@@ -376,6 +503,61 @@ export interface UserDetail {
 export type GetUserResponse = ApiResponse<UserDetail>;
 export type GetUsersResponse = ApiResponse<UserDetail[]>;
 
+/* ── Report API Responses ── */
+
+export interface DailyRevenue {
+  date: string;
+  revenue: number;
+}
+
+export interface RevenueReportData {
+  totalRevenue: number;
+  totalProfit: number;
+  totalOrders: number;
+  dailyBreakdown: DailyRevenue[];
+}
+
+export type ProductIssueStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "RESOLVED"
+  | "CLOSED"
+  | "REJECTED";
+
+export interface ProductIssueReport {
+  reportId: string;
+  userId: string;
+  orderItemId: string;
+  orderId?: string;
+  productId?: string;
+  type?: string;
+  description: string;
+  requestRefund: boolean;
+  evidenceUrls: string[];
+  status: ProductIssueStatus;
+  staffId?: string | null;
+  resolution?: string | null;
+  staffNotes?: string | null;
+  repairNotes?: string | null;
+  finalNotes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GetProductIssuesResponseData = {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: ProductIssueReport[];
+};
+
+export type GetRevenueReportResponse = ApiResponse<RevenueReportData>;
+export type GetProductIssuesResponse =
+  ApiResponse<GetProductIssuesResponseData>;
+
 /* ── Aggregated export aliases ── */
 
 export type ProfileResponse = ApiResponse<ProfileResponseData>;
@@ -386,7 +568,8 @@ export type GoogleCompleteProfileResponse =
   ApiResponse<GoogleCompleteProfileResponseData>;
 export type GetProductsResponse = ApiResponse<GetProductsResponseData>;
 export type GetProductDetailResponse = ApiResponse<ProductDetail>;
-export type GetProductReviewsResponse = ApiResponse<GetProductReviewsResponseData>;
+export type GetProductReviewsResponse =
+  ApiResponse<GetProductReviewsResponseData>;
 export type GetAllReviewsResponse = ApiResponse<GetProductReviewsResponseData>;
 export type GetUserReviewsResponse = ApiResponse<ProductReview[]>;
 export type CanReviewProductResponse = ApiResponse<boolean>;
@@ -403,9 +586,27 @@ export type AddToCartResponse = ApiResponse<CartItem>;
 export type GetPersonalizationRulesResponse = ApiResponse<
   PersonalizationRule[]
 >;
+export type GetPersonalizationGroupsResponse = ApiResponse<
+  PersonalizationGroup[]
+>;
+export type GetPersonalizationGroupResponse = ApiResponse<PersonalizationGroup>;
+export type CreatePersonalizationGroupResponse =
+  ApiResponse<PersonalizationGroup>;
+export type UpdatePersonalizationGroupResponse = ApiResponse<null>;
+export type DeletePersonalizationGroupResponse = ApiResponse<null>;
+export type GetPersonalizationRulesAdminResponse = ApiResponse<
+  GetPersonalizationRulesAdminResponseData | PersonalizationRule[]
+>;
+export type GetPersonalizationRuleResponse = ApiResponse<PersonalizationRule>;
+export type CreatePersonalizationRuleResponse =
+  ApiResponse<PersonalizationRule>;
+export type UpdatePersonalizationRuleResponse = ApiResponse<null>;
+export type DeletePersonalizationRuleResponse = ApiResponse<null>;
 export type PromotionResponse = ApiResponse<PromotionResponseData>;
+export type PromotionApplyResponse = ApiResponse<PromotionApplyResponseData>;
 export type CreatePaymentResponse = ApiResponse<CreatePaymentResponseData>;
 export type ConfirmPaymentResponse = ApiResponse<ConfirmPaymentResponseData>;
+export type MediaUploadResponse = ApiResponse<MediaUploadData>;
 export type GetAddressByIdResponse = ApiResponse<AddressDetail>;
 export type GetAddressesResponse = ApiResponse<Address[]>;
 export type CreateBuildResponse = ApiResponse<Build>;
@@ -416,3 +617,28 @@ export type GetOrderDetailResponse = ApiResponse<Order>;
 export type CreateOrderResponse = ApiResponse<Order>;
 export type LogoutResponse = ApiResponse<LogoutResponseData>;
 export type LoginResponse = ApiResponse<LoginResponseData>;
+
+export interface FavoriteResponse {
+  favoriteId: string;
+  productId: string;
+  productName: string;
+  productImageUrl?: string;
+  productPrice: number;
+  createdAt: string;
+}
+
+export interface GetMyFavoritesResponseData {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  items: FavoriteResponse[];
+}
+
+export type GetMyFavoritesResponse = ApiResponse<GetMyFavoritesResponseData>;
+export type ToggleFavoriteResponse = ApiResponse<{
+  isAdded: boolean;
+  message: string;
+}>;

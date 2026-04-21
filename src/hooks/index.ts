@@ -7,3 +7,5 @@ export * from "./useDebounce";
 export * from "./useProductApi";
 export * from "./useProductDetailApi";
 export * from "./useReviewApi";
+export * from "./useTaxonomyApi";
+export * from "./useAdminReportsApi";

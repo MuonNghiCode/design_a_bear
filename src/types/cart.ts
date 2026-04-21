@@ -1,17 +1,35 @@
 import { type ProductCardProps } from "@/components/shared/ProductCard";
 
 export interface CartItem {
-  cartItemId?: string;
+  cartItemId: string;
+  buildId?: string | null;
   product: ProductCardProps;
   quantity: number;
+  sizeTag?: string;
+  sizeDetails?: string;
+  accessories?: {
+    id: string;
+    name: string;
+    price: number;
+    image?: string;
+  }[];
+  baseVariantId?: string;
+  availableStock?: number;
 }
 
 export interface CartContextType {
   items: CartItem[];
-  addItem: (product: ProductCardProps, quantity?: number, buildId?: string | null) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
+  addItem: (
+    product: ProductCardProps,
+    quantity?: number,
+    buildId?: string | null,
+    sizeTag?: string,
+    sizeDetails?: string,
+    accessories?: { id: string; name: string; price: number; image?: string }[],
+  ) => Promise<void>;
+  removeItem: (cartItemId: string) => Promise<void>;
+  updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   totalItems: number;
   totalPrice: number;
   isOpen: boolean;

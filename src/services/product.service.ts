@@ -19,15 +19,12 @@ class ProductService extends BaseApiService {
   ): Promise<GetPersonalizationRulesResponse> {
     return this.get<PersonalizationRule[]>(
       `${API_ENDPOINTS.PERSONALIZATION_RULES.GET_ACTIVE}/${productId}/active`,
-      undefined,
-      { withCredentials: false },
     );
   }
   async getProducts(params?: GetProductsRequest): Promise<GetProductsResponse> {
     return this.get<GetProductsResponseData>(
       API_ENDPOINTS.PRODUCTS.GET_ALL,
       params as Record<string, unknown>,
-      { withCredentials: false },
     );
   }
 
@@ -37,7 +34,6 @@ class ProductService extends BaseApiService {
     return this.post<ProductDetail>(
       API_ENDPOINTS.PRODUCTS.CREATE,
       payload as unknown as Record<string, unknown>,
-      { withCredentials: false },
     );
   }
 
@@ -48,29 +44,22 @@ class ProductService extends BaseApiService {
     return this.put<unknown>(
       `${API_ENDPOINTS.PRODUCTS.UPDATE}/${id}`,
       payload as unknown as Record<string, unknown>,
-      { withCredentials: false },
     );
   }
 
   async getProductBySlug(slug: string): Promise<GetProductDetailResponse> {
     return this.get<ProductDetail>(
       `${API_ENDPOINTS.PRODUCTS.GET_BY_SLUG}/${slug}`,
-      undefined,
-      { withCredentials: false },
     );
   }
 
   async deleteProduct(id: string): Promise<ApiResponse<unknown>> {
-    return this.delete<unknown>(`${API_ENDPOINTS.PRODUCTS.DELETE}/${id}`, {
-      withCredentials: false,
-    });
+    return this.delete<unknown>(`${API_ENDPOINTS.PRODUCTS.DELETE}/${id}`);
   }
 
   async getProductById(id: string): Promise<GetProductDetailResponse> {
     return this.get<ProductDetail>(
       `${API_ENDPOINTS.PRODUCTS.GET_BY_ID}/${id}`,
-      undefined,
-      { withCredentials: false },
     );
   }
 }

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Nunito } from "next/font/google";
+import { Nunito, Fredoka } from "next/font/google";
 import "./globals.css";
 import Providers from "../components/providers/Providers";
 import {
@@ -14,6 +14,13 @@ const nunito = Nunito({
   subsets: ["latin", "vietnamese"],
   weight: ["400", "600", "700", "800", "900"],
   variable: "--font-nunito",
+  display: "swap",
+});
+
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-fredoka",
   display: "swap",
 });
 
@@ -78,7 +85,8 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body
-        className={`${nunito.variable} antialiased`}
+        suppressHydrationWarning
+        className={`${nunito.variable} ${fredoka.variable} antialiased`}
         style={{ fontFamily: "var(--font-nunito), Nunito, sans-serif" }}
       >
         <script

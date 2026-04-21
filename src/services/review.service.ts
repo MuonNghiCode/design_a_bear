@@ -18,6 +18,7 @@ import type {
   ReviewReply,
   ReplyReviewResponse,
   StaffReplyReviewRequest,
+  UpdateReplyReviewRequest,
   UpdateReviewRequest,
   UpdateReviewResponse,
 } from "@/types";
@@ -47,6 +48,17 @@ class ReviewService extends BaseApiService {
   ): Promise<ReplyReviewResponse> {
     const endpoint = API_ENDPOINTS.REVIEWS.REPLY.replace("{id}", reviewId);
     return this.post<ReviewReply>(endpoint, payload, { withCredentials: false });
+  }
+
+  async updateReplyReview(
+    replyId: string,
+    payload: UpdateReplyReviewRequest,
+  ): Promise<ReplyReviewResponse> {
+    const endpoint = API_ENDPOINTS.REVIEWS.UPDATE_REPLY.replace(
+      "{replyId}",
+      replyId,
+    );
+    return this.put<ReviewReply>(endpoint, payload, { withCredentials: false });
   }
 
   async getReviewReplies(reviewId: string): Promise<GetReviewRepliesResponse> {

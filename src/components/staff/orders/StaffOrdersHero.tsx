@@ -22,14 +22,15 @@ export default function StaffOrdersHero({
   const pending = orders.filter(
     (o) => o.status?.toUpperCase() === "PENDING",
   ).length;
-  const packing = orders.filter(
-    (o) => o.status?.toUpperCase() === "PACKING",
+  const paid = orders.filter((o) => o.status?.toUpperCase() === "PAID").length;
+  const processing = orders.filter(
+    (o) => o.status?.toUpperCase() === "PROCESSING",
   ).length;
-  const shipping = orders.filter(
-    (o) => o.status?.toUpperCase() === "SHIPPING",
+  const completed = orders.filter(
+    (o) => o.status?.toUpperCase() === "COMPLETED",
   ).length;
-  const done = orders.filter((o) =>
-    ["DONE", "DELIVERED"].includes(o.status?.toUpperCase()),
+  const refunded = orders.filter(
+    (o) => o.status?.toUpperCase() === "REFUNDED",
   ).length;
   const total = orders.length;
 
@@ -48,14 +49,14 @@ export default function StaffOrdersHero({
     },
     {
       icon: MdInventory,
-      label: "Đang đóng gói",
-      value: packing,
+      label: "Đã thanh toán",
+      value: paid,
       color: "bg-[#7C5CFC]/20",
     },
     {
       icon: MdCheckCircle,
       label: "Hoàn thành",
-      value: done,
+      value: completed,
       color: "bg-[#4ECDC4]/20",
     },
   ];
@@ -81,7 +82,7 @@ export default function StaffOrdersHero({
               className="text-white font-black leading-none"
               style={{ fontSize: "clamp(3.5rem, 6.5vw, 6rem)" }}
             >
-              {loading ? "..." : pending + packing}
+              {loading ? "..." : pending + paid + processing}
             </span>
             <div className="pb-1.5 flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-2xl px-3 py-1.5">
               <MdTrendingUp className="text-[#4ECDC4] text-sm" />
@@ -94,11 +95,9 @@ export default function StaffOrdersHero({
 
         <div className="shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-2xl bg-[#17409A]/40 border border-white/20 backdrop-blur-sm">
           <span className="text-white font-black text-xl leading-tight">
-            {loading ? "..." : shipping}
+            {loading ? "..." : processing}
           </span>
-          <span className="text-white/60 text-[10px] font-semibold">
-            vận chuyển
-          </span>
+          <span className="text-white/60 text-[10px] font-semibold">xử lý</span>
         </div>
       </div>
 
@@ -122,14 +121,20 @@ export default function StaffOrdersHero({
       <div className="relative flex flex-col gap-1.5">
         {[
           { label: "Chờ xử lý", value: pending, max: total, color: "#FF8C42" },
-          { label: "Đóng gói", value: packing, max: total, color: "#7C5CFC" },
+          { label: "Đã thanh toán", value: paid, max: total, color: "#1D4ED8" },
           {
-            label: "Vận chuyển",
-            value: shipping,
+            label: "Đang xử lý",
+            value: processing,
             max: total,
-            color: "#17409A",
+            color: "#7C5CFC",
           },
-          { label: "Hoàn thành", value: done, max: total, color: "#4ECDC4" },
+          {
+            label: "Hoàn thành",
+            value: completed,
+            max: total,
+            color: "#4ECDC4",
+          },
+          { label: "Hoàn tiền", value: refunded, max: total, color: "#6B7280" },
         ].map(({ label, value, max, color }) => (
           <div key={label} className="flex items-center gap-2">
             <span className="text-white/55 text-[11px] font-semibold w-24 shrink-0">

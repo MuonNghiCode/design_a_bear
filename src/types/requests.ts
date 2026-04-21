@@ -69,12 +69,27 @@ export interface GetProductsRequest {
   pageSize?: number;
   productType?: string;
   sortBy?: string;
+  searchTerm?: string;
 }
 
 export interface GetProductReviewsRequest {
   pageIndex?: number;
   pageSize?: number;
 }
+
+export interface CreateCategoryRequest {
+  parentId?: string | null;
+  name: string;
+  slug: string;
+}
+export type UpdateCategoryRequest = CreateCategoryRequest;
+
+export interface CreateCharacterRequest {
+  name: string;
+  slug: string;
+  licenseBrand?: string | null;
+}
+export type UpdateCharacterRequest = CreateCharacterRequest;
 
 export interface CreateReviewRequest {
   productId: string;
@@ -103,12 +118,9 @@ export interface StaffReplyReviewRequest {
   content: string;
 }
 
-export interface CreateProductVariantRequest {
-  sku: string;
-  variantName: string;
-  price: number;
-  currency: string;
-  imageUrl: string;
+export interface UpdateReplyReviewRequest {
+  staffUserId: string;
+  content: string;
 }
 
 export interface CreateProductMediaRequest {
@@ -117,18 +129,40 @@ export interface CreateProductMediaRequest {
   sortOrder: number;
 }
 
+export interface CreateProductVariantRequest {
+  sku: string;
+  price: number;
+  weightGram: number;
+  sizeTag: string; // XS, S, M, L, XL, XXL, OS
+  sizeDescription: string; // Real dimensions e.g. "25cm"
+  baseCost: number;
+  assemblyCost: number;
+  stockQuantity: number;
+}
+
 export interface CreateProductRequest {
   name: string;
   slug: string;
   productType: string;
   description: string;
-  model3DUrl: string;
   isPersonalizable: boolean;
   isActive: boolean;
+  price: number;
+  sku: string;
+  weightGram: number;
+  stockQuantity: number;
+  model3DUrl?: string;
   categoryIds: string[];
   characterIds: string[];
-  variants: CreateProductVariantRequest[];
+  accessoryIds: string[];
   media: CreateProductMediaRequest[];
+  comboImages?: CreateProductComboImageRequest[];
+  variants?: CreateProductVariantRequest[];
+}
+
+export interface CreateProductComboImageRequest {
+  combinationKey: string;
+  imageUrl: string;
 }
 
 export type UpdateProductRequest = CreateProductRequest;
@@ -137,39 +171,79 @@ export type UpdateProductRequest = CreateProductRequest;
 
 export interface CreateBuildRequest {
   customerId: string | null;
-  baseVariantId: string;
+  baseProductId: string;
   buildName: string;
   personalizationNote: string;
-  buildComponents: { optionVariantId: string }[];
+  buildComponents: { optionProductId: string }[];
 }
 
 export interface CreateOrderFromCartRequest {
-    userId: string | null;
-    shippingAddressId: string | null;
-    billingAddressId: string | null;
-    currency: string;
-    subtotal: number;
-    discountTotal: number;
-    taxTotal: number;
-    shippingTotal: number;
-    grandTotal: number;
-    notes?: string;
-    promoCode?: string;
+  userId: string | null;
+  shippingAddressId: string | null;
+  billingAddressId: string | null;
+  currency: string;
+  subtotal: number;
+  discountTotal: number;
+  taxTotal: number;
+  shippingTotal: number;
+  grandTotal: number;
+  notes?: string;
+  promoCodes?: string[];
 }
 
 /* ── Cart API Requests ── */
 
 export interface CreateCartRequest {
-  customerId: string | null;
+  userId: string | null;
   currency: string;
 }
 
 export interface AddToCartRequest {
   cartId: string;
-  variantId: string;
+  productId: string;
+  variantId?: string | null;
   buildId: string | null;
   quantity: number;
   unitPriceSnapshot: number;
+  productImageUrlSnapshot?: string | null;
+  sizeTag?: string;
+  sizeDescription?: string;
+}
+
+/* ── Personalization Group API Requests ── */
+
+export interface CreatePersonalizationGroupRequest {
+  name: string;
+  description: string | null;
+}
+
+export type UpdatePersonalizationGroupRequest =
+  CreatePersonalizationGroupRequest;
+
+/* ── Personalization Rule API Requests ── */
+
+export interface GetPersonalizationRulesAdminRequest {
+  pageIndex?: number;
+  pageSize?: number;
+  baseProductId?: string;
+  addonProductId?: string;
+  groupId?: string;
+  ruleType?: string;
+}
+
+export interface CreatePersonalizationRuleRequest {
+  baseProductId: string;
+  groupId: string;
+  allowedComponentProductId: string;
+  isRequired: boolean;
+  maxQuantity: number;
+  ruleType: string;
+}
+
+export interface UpdatePersonalizationRuleRequest {
+  isRequired: boolean;
+  maxQuantity: number;
+  ruleType: string;
 }
 
 /* ── Order API Requests ── */
@@ -186,16 +260,77 @@ export interface UpdateOrderStatusRequest {
 
 /* ── Promotion & Payment Requests ── */
 
+export interface CreatePromotionRequest {
+  code: string;
+  discountType: string;
+  value: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  minOrderAmount: number;
+  maxUsageCount: number | null;
+  maxUsagePerUser: number | null;
+  description: string | null;
+}
+
+export type UpdatePromotionRequest = CreatePromotionRequest;
+
 export interface ValidatePromotionRequest {
-    code: string;
+  code: string;
+  userId?: string;
+  orderAmount?: number;
+  shippingAmount?: number;
+}
+
+export interface ApplyPromotionRequest {
+  code: string;
+  userId: string;
+  orderAmount: number;
+  shippingAmount: number;
 }
 
 export interface CreatePaymentRequest {
-    orderId: string;
-    itemName: string;
-    quantity: number;
-    amount: number;
-    description?: string;
+  orderId: string;
+  itemName: string;
+  quantity: number;
+  amount: number;
+  description?: string;
 }
 
 export interface ConfirmPaymentRequest {}
+
+/* ── Report API Requests ── */
+export interface GetRevenueReportRequest {
+  startDate: string;
+  endDate: string;
+}
+
+export interface ToggleFavoriteRequest {
+  productId: string;
+}
+
+/* ── Accessory API Requests ── */
+
+export interface CreateAccessoryRequest {
+  sku: string;
+  baseCost: number;
+  assemblyCost: number;
+  targetPrice: number;
+  stockQuantity: number;
+  imageUrl: string;
+  categoryId: string;
+  isActive?: boolean;
+}
+
+export interface UpdateAccessoryRequest {
+  name?: string;
+  description?: string;
+  sku?: string;
+  baseCost?: number;
+  assemblyCost?: number;
+  targetPrice?: number;
+  stockQuantity?: number;
+  imageUrl?: string;
+  categoryId?: string;
+  isActive?: boolean;
+}

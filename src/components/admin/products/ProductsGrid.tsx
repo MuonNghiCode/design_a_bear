@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { formatPrice } from "@/utils/currency";
 import { useDebounce } from "@/hooks";
 import Image from "next/image";
@@ -8,8 +8,6 @@ import {
   MdSearch,
   MdAdd,
   MdEdit,
-  MdMoreVert,
-  MdStar,
   MdGridView,
   MdTableRows,
   MdFileDownload,
@@ -17,19 +15,22 @@ import {
   MdClose,
   MdRemoveRedEye,
   MdDelete,
+  MdStar,
 } from "react-icons/md";
-import { GiPawPrint } from "react-icons/gi";
 import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
-import { type GetProductsRequest } from "@/types";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
-import type { ProductListItem } from "@/types";
+import type { ProductListItem, ProductDetail, AccessoryResponse } from "@/types";
+import { productService } from "@/services/product.service";
 
 import CreateProductModal from "./CreateProductModal";
 import EditProductModal from "./EditProductModal";
+import ProductDetailModal from "./ProductDetailModal";
+import CreateAccessoryModal from "./accessories/CreateAccessoryModal";
+import EditAccessoryModal from "./accessories/EditAccessoryModal";
 
 type ViewMode = "grid" | "table";
-type CategoryFilter = "all" | "complete" | "bear" | "accessory";
+type CategoryFilter = "all" | "bear" | "accessory";
 
 const STATUS_CFG: Record<
   ProductAdminStatus,
@@ -42,8 +43,7 @@ const STATUS_CFG: Record<
 
 const CATEGORY_TABS: { key: CategoryFilter; label: string }[] = [
   { key: "all", label: "Tất cả" },
-  { key: "complete", label: "Gấu hoàn chỉnh" },
-  { key: "bear", label: "Thân gấu" },
+  { key: "bear", label: "Gấu" },
   { key: "accessory", label: "Phụ kiện" },
 ];
 
@@ -75,7 +75,6 @@ function StockBadge({ stock }: { stock: number }) {
   return <span className="text-[10px] font-black text-[#4B5563]">{stock}</span>;
 }
 
-// ── Luxe product grid card ───────────────────────────────────────────────────
 function ProductCard({
   p,
   onView,
@@ -90,17 +89,19 @@ function ProductCard({
   isDeleting: boolean;
 }) {
   const st = STATUS_CFG[p.status];
+  const stockPercent =
+    p.status === "active" && p.stock > 0
+      ? Math.min(100, Math.round((p.stock / 80) * 100))
+      : 0;
+
   return (
     <div
       onClick={() => onView(p)}
-      className="group bg-[#F8F9FF] rounded-2xl overflow-hidden border border-transparent hover:border-[#17409A]/10 hover:shadow-lg hover:shadow-[#17409A]/5 transition-all duration-300 cursor-pointer relative"
+      className="group h-full bg-[#F8F9FF] rounded-2xl overflow-hidden border border-transparent hover:border-[#17409A]/10 hover:shadow-lg hover:shadow-[#17409A]/5 transition-all duration-300 cursor-pointer relative flex flex-col"
     >
-      {/* Category color top stripe */}
       <div className="h-0.5 w-full" style={{ backgroundColor: p.badgeColor }} />
-
-      {/* Image area */}
       <div
-        className="relative flex items-center justify-center py-4 overflow-hidden"
+        className="relative h-28 flex items-center justify-center overflow-hidden"
         style={{ backgroundColor: p.badgeColor + "0d" }}
       >
         <Image
@@ -110,13 +111,11 @@ function ProductCard({
           height={96}
           className="object-contain transition-transform duration-300 group-hover:scale-110 drop-shadow-md"
         />
-        {/* Popular badge */}
         {p.popular && (
           <span className="absolute top-2.5 left-2.5 bg-[#FFD93D] text-[#1A1A2E] text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5">
             <MdStar className="text-xs" /> HOT
           </span>
         )}
-        {/* Status pill */}
         <span
           className="absolute top-2.5 right-2.5 text-[8px] font-black px-2 py-0.5 rounded-full"
           style={{ color: st.color, backgroundColor: st.bg }}
@@ -125,10 +124,8 @@ function ProductCard({
         </span>
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-        {/* Name + badge */}
-        <div className="mb-2.5">
+      <div className="p-4 flex flex-1 flex-col">
+        <div className="mb-2.5 min-h-14">
           {p.badge && (
             <span
               className="text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 inline-block"
@@ -145,13 +142,11 @@ function ProductCard({
           </p>
         </div>
 
-        {/* Price */}
         <p className="text-[#17409A] font-black text-lg leading-none mb-3">
           {formatPrice(p.price)}
         </p>
 
-        {/* Stats row */}
-        <div className="flex items-center justify-between text-[10px] font-semibold text-[#9CA3AF] mb-3">
+        <div className="flex items-center justify-between text-[10px] font-semibold text-[#9CA3AF] mb-3 min-h-4">
           <span>
             <span className="text-[#4B5563] font-black">{p.sold}</span> đơn
           </span>
@@ -166,21 +161,17 @@ function ProductCard({
           <StockBadge stock={p.stock} />
         </div>
 
-        {/* Stock bar */}
-        {p.status === "active" && p.stock > 0 && (
-          <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mb-3">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${Math.min(100, Math.round((p.stock / 80) * 100))}%`,
-                backgroundColor: p.stock <= 10 ? "#FF8C42" : "#4ECDC4",
-              }}
-            />
-          </div>
-        )}
+        <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mb-3">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${stockPercent}%`,
+              backgroundColor: p.stock <= 10 ? "#FF8C42" : "#4ECDC4",
+            }}
+          />
+        </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-1.5 pt-1 border-t border-[#E9ECEF]">
+        <div className="mt-auto flex items-center gap-1.5 pt-1 border-t border-[#E9ECEF]">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -217,10 +208,8 @@ function ProductCard({
   );
 }
 
-// ── Table row ────────────────────────────────────────────────────────────────
 function ProductRow({
   p,
-  index,
   onView,
   onEdit,
   onDelete,
@@ -234,18 +223,9 @@ function ProductRow({
   isDeleting: boolean;
 }) {
   const st = STATUS_CFG[p.status];
-  const AVATAR_COLORS = [
-    "#17409A",
-    "#7C5CFC",
-    "#4ECDC4",
-    "#FF8C42",
-    "#FF6B9D",
-    "#FFD93D",
-  ];
-
   const CATEGORY_LABELS: Record<string, string> = {
-    complete: "Gấu hoàn chỉnh",
-    bear: "Thân gấu",
+    all: "Tất cả",
+    bear: "Gấu",
     accessory: "Phụ kiện",
   };
 
@@ -254,7 +234,6 @@ function ProductRow({
       onClick={() => onView(p)}
       className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer"
     >
-      {/* Product */}
       <td className="py-3 pr-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-200 bg-[#F4F7FF] flex items-center justify-center">
@@ -285,31 +264,26 @@ function ProductRow({
         </div>
       </td>
 
-      {/* Category */}
       <td className="py-3 pr-4">
         <span className="text-[10px] font-black text-[#6B7280] bg-[#F4F7FF] px-2.5 py-1 rounded-lg whitespace-nowrap">
           {CATEGORY_LABELS[p.category]}
         </span>
       </td>
 
-      {/* Price */}
       <td className="py-3 pr-4 whitespace-nowrap">
         <span className="text-[#17409A] font-black text-sm">
           {formatPrice(p.price)}
         </span>
       </td>
 
-      {/* Stock */}
       <td className="py-3 pr-4">
         <StockBadge stock={p.stock} />
       </td>
 
-      {/* Sold */}
       <td className="py-3 pr-4">
         <span className="text-[#1A1A2E] font-black text-sm">{p.sold}</span>
       </td>
 
-      {/* Rating */}
       <td className="py-3 pr-4">
         {p.rating > 0 ? (
           <span className="flex items-center gap-1 text-[#FFD93D] font-black text-sm">
@@ -321,7 +295,6 @@ function ProductRow({
         )}
       </td>
 
-      {/* Status */}
       <td className="py-3 pr-4">
         <div className="flex items-center gap-1.5">
           <span
@@ -337,7 +310,6 @@ function ProductRow({
         </div>
       </td>
 
-      {/* Actions */}
       <td className="py-3">
         <div className="flex gap-1.5">
           <button
@@ -377,7 +349,6 @@ function ProductRow({
   );
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
 const mapProductToAdmin = (p: ProductListItem, index: number): ProductAdmin => {
   const badgeColors = [
     "#17409A",
@@ -389,25 +360,42 @@ const mapProductToAdmin = (p: ProductListItem, index: number): ProductAdmin => {
   ];
   const color = badgeColors[index % badgeColors.length];
 
-  let category: "complete" | "bear" | "accessory" = "bear";
-  if (p.productType === "ACCESSORY") category = "accessory";
-  else if (p.productType === "COMPLETE_BEAR") category = "complete";
-
-  const badgeName = p.productType === "ACCESSORY" ? "Phụ kiện" : "Gấu bông";
-
   return {
     id: p.productId,
     name: p.name,
     imageUrl: p.imageUrl || "/teddy_bear.png",
-    badge: badgeName,
+    badge: "Gấu",
     badgeColor: color,
-    category,
+    category: "bear",
     price: p.price,
-    stock: 50, // Mock stock as it's missing from API
+    stock: 50, // This should normally come from inventory but using 50 as placeholder
     sold: p.totalSales,
     rating: p.averageRating,
     status: p.isActive ? "active" : "draft",
     popular: p.viewCountIn10Min > 5,
+  };
+};
+
+const mapAccessoryToAdmin = (
+  a: AccessoryResponse,
+  index: number,
+): ProductAdmin => {
+  const badgeColors = ["#FF8C42", "#FF6B9D", "#7C5CFC", "#17409A"];
+  const color = badgeColors[index % badgeColors.length];
+
+  return {
+    id: a.accessoryId,
+    name: a.name,
+    imageUrl: a.imageUrl || "/accessory_placeholder.png",
+    badge: "Phụ kiện",
+    badgeColor: color,
+    category: "accessory",
+    price: a.targetPrice,
+    stock: 100,
+    sold: 0,
+    rating: 0,
+    status: "active",
+    popular: false,
   };
 };
 
@@ -417,24 +405,45 @@ export default function ProductsGrid() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [selected, setSelected] = useState<ProductAdmin | null>(null);
+
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(
+    null,
+  );
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [isCreateAccessoryModalOpen, setCreateAccessoryModalOpen] =
+    useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingAccessoryId, setEditingAccessoryId] = useState<string | null>(
+    null,
+  );
   const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(
     null,
   );
 
   const {
     data,
+    loading,
+    accessories,
+    accessoriesLoading,
     fetchProducts,
-    createProduct,
-    updateProduct,
+    fetchAccessories,
     deleteProduct,
-    isCreating,
-    isUpdating,
+    deleteAccessory,
     isDeleting,
   } = useAdminProductsApi();
-  const { success, error } = useToast();
+  const { success, error: toastError } = useToast();
+
+  const handleRefresh = useCallback(() => {
+    if (catFilter === "accessory") {
+      fetchAccessories();
+    } else {
+      fetchProducts({ pageIndex: 1, pageSize: 50 });
+    }
+  }, [catFilter, fetchProducts, fetchAccessories]);
+
+  useEffect(() => {
+    handleRefresh();
+  }, [handleRefresh]);
 
   const handleDelete = (p: ProductAdmin) => {
     setDeletingProduct(p);
@@ -442,36 +451,39 @@ export default function ProductsGrid() {
 
   const handleDeleteConfirm = async () => {
     if (!deletingProduct) return;
-    const ok = await deleteProduct(deletingProduct.id);
+    const ok =
+      deletingProduct.category === "accessory"
+        ? await deleteAccessory(deletingProduct.id)
+        : await deleteProduct(deletingProduct.id);
+
     if (ok) {
-      success("Xóa sản phẩm thành công!");
-      fetchProducts({ pageIndex: 1, pageSize: 50 });
+      success("Xóa thành công!");
+      handleRefresh();
     } else {
-      error("Có lỗi xảy ra khi xóa sản phẩm.");
+      toastError("Có lỗi xảy ra khi xóa.");
     }
     setDeletingProduct(null);
   };
 
-  useEffect(() => {
-    fetchProducts({ pageIndex: 1, pageSize: 50 });
-  }, [fetchProducts]);
-
   const mappedData = useMemo(() => {
+    if (catFilter === "accessory") {
+      return accessories.map(mapAccessoryToAdmin);
+    }
     if (!data?.items) return [];
     return data.items.map(mapProductToAdmin);
-  }, [data]);
+  }, [data, accessories, catFilter]);
 
   const catCounts = useMemo(() => {
-    const c: Record<string, number> = { all: mappedData.length };
-    mappedData.forEach((p: ProductAdmin) => {
-      c[p.category] = (c[p.category] ?? 0) + 1;
-    });
-    return c;
-  }, [mappedData]);
+    return {
+      all: (data?.totalCount ?? 0) + accessories.length,
+      bear: data?.totalCount ?? 0,
+      accessory: accessories.length,
+    };
+  }, [data, accessories]);
 
   const filtered = useMemo(
     () =>
-      mappedData.filter((p: ProductAdmin) => {
+      mappedData.filter((p) => {
         if (catFilter !== "all" && p.category !== catFilter) return false;
         if (statusFilter !== "all" && p.status !== statusFilter) return false;
         if (debouncedSearch) {
@@ -486,443 +498,259 @@ export default function ProductsGrid() {
     [mappedData, catFilter, statusFilter, debouncedSearch],
   );
 
-  const STATUS_FILTERS: { key: ProductAdminStatus | "all"; label: string }[] = [
-    { key: "all", label: "Tất cả" },
-    { key: "active", label: "Đang bán" },
-    { key: "draft", label: "Bản nháp" },
-    { key: "archived", label: "Lưu trữ" },
-  ];
-
   return (
-    <>
-      <div className="bg-white rounded-3xl p-6">
-        {/* ── Header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-          <div>
-            <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
-              Danh mục
-            </p>
-            <p className="text-[#1A1A2E] font-black text-xl">
-              Quản lý sản phẩm
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Search */}
-            <div className="relative">
-              <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] text-base pointer-events-none" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm sản phẩm..."
-                className="bg-[#F4F7FF] text-[#1A1A2E] text-sm font-semibold placeholder:text-[#9CA3AF] rounded-xl pl-9 pr-4 py-2.5 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-colors w-44"
-              />
-            </div>
-
-            {/* View toggle */}
-            <div className="flex bg-[#F4F7FF] rounded-xl p-0.5">
-              {(["grid", "table"] as ViewMode[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setViewMode(m)}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                    viewMode === m
-                      ? "bg-[#17409A] text-white shadow-sm"
-                      : "text-[#9CA3AF] hover:text-[#6B7280]"
-                  }`}
-                >
-                  {m === "grid" ? (
-                    <MdGridView className="text-base" />
-                  ) : (
-                    <MdTableRows className="text-base" />
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Export */}
-            <button className="flex items-center gap-1.5 bg-[#F4F7FF] text-[#6B7280] text-xs font-black px-3.5 py-2.5 rounded-xl hover:bg-[#E8EEF9] transition-colors">
-              <MdFileDownload className="text-sm" />
-              Xuất
-            </button>
-
-            {/* Add new */}
-            <button
-              onClick={() => setCreateModalOpen(true)}
-              className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap"
-            >
-              <MdAdd className="text-base" /> Thêm mới
-            </button>
-          </div>
+    <div className="bg-white rounded-3xl p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+        <div>
+          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
+            Danh mục
+          </p>
+          <p className="text-[#1A1A2E] font-black text-xl">Quản lý sản phẩm</p>
         </div>
-
-        {/* ── Category tabs ── */}
-        <div className="flex items-center gap-1.5 flex-wrap mb-3">
-          {CATEGORY_TABS.map(({ key, label }) => {
-            const active = catFilter === key;
-            return (
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative">
+            <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] text-base pointer-events-none" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm sản phẩm..."
+              className="bg-[#F4F7FF] text-[#1A1A2E] text-sm font-semibold placeholder:text-[#9CA3AF] rounded-xl pl-9 pr-4 py-2.5 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-colors w-44"
+            />
+          </div>
+          <div className="flex bg-[#F4F7FF] rounded-xl p-0.5">
+            {(["grid", "table"] as ViewMode[]).map((m) => (
               <button
-                key={key}
-                onClick={() => setCatFilter(key)}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all duration-200 ${
-                  active
+                key={m}
+                onClick={() => setViewMode(m)}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                  viewMode === m
                     ? "bg-[#17409A] text-white shadow-sm"
-                    : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEF9]"
+                    : "text-[#9CA3AF] hover:text-[#6B7280]"
                 }`}
               >
-                {label}
-                <span
-                  className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${
-                    active
-                      ? "bg-white/20 text-white"
-                      : "bg-white text-[#9CA3AF]"
-                  }`}
-                >
-                  {catCounts[key] ?? 0}
-                </span>
+                {m === "grid" ? (
+                  <MdGridView className="text-base" />
+                ) : (
+                  <MdTableRows className="text-base" />
+                )}
               </button>
-            );
-          })}
-        </div>
-
-        {/* ── Status filter chips ── */}
-        <div className="flex items-center gap-1.5 flex-wrap mb-6 pb-4 border-b border-[#F4F7FF]">
-          {STATUS_FILTERS.map(({ key, label }) => {
-            const active = statusFilter === key;
-            const cfg =
-              key !== "all" ? STATUS_CFG[key as ProductAdminStatus] : null;
-            return (
-              <button
-                key={key}
-                onClick={() => setStatus(key)}
-                className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all duration-200 ${
-                  active ? "ring-1" : "opacity-70 hover:opacity-100"
-                }`}
-                style={
-                  active && cfg
-                    ? {
-                        color: cfg.color,
-                        backgroundColor: cfg.bg,
-                        outline: `1px solid ${cfg.color}`,
-                      }
-                    : active
-                      ? {
-                          color: "#17409A",
-                          backgroundColor: "#17409A18",
-                          outline: "1px solid #17409A",
-                        }
-                      : cfg
-                        ? { color: cfg.color, backgroundColor: cfg.bg }
-                        : { color: "#9CA3AF", backgroundColor: "#F4F7FF" }
-                }
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── Grid view ── */}
-        {viewMode === "grid" && (
-          <>
-            {filtered.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filtered.map((p: ProductAdmin) => (
-                  <ProductCard
-                    key={p.id}
-                    p={p}
-                    onView={setSelected}
-                    onEdit={(p) => setEditingProductId(p.id)}
-                    onDelete={handleDelete}
-                    isDeleting={isDeleting && deletingProduct?.id === p.id}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState />
-            )}
-          </>
-        )}
-
-        {/* ── Table view ── */}
-        {viewMode === "table" && (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-170">
-              <thead>
-                <tr>
-                  {COL_HEADS.map((h, i) => (
-                    <th
-                      key={i}
-                      className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4 whitespace-nowrap"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p: ProductAdmin, i: number) => (
-                  <ProductRow
-                    key={p.id}
-                    p={p}
-                    index={i}
-                    onView={setSelected}
-                    onEdit={(p) => setEditingProductId(p.id)}
-                    onDelete={handleDelete}
-                    isDeleting={isDeleting && deletingProduct?.id === p.id}
-                  />
-                ))}
-              </tbody>
-            </table>
-            {filtered.length === 0 && <EmptyState />}
+            ))}
           </div>
-        )}
-
-        {/* Footer */}
-        {filtered.length > 0 && (
-          <div className="flex items-center justify-between mt-5 pt-4 border-t border-[#F4F7FF]">
-            <p className="text-[#9CA3AF] text-[11px] font-semibold">
-              Hiển thị{" "}
-              <span className="text-[#1A1A2E] font-black">
-                {filtered.length}
-              </span>{" "}
-              / {mappedData.length} sản phẩm
-            </p>
-            <div className="flex items-center gap-0.5">
-              {[1, 2].map((p) => (
-                <button
-                  key={p}
-                  className={`w-7 h-7 rounded-lg text-[11px] font-black transition-colors ${
-                    p === 1
-                      ? "bg-[#17409A] text-white"
-                      : "text-[#9CA3AF] hover:bg-[#F4F7FF]"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+          <button
+            onClick={() => {
+              if (catFilter === "accessory") setCreateAccessoryModalOpen(true);
+              else setCreateModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap"
+          >
+            <MdAdd className="text-base" /> Thêm mới
+          </button>
+        </div>
       </div>
 
-      {/* Product detail modal */}
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setSelected(null)}
-          />
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
-            {/* Image header */}
-            <div
-              className="relative flex items-center justify-center py-6"
-              style={{ backgroundColor: selected.badgeColor + "18" }}
+      <div className="flex items-center gap-1.5 flex-wrap mb-3">
+        {CATEGORY_TABS.map(({ key, label }) => {
+          const active = catFilter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setCatFilter(key)}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all duration-200 ${
+                active
+                  ? "bg-[#17409A] text-white shadow-sm"
+                  : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEF9]"
+              }`}
             >
-              <div
-                className="absolute top-0 left-0 right-0 h-0.5"
-                style={{ backgroundColor: selected.badgeColor }}
-              />
-              <Image
-                src={selected.imageUrl}
-                alt={selected.name}
-                width={120}
-                height={120}
-                className="object-contain drop-shadow-lg"
-              />
-              {selected.popular && (
-                <span className="absolute top-3 left-4 bg-[#FFD93D] text-[#1A1A2E] text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                  <MdStar className="text-xs" /> HOT
-                </span>
-              )}
-              <button
-                onClick={() => setSelected(null)}
-                className="absolute top-3 right-3 w-8 h-8 rounded-xl flex items-center justify-center bg-white/70 text-[#6B7280] hover:text-[#1A1A2E] transition-all"
-              >
-                <MdClose className="text-lg" />
-              </button>
+              {label}
               <span
-                className="absolute bottom-3 right-4 text-[9px] font-black px-2.5 py-1 rounded-full"
-                style={{
-                  color: STATUS_CFG[selected.status].color,
-                  backgroundColor: STATUS_CFG[selected.status].bg,
-                }}
+                className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : "bg-white text-[#9CA3AF]"}`}
               >
-                {STATUS_CFG[selected.status].label}
+                {catCounts[key] ?? 0}
               </span>
-            </div>
+            </button>
+          );
+        })}
+      </div>
 
-            {/* Content */}
-            <div className="p-5">
-              {selected.badge && (
-                <span
-                  className="text-[9px] font-black px-2 py-0.5 rounded-full mb-1.5 inline-block"
-                  style={{
-                    color: selected.badgeColor,
-                    backgroundColor: selected.badgeColor + "18",
+      <div className="flex items-center gap-1.5 flex-wrap mb-6 pb-4 border-b border-[#F4F7FF]">
+        {[
+          { key: "all", label: "Tất cả" },
+          { key: "active", label: "Đang bán" },
+          { key: "draft", label: "Bản nháp" },
+          { key: "archived", label: "Lưu trữ" },
+        ].map(({ key, label }) => {
+          const active = statusFilter === key;
+          const cfg =
+            key !== "all" ? STATUS_CFG[key as ProductAdminStatus] : null;
+          return (
+            <button
+              key={key}
+              onClick={() => setStatus(key as any)}
+              className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all duration-200 ${active ? "ring-1" : "opacity-70 hover:opacity-100"}`}
+              style={
+                active && cfg
+                  ? {
+                      color: cfg.color,
+                      backgroundColor: cfg.bg,
+                      outline: `1px solid ${cfg.color}`,
+                    }
+                  : active
+                    ? {
+                        color: "#17409A",
+                        backgroundColor: "#17409A18",
+                        outline: "1px solid #17409A",
+                      }
+                    : cfg
+                      ? { color: cfg.color, backgroundColor: cfg.bg }
+                      : { color: "#9CA3AF", backgroundColor: "#F4F7FF" }
+              }
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {filtered.map((p) => (
+            <ProductCard
+              key={p.id}
+              p={p}
+              onView={(p) => setSelectedProductId(p.id)}
+              onEdit={(p) => {
+                if (p.category === "accessory") setEditingAccessoryId(p.id);
+                else setEditingProductId(p.id);
+              }}
+              onDelete={handleDelete}
+              isDeleting={isDeleting && deletingProduct?.id === p.id}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr>
+                {COL_HEADS.map((h, i) => (
+                  <th
+                    key={i}
+                    className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4 whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p, i) => (
+                <ProductRow
+                  key={p.id}
+                  p={p}
+                  index={i}
+                  onView={(p) => setSelectedProductId(p.id)}
+                  onEdit={(p) => {
+                    if (p.category === "accessory") setEditingAccessoryId(p.id);
+                    else setEditingProductId(p.id);
                   }}
-                >
-                  {selected.badge}
-                </span>
-              )}
-              <p className="text-[#1A1A2E] font-black text-xl mb-0.5">
-                {selected.name}
-              </p>
-              <p className="text-[#17409A] font-black text-2xl mb-4">
-                {formatPrice(selected.price)}
-              </p>
-
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="bg-[#F8F9FF] rounded-xl p-3 text-center">
-                  <p className="text-[#9CA3AF] text-[9px] font-black tracking-wide mb-0.5">
-                    TỒN KHO
-                  </p>
-                  <p className="text-[#1A1A2E] font-black text-base">
-                    {selected.stock}
-                  </p>
-                </div>
-                <div className="bg-[#F8F9FF] rounded-xl p-3 text-center">
-                  <p className="text-[#9CA3AF] text-[9px] font-black tracking-wide mb-0.5">
-                    ĐÃ BÁN
-                  </p>
-                  <p className="text-[#1A1A2E] font-black text-base">
-                    {selected.sold}
-                  </p>
-                </div>
-                <div className="bg-[#F8F9FF] rounded-xl p-3 text-center">
-                  <p className="text-[#9CA3AF] text-[9px] font-black tracking-wide mb-0.5">
-                    ĐÁNH GIÁ
-                  </p>
-                  {selected.rating > 0 ? (
-                    <p className="text-[#FFD93D] font-black text-base flex items-center justify-center gap-0.5">
-                      <MdStar className="text-xs" />
-                      {selected.rating}
-                    </p>
-                  ) : (
-                    <p className="text-[#D1D5DB] font-black text-base">—</p>
-                  )}
-                </div>
-              </div>
-
-              {selected.status === "active" && selected.stock > 0 && (
-                <div>
-                  <div className="flex justify-between text-[10px] font-semibold text-[#9CA3AF] mb-1.5">
-                    <span>Tồn kho</span>
-                    <span>
-                      {Math.min(100, Math.round((selected.stock / 80) * 100))}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.min(100, Math.round((selected.stock / 80) * 100))}%`,
-                        backgroundColor:
-                          selected.stock <= 10 ? "#FF8C42" : "#4ECDC4",
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+                  onDelete={handleDelete}
+                  isDeleting={isDeleting && deletingProduct?.id === p.id}
+                />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Create Product Modal */}
       {isCreateModalOpen && (
         <CreateProductModal
           onClose={() => setCreateModalOpen(false)}
-          onSubmit={async (payload) => {
-            const response = await createProduct(payload);
-            if (response) {
-              success("Thêm mới sản phẩm thành công!");
-              fetchProducts({ pageIndex: 1, pageSize: 50 });
-            } else {
-              error("Lỗi khi thêm mới sản phẩm.");
-            }
-            return response;
-          }}
-          isSubmitting={isCreating}
+          onSuccess={handleRefresh}
+          isSubmitting={false}
         />
       )}
 
-      {/* Edit Product Modal */}
+      {isCreateAccessoryModalOpen && (
+        <CreateAccessoryModal
+          onClose={() => setCreateAccessoryModalOpen(false)}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {editingAccessoryId && (
+        <EditAccessoryModal
+          accessoryId={editingAccessoryId}
+          onClose={() => setEditingAccessoryId(null)}
+          onSuccess={handleRefresh}
+        />
+      )}
+
       {editingProductId && (
         <EditProductModal
           productId={editingProductId}
           onClose={() => setEditingProductId(null)}
           onSubmit={async (payload) => {
-            const ok = await updateProduct(editingProductId, payload);
-            if (ok) {
-              success("Cập nhật sản phẩm thành công!");
-              fetchProducts({ pageIndex: 1, pageSize: 50 });
-            } else {
-              error("Lỗi khi cập nhật sản phẩm.");
+            const ok = await productService.updateProduct(
+              editingProductId,
+              payload,
+            );
+            if (ok.isSuccess) {
+              success("Cập nhật thành công");
+              handleRefresh();
+              return true;
             }
-            return ok;
+            toastError("Thất bại");
+            return false;
           }}
-          isSubmitting={isUpdating}
+          isSubmitting={false}
         />
       )}
 
-      {/* Delete Confirmation Modal */}
+      {selectedProductId && (
+        <ProductDetailModal
+          productId={selectedProductId}
+          onClose={() => setSelectedProductId(null)}
+          onEdit={(id) => {
+            setSelectedProductId(null);
+            setEditingProductId(id);
+          }}
+        />
+      )}
+
       {deletingProduct && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
-            onClick={() => !isDeleting && setDeletingProduct(null)}
-          />
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-[#EF4444]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MdDelete className="text-3xl text-[#EF4444]" />
-              </div>
-              <h3 className="text-xl font-black text-[#1A1A2E] mb-2">
-                Xóa sản phẩm này?
-              </h3>
-              <p className="text-sm font-semibold text-[#6B7280]">
-                Bạn đang chuẩn bị xóa sản phẩm{" "}
-                <span className="text-[#1A1A2E] font-black">
-                  &quot;{deletingProduct.name}&quot;
-                </span>
-                . Hành động này không thể hoàn tác.
-              </p>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4">
+              <MdDelete className="text-2xl" />
             </div>
-            <div className="px-6 py-4 bg-[#F8F9FF] flex items-center gap-3">
+            <h3 className="text-lg font-black text-[#1A1A2E] mb-2">
+              Xác nhận xóa?
+            </h3>
+            <p className="text-sm font-semibold text-[#6B7280] mb-6">
+              Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa sản
+              phẩm{" "}
+              <span className="text-[#1A1A2E] font-black">
+                "{deletingProduct.name}"
+              </span>
+              ?
+            </p>
+            <div className="flex gap-3">
               <button
-                type="button"
                 onClick={() => setDeletingProduct(null)}
-                disabled={isDeleting}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-[#6B7280] bg-white border border-[#E5E7EB] hover:bg-[#F4F7FF] hover:text-[#1A1A2E] transition-colors disabled:opacity-50"
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E5E7EB] transition-all"
               >
-                Hủy bỏ
+                Hủy
               </button>
               <button
-                type="button"
                 onClick={handleDeleteConfirm}
-                disabled={isDeleting}
-                className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-[#EF4444] hover:bg-[#DC2626] shadow-lg hover:shadow-xl shadow-[#EF4444]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all"
               >
-                {isDeleting ? "Đang xóa..." : "Xóa vĩnh viễn"}
+                Xóa ngay
               </button>
             </div>
           </div>
         </div>
       )}
-    </>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center py-12 text-center">
-      <GiPawPrint className="text-[#E5E7EB] mb-3" style={{ fontSize: 52 }} />
-      <p className="text-[#9CA3AF] font-black text-sm">
-        Không tìm thấy sản phẩm phù hợp
-      </p>
-      <p className="text-[#9CA3AF] text-[11px] font-semibold mt-1">
-        Thử thay đổi bộ lọc hoặc từ khoá
-      </p>
     </div>
   );
 }

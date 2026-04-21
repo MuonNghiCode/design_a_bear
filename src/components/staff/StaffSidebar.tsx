@@ -11,6 +11,7 @@ import {
   MdInventory2,
   MdClose,
   MdLogout,
+  MdBuild,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,7 @@ const NAV = [
   { icon: MdShoppingBag, label: "Đơn hàng", href: "/staff/orders" },
   { icon: MdInventory2, label: "Sản phẩm", href: "/staff/products" },
   { icon: MdStar, label: "Đánh giá", href: "/staff/reviews" },
+  { icon: MdBuild, label: "Bảo hành", href: "/staff/issues" },
   { icon: MdAssignment, label: "Báo cáo", href: "/staff/reports" },
 ];
 

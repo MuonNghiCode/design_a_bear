@@ -10,16 +10,24 @@ import { userService } from "@/services/user.service";
 import { addressService } from "@/services/address.service";
 import type { Address } from "@/types";
 import {
-  composeAddressText,
   isValidVietnamPhoneNumber,
   normalizePhoneNumber,
-  parseAddressTextDetailed,
 } from "@/utils/address";
 import ProfileHero from "./ProfileHero";
 import ProfileStats from "./ProfileStats";
-import ProfileInfoCard from "./ProfileInfoCard";
+import ProfileInfoCard, { type AddressForm } from "./ProfileInfoCard";
 import ProfileMembershipCard from "./ProfileMembershipCard";
 import ProfileTabs from "./ProfileTabs";
+
+const EMPTY_ADDRESS_FORM: AddressForm = {
+  streetAddress: "",
+  province: "",
+  provinceName: "",
+  district: "",
+  districtName: "",
+  ward: "",
+  wardName: "",
+};
 
 export default function ProfileClient() {
   const { user, logout, isAuthenticated, loading, updateCurrentUser } =
@@ -32,7 +40,9 @@ export default function ProfileClient() {
   const [editMode, setEditMode] = useState(false);
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState("Đang cập nhật");
-  const [address, setAddress] = useState("Đang cập nhật");
+  const [addressDisplay, setAddressDisplay] = useState("Đang cập nhật");
+  const [addressForm, setAddressForm] =
+    useState<AddressForm>(EMPTY_ADDRESS_FORM);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [dateOfBirth, setDateOfBirth] = useState<string | undefined>(undefined);
   const [gender, setGender] = useState<string | undefined>(undefined);
@@ -45,6 +55,7 @@ export default function ProfileClient() {
     null,
   );
   const [saveProfileError, setSaveProfileError] = useState<string | null>(null);
+  const [currentAddressId, setCurrentAddressId] = useState<string | null>(null);
 
   const heroRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
@@ -84,12 +95,8 @@ export default function ProfileClient() {
         profileResult.value.isSuccess
       ) {
         const profile = profileResult.value.value;
-        if (profile?.fullName) {
-          setName(profile.fullName);
-        }
-        if (profile?.phoneNumber) {
-          setPhone(profile.phoneNumber);
-        }
+        if (profile?.fullName) setName(profile.fullName);
+        if (profile?.phoneNumber) setPhone(profile.phoneNumber);
         setDateOfBirth(profile?.dateOfBirth);
         setGender(profile?.gender);
         setLanguage(profile?.language);
@@ -102,22 +109,39 @@ export default function ProfileClient() {
         addressResult.status === "fulfilled" &&
         addressResult.value.isSuccess
       ) {
-        const addresses = addressResult.value.value ?? [];
-        setAddresses(addresses);
-        const selectedAddress =
-          addresses.find((a) => a.isDefaultShipping) ?? addresses[0];
+        const addrs = addressResult.value.value ?? [];
+        setAddresses(addrs);
+        const selected = addrs.find((a) => a.isDefaultShipping) ?? addrs[0];
 
-        if (selectedAddress) {
-          if (selectedAddress.phoneNumber) {
-            setPhone(selectedAddress.phoneNumber);
-          }
+        if (selected) {
+          if (selected.phoneNumber) setPhone(selected.phoneNumber);
 
-          const mergedAddress = composeAddressText(selectedAddress);
+          // line1 = địa chỉ cụ thể, line2 = phường/xã
+          const display = [
+            selected.line1,
+            selected.line2,
+            selected.state,
+            selected.city,
+          ]
+            .map((v) => (v || "").trim())
+            .filter(Boolean)
+            .join(", ");
+          setAddressDisplay(display || "Chưa có địa chỉ");
+          setCurrentAddressId(selected.addressId);
 
-          setAddress(mergedAddress || "Chưa có địa chỉ");
+          setAddressForm({
+            streetAddress: selected.line1 || "",
+            province: "",
+            provinceName: selected.city || "",
+            district: "",
+            districtName: selected.state || "",
+            ward: "",
+            wardName: selected.line2 || "",
+          });
         } else {
           setPhone("Chưa có số điện thoại");
-          setAddress("Chưa có địa chỉ");
+          setAddressDisplay("Chưa có địa chỉ");
+          setAddressForm(EMPTY_ADDRESS_FORM);
         }
       }
     };
@@ -191,42 +215,55 @@ export default function ProfileClient() {
         );
       }
 
-      // Replace address set: create new current address then remove older ones.
-      if (user?.id && address.trim()) {
-        const parsedAddress = parseAddressTextDetailed(address);
-        const createAddressRes = await addressService.createAddress({
-          userId: user.id,
+      // line1 = địa chỉ cụ thể, line2 = phường/xã
+      const line1 = addressForm.streetAddress.trim();
+
+      if (user?.id && line1) {
+        let success = false;
+        let finalSel: Address | null = null;
+
+        const addressData = {
           label: null,
           fullName: name.trim(),
           phoneNumber: normalizedPhone,
           email: user.email,
-          line1: parsedAddress.line1,
-          line2: parsedAddress.line2,
-          city: parsedAddress.city,
-          state: parsedAddress.state,
+          line1,
+          line2: addressForm.wardName.trim() || null,
+          city: addressForm.provinceName || "",
+          state: addressForm.districtName || "",
           postalCode: null,
           country: null,
           isDefaultShipping: true,
           isDefaultBilling: true,
-        });
+        };
 
-        if (!createAddressRes.isFailure) {
-          const newAddressId = createAddressRes.value?.addressId;
-
-          await Promise.allSettled(
-            addresses
-              .filter((a) => a.addressId !== newAddressId)
-              .map((a) => addressService.deleteAddress(a.addressId)),
+        if (currentAddressId) {
+          const upRes = await addressService.updateAddress(
+            currentAddressId,
+            addressData,
           );
+          success = !upRes.isFailure;
+        } else {
+          const createRes = await addressService.createAddress({
+            userId: user.id,
+            ...addressData,
+          });
+          success = !createRes.isFailure;
+          if (success) setCurrentAddressId(createRes.value?.addressId || null);
+        }
 
+        if (success) {
           const refreshedAddresses = await addressService.getMyAddresses();
           if (!refreshedAddresses.isFailure) {
             const next = refreshedAddresses.value ?? [];
             setAddresses(next);
-            const selected = next.find((a) => a.isDefaultShipping) ?? next[0];
-            if (selected) {
-              const mergedAddress = composeAddressText(selected);
-              setAddress(mergedAddress || address);
+            const sel = next.find((a) => a.isDefaultShipping) ?? next[0];
+            if (sel) {
+              const display = [sel.line1, sel.line2, sel.state, sel.city]
+                .map((v) => (v || "").trim())
+                .filter(Boolean)
+                .join(", ");
+              setAddressDisplay(display || addressDisplay);
             }
           }
         }
@@ -285,7 +322,8 @@ export default function ProfileClient() {
             editMode={editMode}
             name={name}
             phone={phone}
-            address={address}
+            addressDisplay={addressDisplay}
+            addressForm={addressForm}
             saving={savingProfile}
             saveMessage={saveProfileMessage}
             saveError={saveProfileError}
@@ -295,7 +333,7 @@ export default function ProfileClient() {
               setSaveProfileMessage(null);
               setPhone(v);
             }}
-            setAddress={setAddress}
+            setAddressForm={setAddressForm}
             onSave={() => void handleSaveProfile()}
           />
           <ProfileMembershipCard />

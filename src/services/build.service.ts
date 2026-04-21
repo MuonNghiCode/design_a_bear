@@ -1,6 +1,6 @@
 import BaseApiService from "@/api/base";
 import { API_ENDPOINTS } from "@/constants";
-import type { CreateBuildRequest, CreateBuildResponse, Build } from "@/types";
+import type { CreateBuildRequest, CreateBuildResponse, Build, ApiResponse } from "@/types";
 
 class BuildService extends BaseApiService {
 
@@ -10,6 +10,11 @@ class BuildService extends BaseApiService {
             data,
             { withCredentials: false },
         );
+    }
+
+    async getBuildById(id: string): Promise<ApiResponse<Build>> {
+        const url = `${API_ENDPOINTS.BUILDS.BASE}/${id}`;
+        return this.get<Build>(url, undefined, { withCredentials: false });
     }
 }
 

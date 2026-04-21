@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { paymentService } from "@/services/payment.service";
+import { orderService } from "@/services/order.service";
+import { STORAGE_KEYS } from "@/constants";
 import {
   IoAlertCircle,
   IoBagHandleOutline,
@@ -52,6 +55,55 @@ export default function PaymentCancelClient() {
     "";
   const transactionId = searchParams.get("id") || "";
   const gatewayCode = searchParams.get("code") || "";
+  const [isUpdating, setIsUpdating] = useState(true);
+  const [statusMessage, setStatusMessage] = useState(
+    "Đang đồng bộ trạng thái...",
+  );
+
+  // Update DB status immediately when landing on this page
+  useEffect(() => {
+    const syncStatus = async () => {
+      try {
+        setIsUpdating(true);
+
+        // 1. Get detailed order data from localStorage
+        const pendingOrder = localStorage.getItem(
+          STORAGE_KEYS.PENDING_PAYMENT_ORDER,
+        );
+        let orderIdToUpdate = "";
+
+        if (pendingOrder) {
+          try {
+            const parsed = JSON.parse(pendingOrder);
+            orderIdToUpdate = parsed?.orderDetails?.orderId || "";
+          } catch (e) {
+            console.error("[PaymentCancel] Error parsing pending order:", e);
+          }
+        }
+
+        // 2. Force status to CANCELLED to trigger backend stock release
+        if (orderIdToUpdate) {
+          console.log(`[PaymentCancel] Cancelling order ${orderIdToUpdate}...`);
+          await orderService.cancelOrder(orderIdToUpdate);
+        }
+
+        // 3. Confirm payment record with gateway code (legacy/sync purposes)
+        if (orderCode) {
+          await paymentService.confirmPayment(orderCode);
+        }
+
+        setStatusMessage("Đã cập nhật trạng thái và giải phóng hàng tồn kho.");
+        localStorage.removeItem(STORAGE_KEYS.PENDING_PAYMENT_ORDER);
+      } catch (err) {
+        console.error("[PaymentCancel] Sync failed:", err);
+        setStatusMessage("Đã xảy ra lỗi khi đồng bộ. Vui lòng liên hệ hỗ trợ.");
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+
+    syncStatus();
+  }, [orderCode]);
 
   const heading = useMemo(() => {
     if (cancel) return "Bạn đã hủy thanh toán";
@@ -102,20 +154,19 @@ export default function PaymentCancelClient() {
           </div>
         </div>
 
+        {/* Sync Status Bar hidden as per user request */}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-7">
           <CancelInfoRow
             label="Mã đơn hàng"
             value={formatShortOrderCode(orderCode) || "Đang cập nhật"}
           />
-          <CancelInfoRow label="Trạng thái" value={status.toUpperCase()} />
+          {/* Status hidden as per user request */}
           <CancelInfoRow
             label="Mã giao dịch"
             value={transactionId || "Không có dữ liệu"}
           />
-          <CancelInfoRow
-            label="Mã phản hồi cổng thanh toán"
-            value={gatewayCode || "Không có dữ liệu"}
-          />
+          {/* Gateway code hidden as per user request */}
         </div>
 
         <div
@@ -138,25 +189,18 @@ export default function PaymentCancelClient() {
         </div>
 
         <div className="mt-7 flex flex-wrap gap-3">
-          <Link
-            href="/checkout"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm"
-            style={{ backgroundColor: "#17409A", color: "#FFFFFF" }}
-          >
-            <IoRefreshOutline />
-            Thử thanh toán lại
-          </Link>
+          {/* Try again button removed as per user request */}
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm"
+            className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm transition-all hover:scale-105 active:scale-95 border-2"
             style={{
-              border: "2px solid #17409A",
+              borderColor: "#17409A",
               color: "#17409A",
               backgroundColor: "#FFFFFF",
             }}
           >
-            <IoBagHandleOutline />
-            Tiếp tục mua sắm
+            <IoBagHandleOutline className="text-lg" />
+            Về trang sản phẩm
           </Link>
           <Link
             href="/"

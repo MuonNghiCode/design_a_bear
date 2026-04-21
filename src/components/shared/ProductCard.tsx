@@ -4,49 +4,71 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { IoHeartOutline, IoBagOutline } from "react-icons/io5";
+import { IoHeartOutline, IoBagOutline, IoHeart } from "react-icons/io5";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 import { productService } from "@/services/product.service";
+import { useFavorite } from "@/contexts/FavoriteContext";
 
 type CartPayload = {
   variantId: string;
   unitPriceSnapshot: number;
+  variantName?: string;
 };
 
 export interface ProductCardProps {
   id: string;
   name: string;
+  slug?: string;
+  variantName?: string;
   description: string;
   price: number;
   image: string;
   badge?: string;
   badgeColor?: string;
   href?: string;
+  availableStock?: number;
+  productId?: string;
+  variantId?: string;
 }
 
 function formatPrice(price: number): string {
-  return price.toLocaleString("vi-VN") + " đ";
+  return (price ?? 0).toLocaleString("vi-VN") + " đ";
 }
 
 export default function ProductCard({
   id,
   name,
+  slug,
   description,
   price,
   image,
   badge,
   badgeColor = "#17409A",
   href,
+  availableStock,
 }: ProductCardProps) {
-  const productLink = href || `/products/${id}`;
+  const productLink = href || `/products/${slug || id}`;
   const { isAuthenticated } = useAuth();
   const { addItem } = useCart();
-  const toast = useToast();
+  const { warning, success, error } = useToast();
   const router = useRouter();
+  const {
+    isFavorited,
+    toggleFavorite,
+    loading: favoriteLoading,
+  } = useFavorite();
   const [imgSrc, setImgSrc] = useState(image || "/teddy_bear.png");
   const [addingToCart, setAddingToCart] = useState(false);
+
+  const favorited = isFavorited(id);
+
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await toggleFavorite(id);
+  };
 
   const resolveCartPayload = async (): Promise<CartPayload> => {
     const fallbackPrice = price > 0 ? price : 1;
@@ -54,22 +76,6 @@ export default function ProductCard({
     try {
       const detailRes = await productService.getProductById(id);
       if (detailRes.isSuccess && detailRes.value) {
-        const firstAvailableVariant =
-          detailRes.value.variants.find((v) => !v.isSoldOut) ??
-          detailRes.value.variants[0];
-
-        if (firstAvailableVariant?.variantId) {
-          return {
-            variantId: firstAvailableVariant.variantId,
-            unitPriceSnapshot:
-              firstAvailableVariant.price > 0
-                ? firstAvailableVariant.price
-                : detailRes.value.price > 0
-                  ? detailRes.value.price
-                  : fallbackPrice,
-          };
-        }
-
         return {
           variantId: detailRes.value.productId,
           unitPriceSnapshot:
@@ -88,17 +94,31 @@ export default function ProductCard({
 
   const addProductToCart = async () => {
     if (!isAuthenticated) {
-      router.push("/auth");
+      warning(
+        "Bạn chưa đăng nhập nên không thể thêm vào giỏ hàng. Đang chuyển hướng đến trang đăng nhập...",
+      );
+      setTimeout(() => {
+        router.push("/auth");
+      }, 1500);
+      return false;
+    }
+
+    if (availableStock !== undefined && availableStock <= 0) {
+      warning("Sản phẩm này hiện đang hết hàng.");
       return false;
     }
 
     try {
       setAddingToCart(true);
       const resolved = await resolveCartPayload();
+      const itemName = resolved.variantName
+        ? `${name} (${resolved.variantName})`
+        : name;
       await addItem(
         {
           id: resolved.variantId,
-          name,
+          name: itemName,
+          variantName: resolved.variantName,
           description,
           price: resolved.unitPriceSnapshot,
           image: imgSrc || "/teddy_bear.png",
@@ -111,7 +131,7 @@ export default function ProductCard({
       );
       return true;
     } catch (err) {
-      toast.error(
+      error(
         "Thêm vào giỏ hàng thất bại: " +
           (err instanceof Error ? err.message : "Vui lòng thử lại"),
       );
@@ -127,7 +147,7 @@ export default function ProductCard({
 
     const added = await addProductToCart();
     if (added) {
-      toast.success(`Đã thêm "${name}" vào giỏ. Đang chuyển đến thanh toán...`);
+      success(`Đã thêm "${name}" vào giỏ. Đang chuyển đến thanh toán...`);
       router.push("/checkout");
     }
   };
@@ -138,7 +158,7 @@ export default function ProductCard({
 
     const added = await addProductToCart();
     if (added) {
-      toast.success(`Đã thêm "${name}" vào giỏ hàng!`);
+      success(`Đã thêm "${name}" vào giỏ hàng!`);
     }
   };
 
@@ -151,7 +171,9 @@ export default function ProductCard({
       }}
     >
       {/* ── Background Image (fills entire card) ── */}
-      <div className="relative aspect-3/4 overflow-hidden">
+      <div
+        className={`relative aspect-3/4 overflow-hidden transition-all duration-300 ${availableStock === 0 ? "grayscale-70 opacity-90" : ""}`}
+      >
         <Image
           src={imgSrc}
           alt={name}
@@ -162,13 +184,21 @@ export default function ProductCard({
           onError={() => setImgSrc("/teddy_bear.png")}
         />
 
-        {/* Badge góc trên phải */}
         {badge && (
           <div
-            className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-xs font-bold tracking-wide shadow-xl z-10"
+            className="absolute top-4 right-4 px-4 py-2 rounded-full text-white text-xs font-bold tracking-wide shadow-xl z-20"
             style={{ backgroundColor: badgeColor }}
           >
             {badge}
+          </div>
+        )}
+
+        {/* Hết hàng Badge - Reordered to be behind content but in front of image */}
+        {availableStock === 0 && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[25] backdrop-blur-[2px]">
+            <div className="bg-[#FF6B9D] text-white px-6 py-2.5 rounded-2xl font-black text-sm tracking-widest shadow-2xl transform -rotate-12 border-2 border-white/30 animate-pulse">
+              HẾT HÀNG
+            </div>
           </div>
         )}
 
@@ -183,7 +213,7 @@ export default function ProductCard({
 
         {/* ── Info Content ── */}
         <div
-          className="absolute bottom-0 left-0 right-0 p-5 z-10"
+          className="absolute bottom-0 left-0 right-0 p-5 z-40"
           style={{
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
@@ -208,31 +238,44 @@ export default function ProductCard({
           <div className="flex items-center gap-2">
             {/* CTA Button */}
             <div
-              className="flex-1 bg-[#17409A] hover:bg-[#4A90E2] text-white font-bold text-sm text-center py-3 rounded-xl transition-all duration-200 group-hover:shadow-lg cursor-pointer"
-              onClick={handleBuyNow}
+              className={`flex-1 font-bold text-sm text-center py-3 rounded-xl transition-all duration-200 group-hover:shadow-lg cursor-pointer ${
+                availableStock === 0
+                  ? "bg-white/10 text-white/40 border border-white/20 cursor-not-allowed"
+                  : "bg-white/10 border border-white/30 text-white hover:bg-[#17409A]"
+              }`}
             >
-              {addingToCart ? "Đang xử lý..." : "Mua ngay"}
+              {availableStock === 0 ? "Tạm hết hàng" : "Xem sản phẩm"}
             </div>
 
             {/* Icon Buttons */}
-            <button
-              className="w-11 h-11 rounded-xl bg-white/20 hover:bg-white text-white hover:text-[#17409A] backdrop-blur-sm flex items-center justify-center transition-all duration-200"
+            {/* <button
+              className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                availableStock === 0
+                  ? "bg-white/5 text-white/20 border border-white/10 cursor-not-allowed"
+                  : "bg-white/20 hover:bg-white text-white hover:text-[#17409A]"
+              }`}
               aria-label="Thêm vào giỏ"
-              onClick={handleAddToCart}
-              disabled={addingToCart}
+              onClick={availableStock === 0 ? undefined : handleAddToCart}
+              disabled={addingToCart || availableStock === 0}
             >
               <IoBagOutline className="text-xl" />
-            </button>
+            </button> */}
 
             <button
-              className="w-11 h-11 rounded-xl bg-white/20 hover:bg-[#FF6B9D] text-white backdrop-blur-sm flex items-center justify-center transition-all duration-200"
+              className={`w-11 h-11 rounded-xl backdrop-blur-sm flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                favorited
+                  ? "bg-[#FF6B9D] text-white"
+                  : "bg-white/20 hover:bg-[#FF6B9D] text-white"
+              } ${favoriteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
               aria-label="Yêu thích"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
+              onClick={handleToggleFavorite}
+              disabled={favoriteLoading}
             >
-              <IoHeartOutline className="text-xl" />
+              {favorited ? (
+                <IoHeart className="text-xl animate-jump" />
+              ) : (
+                <IoHeartOutline className="text-xl" />
+              )}
             </button>
           </div>
         </div>

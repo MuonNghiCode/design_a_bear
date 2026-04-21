@@ -14,16 +14,16 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { accent, density } = useAdminPrefs();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== "admin") {
+    if (!loading && (!isAuthenticated || user?.role !== "admin")) {
       router.replace("/auth");
     }
-  }, [isAuthenticated, user, router]);
+  }, [loading, isAuthenticated, user, router]);
 
-  if (!isAuthenticated || user?.role !== "admin") {
+  if (loading || !isAuthenticated || user?.role !== "admin") {
     return null;
   }
 

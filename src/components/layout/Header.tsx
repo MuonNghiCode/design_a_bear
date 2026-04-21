@@ -20,6 +20,9 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { useFavorite } from "@/contexts/FavoriteContext";
+import { productService } from "@/services/product.service";
+import { ProductListItem } from "@/types";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -30,6 +33,8 @@ interface HeaderProps {
 export default function Header({ hideOnHero = false }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems, openCart } = useCart();
+  const { favorites } = useFavorite();
+  const favoriteCount = favorites.size;
   const router = useRouter();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -44,6 +49,15 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Search results state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ProductListItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [allProducts, setAllProducts] = useState<ProductListItem[]>([]);
+  const [hasFetchedAll, setHasFetchedAll] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   // Close user menu on outside click
   useEffect(() => {
@@ -149,6 +163,20 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
         setTimeout(() => {
           searchInputRef.current?.focus();
         }, 500);
+
+        // Pre-fetch all products for local search if not already fetched
+        if (!hasFetchedAll) {
+          setIsSearching(true);
+          productService
+            .getProducts({ pageSize: 100 })
+            .then((res) => {
+              if (res.isSuccess) {
+                setAllProducts(res.value.items);
+                setHasFetchedAll(true);
+              }
+            })
+            .finally(() => setIsSearching(false));
+        }
       } else {
         // Collapse search box smoothly
         gsap.to(searchRef.current, {
@@ -169,6 +197,53 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
       }
     }
   }, [showSearch]);
+
+  // Client-side filtering logic
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
+    // Perform local filtering for instant results
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = allProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        p.sku.toLowerCase().includes(query),
+    );
+
+    setSearchResults(filtered.slice(0, 5));
+    setShowResults(true);
+  }, [searchQuery, allProducts]);
+
+  // GSAP animation for results dropdown
+  useEffect(() => {
+    if (showResults && resultsRef.current) {
+      gsap.fromTo(
+        resultsRef.current,
+        { opacity: 0, y: 10, scale: 0.95 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.2)" },
+      );
+    }
+  }, [showResults]);
+
+  // Handle outside click for search results
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        resultsRef.current &&
+        !resultsRef.current.contains(e.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(e.target as Node)
+      ) {
+        setShowResults(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     // Mobile menu animation
@@ -338,22 +413,117 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                     <input
                       ref={searchInputRef}
                       type="text"
-                      placeholder="Tìm kiếm sản phẩm..."
-                      className="flex-1 bg-transparent outline-none ml-3 text-gray-800 placeholder-gray-500 text-sm w-80"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Tìm kiếm gấu bông của bạn..."
+                      className="flex-1 bg-transparent outline-none ml-3 text-gray-800 placeholder-gray-500 text-sm w-80 font-medium"
                       onKeyDown={(e) => {
                         if (e.key === "Escape") {
                           setShowSearch(false);
+                          setShowResults(false);
                         }
+                        if (e.key === "Enter" && searchQuery.trim()) {
+                          router.push(`/products?search=${searchQuery}`);
+                          setShowSearch(false);
+                          setShowResults(false);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (searchQuery.trim()) setShowResults(true);
                       }}
                     />
                     <button
-                      onClick={() => setShowSearch(false)}
+                      onClick={() => {
+                        setShowSearch(false);
+                        setSearchQuery("");
+                        setShowResults(false);
+                      }}
                       className="ml-2 text-gray-500 hover:text-gray-700 transition-colors shrink-0 p-1 hover:bg-gray-200 rounded-full"
                       aria-label="Đóng"
                     >
                       <IoCloseOutline className="text-xl" />
                     </button>
                   </div>
+
+                  {/* Search Results Dropdown */}
+                  {showResults && (
+                    <div
+                      ref={resultsRef}
+                      className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+                      style={{ filter: "drop-shadow(0 20px 25px rgb(0 0 0 / 0.1))" }}
+                    >
+                      <div className="p-2">
+                        {isSearching ? (
+                          <div className="flex items-center justify-center py-8">
+                            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        ) : searchResults.length > 0 ? (
+                          <>
+                            <div className="px-3 py-2 text-[11px] font-black uppercase tracking-wider text-gray-400">
+                              Sản phẩm gợi ý
+                            </div>
+                            <div className="space-y-1">
+                              {searchResults.map((product) => (
+                                <Link
+                                  key={product.productId}
+                                  href={`/products/${product.slug}`}
+                                  onClick={() => {
+                                    setShowSearch(false);
+                                    setShowResults(false);
+                                    setSearchQuery("");
+                                  }}
+                                  className="flex items-center gap-4 p-2 hover:bg-[#F4F7FF] rounded-xl transition-all group"
+                                >
+                                  <div className="w-14 h-14 bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-100 group-hover:scale-105 transition-transform duration-300">
+                                      <Image
+                                        src={product.imageUrl || "/placeholder-product.webp"}
+                                        alt={product.name}
+                                        width={56}
+                                        height={56}
+                                        className="object-cover w-full h-full"
+                                        unoptimized={!!product.imageUrl}
+                                      />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4
+                                      className="text-sm font-bold text-gray-800 truncate"
+                                      style={{ fontFamily: "'Fredoka', sans-serif" }}
+                                    >
+                                      {product.name}
+                                    </h4>
+                                    <p
+                                      className="text-xs font-semibold text-blue-600 mt-0.5"
+                                      style={{ fontFamily: "'Fredoka', sans-serif" }}
+                                    >
+                                      Từ {product.minPrice?.toLocaleString("vi-VN")}₫
+                                    </p>
+                                  </div>
+                                  <IoBagOutline className="text-gray-300 group-hover:text-blue-600 transition-colors text-lg mr-2" />
+                                </Link>
+                              ))}
+                            </div>
+                            <Link
+                              href={`/products?search=${searchQuery}`}
+                              onClick={() => {
+                                setShowSearch(false);
+                                setShowResults(false);
+                              }}
+                              className="block w-full text-center py-3 mt-2 text-sm font-black text-[#17409A] hover:bg-[#17409A]/5 transition-colors border-t border-gray-50"
+                            >
+                              Xem tất cả kết quả
+                            </Link>
+                          </>
+                        ) : (
+                          <div className="py-10 text-center">
+                            <IoSearchOutline className="text-4xl text-gray-200 mx-auto mb-3" />
+                            <p className="text-gray-500 font-bold text-sm">
+                              Không tìm thấy chú gấu nào phù hợp
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -367,12 +537,21 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </div>
 
               {/* Wishlist - Hidden on small mobile */}
-              <button
-                className="hidden sm:block text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110"
+              <Link
+                href="/favorites"
+                className="hidden sm:block text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110 relative"
                 aria-label="Yêu thích"
               >
                 <IoHeartOutline className="text-2xl" />
-              </button>
+                {favoriteCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 min-w-4.5 h-4.5 rounded-full flex items-center justify-center text-[10px] font-black text-white"
+                    style={{ backgroundColor: "#FF6B9D", padding: "0 3px" }}
+                  >
+                    {favoriteCount}
+                  </span>
+                )}
+              </Link>
 
               {/* Cart - Always visible */}
               <button
@@ -455,7 +634,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                           Đơn hàng
                         </Link>
                         <Link
-                          href="/profile?tab=wishlist"
+                          href="/favorites"
                           onClick={() => setShowUserMenu(false)}
                           className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
                         >
@@ -675,11 +854,21 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </Link>
             )}
             <Link
-              href="/wishlist"
+              href="/favorites"
               onClick={() => setShowMobileMenu(false)}
-              className="flex items-center gap-3 text-gray-800 hover:text-blue-600 transition-colors"
+              className="flex items-center gap-3 text-gray-800 hover:text-blue-600 transition-colors relative w-fit"
             >
-              <IoHeartOutline className="text-2xl" />
+              <div className="relative">
+                <IoHeartOutline className="text-2xl" />
+                {favoriteCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-1.5 min-w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white"
+                    style={{ backgroundColor: "#FF6B9D", padding: "0 2px" }}
+                  >
+                    {favoriteCount}
+                  </span>
+                )}
+              </div>
               <span className="font-medium">Yêu thích</span>
             </Link>
           </div>

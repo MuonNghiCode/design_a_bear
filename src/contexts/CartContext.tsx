@@ -182,10 +182,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         const addRes = await addItemToCart({
           cartId: cartId!,
-          productId: product.id,
-          buildId: buildId,
+          productId: buildId ? undefined : (product as any).productId || product.id,
+          variantId: buildId
+            ? undefined
+            : (product as any).productId
+              ? product.id
+              : undefined,
+          buildId: buildId || undefined,
           quantity,
           unitPriceSnapshot: product.price,
+          sizeTag,
           productName: product.name,
           productImageUrl: product.image ?? null,
           productNameSnapshot: product.name,

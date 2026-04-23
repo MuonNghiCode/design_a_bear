@@ -14,4 +14,5 @@ export * from "./order.service";
 export * from "./user.service";
 export * from "./favorite.service";
 export * from "./accessory.service";
+export * from "./productionJob.service";
 

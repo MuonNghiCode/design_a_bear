@@ -59,6 +59,11 @@ export default function ProfileClient() {
 
   const heroRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && !isAuthenticated) router.replace("/auth");
@@ -286,7 +291,7 @@ export default function ProfileClient() {
     }
   };
 
-  if (loading) return null;
+  if (!mounted || loading) return null;
   if (!user) return null;
 
   const roleCfg = ROLE_CFG[user.role ?? "user"];

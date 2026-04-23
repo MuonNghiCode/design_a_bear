@@ -658,6 +658,9 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
                       {selected.orderItems && selected.orderItems.length > 0 ? (
                         selected.orderItems.map((item, idx) => {
                           const itemName =
+                            item.buildDetails?.buildName ||
+                            item.buildDetails?.baseProductName ||
+                            item.productionJobs?.[0]?.productName ||
                             item.productNameSnapshot ||
                             item.productName ||
                             "Sản phẩm";
@@ -673,7 +676,12 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
                               className="bg-white rounded-xl p-2.5 border border-[#E5E7EB] flex items-start gap-2.5"
                             >
                               <img
-                                src={item.productImageUrl || "/teddy_bear.png"}
+                                src={
+                                  item.buildDetails?.baseProductImageUrl ||
+                                  item.productionJobs?.[0]?.imageUrl ||
+                                  item.productImageUrl ||
+                                  "/teddy_bear.png"
+                                }
                                 alt={itemName}
                                 className="w-12 h-12 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
                               />
@@ -684,12 +692,27 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
                                     : itemName}
                                 </p>
                                 <p className="text-[#6B7280] text-[11px] font-semibold mt-1">
-                                  SL: {item.quantity} x{" "}
-                                  {formatPrice(item.unitPrice)}
+                                  SL: {item.quantity} x {formatPrice(item.unitPrice)}
                                 </p>
                                 <p className="text-[#17409A] text-[11px] font-black mt-0.5">
                                   Thành tiền: {formatPrice(lineTotal)}
                                 </p>
+
+                                {item.buildDetails?.personalizationNote && (
+                                  <p className="mt-1 text-[10px] text-[#FF8C42] font-semibold italic">
+                                    Ghi chú: {item.buildDetails.personalizationNote}
+                                  </p>
+                                )}
+
+                                {item.buildDetails?.buildComponents && item.buildDetails.buildComponents.length > 0 && (
+                                  <div className="mt-1.5 flex flex-wrap gap-1">
+                                    {item.buildDetails.buildComponents.map((comp: any, cIdx: number) => (
+                                      <span key={cIdx} className="px-1.5 py-0.5 rounded bg-white border border-[#E5E7EB] text-[9px] font-bold text-[#4B5563]">
+                                        {comp.productName || comp.variantName || "Phụ kiện"}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );

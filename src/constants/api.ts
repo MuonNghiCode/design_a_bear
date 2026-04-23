@@ -159,6 +159,16 @@ export const API_ENDPOINTS = {
     BASE: "/api/Favorites",
     TOGGLE: "/api/Favorites/toggle",
   },
+  COLLECTIONS: {
+    GET_ALL: "/api/Collections",
+    GET_BY_ID: "/api/Collections/{id}",
+    GET_BY_SLUG: "/api/Collections/slug/{slug}",
+    CREATE: "/api/Collections",
+    UPDATE: "/api/Collections/{id}",
+    DELETE: "/api/Collections/{id}",
+    ADD_PRODUCT: "/api/Collections/matrix",
+    REMOVE_PRODUCT: "/api/Collections/matrix",
+  },
 } as const;
 
 export const HTTP_METHOD = {

@@ -11,6 +11,7 @@ import {
   MdBusiness,
   MdArrowForward,
   MdLockOutline,
+  MdRefresh,
 } from "react-icons/md";
 import { productService, inventoryService, accessoryService } from "@/services";
 import type { ProductListItem, Inventory, AccessoryResponse } from "@/types";
@@ -202,8 +203,12 @@ export default function InventoryClient() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             onClick={() => fetchData()}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-[#17409A] text-white font-black text-sm hover:bg-[#0E2A66] transition-all shadow-lg shadow-[#17409A]/20"
+            disabled={isLoading}
+            className="flex items-center gap-2 bg-[#F4F7FF] text-[#17409A] text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#E5E7EB] transition-all whitespace-nowrap"
           >
+            <MdRefresh
+              className={`text-base ${isLoading ? "animate-spin" : ""}`}
+            />
             Làm mới đồng bộ
           </button>
         </div>

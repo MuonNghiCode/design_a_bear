@@ -16,11 +16,16 @@ import {
   MdRemoveRedEye,
   MdDelete,
   MdStar,
+  MdRefresh,
 } from "react-icons/md";
 import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
-import type { ProductListItem, ProductDetail, AccessoryResponse } from "@/types";
+import type {
+  ProductListItem,
+  ProductDetail,
+  AccessoryResponse,
+} from "@/types";
 import { productService } from "@/services/product.service";
 
 import CreateProductModal from "./CreateProductModal";
@@ -405,13 +410,8 @@ export default function ProductsGrid() {
     null,
   );
 
-  const {
-    data,
-    loading,
-    fetchProducts,
-    deleteProduct,
-    isDeleting,
-  } = useAdminProductsApi();
+  const { data, loading, fetchProducts, deleteProduct, isDeleting } =
+    useAdminProductsApi();
   const { success, error: toastError } = useToast();
 
   const handleRefresh = useCallback(() => {
@@ -441,19 +441,17 @@ export default function ProductsGrid() {
 
   const filtered = useMemo(() => {
     if (!data?.items) return [];
-    return data.items
-      .map(mapProductToAdmin)
-      .filter((p) => {
-        if (statusFilter !== "all" && p.status !== statusFilter) return false;
-        if (debouncedSearch) {
-          const q = debouncedSearch.toLowerCase();
-          return (
-            p.name.toLowerCase().includes(q) ||
-            (p.badge ?? "").toLowerCase().includes(q)
-          );
-        }
-        return true;
-      });
+    return data.items.map(mapProductToAdmin).filter((p) => {
+      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
+        return (
+          p.name.toLowerCase().includes(q) ||
+          (p.badge ?? "").toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
   }, [data, statusFilter, debouncedSearch]);
 
   return (
@@ -463,7 +461,9 @@ export default function ProductsGrid() {
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
             Sản phẩm
           </p>
-          <p className="text-[#1A1A2E] font-black text-xl font-fredoka">Quản lý sản phẩm</p>
+          <p className="text-[#1A1A2E] font-black text-xl font-fredoka">
+            Quản lý sản phẩm
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
@@ -494,6 +494,16 @@ export default function ProductsGrid() {
               </button>
             ))}
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2 bg-[#F4F7FF] text-[#17409A] text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#E5E7EB] transition-all whitespace-nowrap"
+          >
+            <MdRefresh
+              className={`text-base ${loading ? "animate-spin" : ""}`}
+            />
+            Làm mới đồng bộ
+          </button>
           <button
             onClick={() => setCreateModalOpen(true)}
             className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap"
@@ -543,7 +553,9 @@ export default function ProductsGrid() {
       </div>
 
       {loading ? (
-        <div className="py-20 text-center text-[#9CA3AF] font-bold">Đang tải sản phẩm...</div>
+        <div className="py-20 text-center text-[#9CA3AF] font-bold">
+          Đang tải sản phẩm...
+        </div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filtered.map((p) => (

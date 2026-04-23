@@ -27,6 +27,27 @@ export interface OrderItem {
   lineTotal?: number;
   productNameSnapshot?: string | null;
   personalizationSnapshot?: string | null;
+  weightSnapshot?: number;
+  includesSmartChip?: boolean;
+  sizeTag?: string | null;
+  buildDetails?: {
+    buildId: string;
+    userId: string | null;
+    baseProductId: string;
+    buildName: string;
+    personalizationNote: string;
+    totalWeightGram: number | null;
+    calculatedPrice: number | null;
+    includesSmartChip: boolean;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    sizeTag: string;
+    sizeDescription: string | null;
+    baseProductName: string;
+    baseProductImageUrl: string;
+    buildComponents: any[];
+  } | null;
   productionJobs?: {
     jobId: string;
     orderItemId: string;
@@ -35,6 +56,11 @@ export interface OrderItem {
     startedAt: string | null;
     completedAt: string | null;
     serialNumber: string;
+    productName?: string;
+    imageUrl?: string;
+    sizeTag?: string;
+    weightGram?: number;
+    components?: any[];
   }[];
 }
 
@@ -643,3 +669,25 @@ export type ToggleFavoriteResponse = ApiResponse<{
   isAdded: boolean;
   message: string;
 }>;
+
+/* ── Collection API Responses ── */
+
+export interface CollectionResponse {
+  collectionId: string;
+  name: string;
+  slug: string;
+  products?: ProductListItem[]; // Optional: for detail view if BE supports it
+}
+
+export interface CreateCollectionRequest {
+  name: string;
+  slug: string;
+}
+
+export interface UpdateCollectionRequest {
+  name: string;
+  slug: string;
+}
+
+export type GetCollectionsResponse = ApiResponse<CollectionResponse[]>;
+export type GetCollectionResponse = ApiResponse<CollectionResponse>;

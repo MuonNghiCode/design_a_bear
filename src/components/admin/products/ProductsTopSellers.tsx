@@ -53,7 +53,7 @@ export default function ProductsTopSellers() {
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.2em] uppercase mb-1">
             Thống kê
           </p>
-          <h2 className="text-[#1A1A2E] font-black text-lg">Bán chạy nhất</h2>
+          <h2 className="text-[#1A1A2E] font-black text-lg font-fredoka">Bán chạy nhất</h2>
         </div>
         <div className="w-10 h-10 rounded-2xl bg-[#4ECDC415] text-[#4ECDC4] flex items-center justify-center">
           <MdTrendingUp className="text-xl" />

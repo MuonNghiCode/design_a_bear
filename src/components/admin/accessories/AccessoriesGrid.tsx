@@ -330,7 +330,7 @@ export default function AccessoriesGrid() {
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
             Phụ kiện
           </p>
-          <p className="text-[#1A1A2E] font-black text-xl">Quản lý phụ kiện</p>
+          <p className="text-[#1A1A2E] font-black text-xl font-fredoka">Quản lý phụ kiện</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">

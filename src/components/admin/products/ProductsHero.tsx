@@ -50,7 +50,7 @@ function StatCard({
         <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.1em] uppercase mb-1">
           {label}
         </p>
-        <p className="text-[#1A1A2E] text-2xl font-black leading-none">
+        <p className="text-[#1A1A2E] text-2xl font-black leading-none font-fredoka">
           {value}
         </p>
       </div>
@@ -185,7 +185,7 @@ export default function ProductsHero() {
       {/* Distribution */}
       <div className="bg-white rounded-3xl p-6 border border-[#F4F7FF]">
         <div className="flex items-center justify-between mb-8">
-          <p className="text-[#1A1A2E] font-black text-sm">Phân mục</p>
+          <p className="text-[#1A1A2E] font-black text-sm font-fredoka">Phân mục</p>
           <div className="w-8 h-8 rounded-xl bg-[#F4F7FF] flex items-center justify-center text-[#9CA3AF]">
             <MdLayers className="text-base" />
           </div>

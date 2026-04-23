@@ -11,6 +11,7 @@ import type {
   ProductDetail,
   CreateProductRequest,
   UpdateProductRequest,
+  ProductListItem,
 } from "@/types";
 
 class ProductService extends BaseApiService {

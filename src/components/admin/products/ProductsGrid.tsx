@@ -20,7 +20,7 @@ import {
 import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
-import type { ProductListItem, ProductDetail } from "@/types";
+import type { ProductListItem, ProductDetail, AccessoryResponse } from "@/types";
 import { productService } from "@/services/product.service";
 
 import CreateProductModal from "./CreateProductModal";
@@ -463,7 +463,7 @@ export default function ProductsGrid() {
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
             Sản phẩm
           </p>
-          <p className="text-[#1A1A2E] font-black text-xl">Quản lý sản phẩm</p>
+          <p className="text-[#1A1A2E] font-black text-xl font-fredoka">Quản lý sản phẩm</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">

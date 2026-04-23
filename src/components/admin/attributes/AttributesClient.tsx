@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
-import { MdAdd, MdCategory, MdStars } from "react-icons/md";
+import { MdAdd, MdCategory, MdStars, MdRefresh } from "react-icons/md";
 import { categoryService, characterService } from "@/services";
 import { useToast } from "@/contexts/ToastContext";
 import type { ProductCategory, ProductCharacter } from "@/types";
 import { generateSlug } from "@/utils/string";
-import CategoryTable from "./CategoryTable";
-import CharacterTable from "./CharacterTable";
+import CategoryTable, { CategoryTableRef } from "./CategoryTable";
+import CharacterTable, { CharacterTableRef } from "./CharacterTable";
 import AttributesHero from "./AttributesHero";
 import CategoryFormModal from "./CategoryFormModal";
 import CharacterFormModal from "./CharacterFormModal";
@@ -18,7 +18,10 @@ type EditingType = "category" | "character" | null;
 
 export default function AttributesClient() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const categoryTableRef = useRef<CategoryTableRef>(null);
+  const characterTableRef = useRef<CharacterTableRef>(null);
   const [activeTab, setActiveTab] = useState<TabToken>("categories");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,6 +47,17 @@ export default function AttributesClient() {
     activeCategories: 10,
     activeCharacters: 6,
   });
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    if (activeTab === "categories") {
+      categoryTableRef.current?.refresh();
+    } else {
+      characterTableRef.current?.refresh();
+    }
+    // Simulate a brief loading state for the button animation
+    setTimeout(() => setIsRefreshing(false), 800);
+  }, [activeTab]);
 
   const handleOpenCreate = () => {
     setFormData({ name: "", slug: "", parentId: "", licenseBrand: "" });
@@ -117,7 +131,7 @@ export default function AttributesClient() {
                 : "Tạo danh mục mới thành công!",
             );
             handleCloseModal();
-            // TODO: trigger refresh categories
+            handleRefresh();
           } else {
             toastError(res.error?.description || "Thao tác thất bại!");
           }
@@ -145,7 +159,7 @@ export default function AttributesClient() {
                 : "Tạo tính cách mới thành công!",
             );
             handleCloseModal();
-            // TODO: trigger refresh characters
+            handleRefresh();
           } else {
             toastError(res.error?.description || "Thao tác thất bại!");
           }
@@ -164,6 +178,7 @@ export default function AttributesClient() {
       success,
       toastError,
       handleCloseModal,
+      handleRefresh,
     ],
   );
 
@@ -199,13 +214,25 @@ export default function AttributesClient() {
             Quản lý danh mục và tính cách
           </p>
         </div>
-        <button
-          onClick={handleOpenCreate}
-          className="ac flex items-center gap-2 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors shadow-lg shadow-[#17409A]/20"
-        >
-          <MdAdd className="text-base" />
-          Tạo mới
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 bg-[#F4F7FF] text-[#17409A] text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#E5E7EB] transition-all whitespace-nowrap"
+          >
+            <MdRefresh
+              className={`text-base ${isRefreshing ? "animate-spin" : ""}`}
+            />
+            Làm mới đồng bộ
+          </button>
+          <button
+            onClick={handleOpenCreate}
+            className="ac flex items-center gap-2 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors shadow-lg shadow-[#17409A]/20"
+          >
+            <MdAdd className="text-base" />
+            Tạo mới
+          </button>
+        </div>
       </div>
 
       {/* Hero Section */}
@@ -248,12 +275,14 @@ export default function AttributesClient() {
         <div className="relative p-6 md:p-7">
           {activeTab === "categories" && (
             <CategoryTable
+              ref={categoryTableRef}
               onOpenCreate={handleOpenCreate}
               onOpenEdit={handleOpenEditCategory}
             />
           )}
           {activeTab === "characters" && (
             <CharacterTable
+              ref={characterTableRef}
               onOpenCreate={handleOpenCreate}
               onOpenEdit={handleOpenEditCharacter}
             />

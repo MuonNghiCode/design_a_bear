@@ -23,6 +23,7 @@ export default function JobProgressCard({ job, onUpdateStatus, onOpenHandover }:
       case "IN_PROGRESS": return "bg-blue-100 text-blue-600 border-blue-200";
       case "AWAITING_QC": return "bg-amber-100 text-amber-600 border-amber-200";
       case "FINISHED": return "bg-indigo-100 text-indigo-600 border-indigo-200";
+      case "REWORK_REQUIRED": return "bg-red-100 text-red-600 border-red-200";
       default: return "bg-slate-100 text-slate-500 border-slate-200";
     }
   };
@@ -75,12 +76,16 @@ export default function JobProgressCard({ job, onUpdateStatus, onOpenHandover }:
                 <MdTimelapse className="text-base" /> Bắt đầu làm
               </button>
             )}
-            {job.espStatus === "IN_PROGRESS" && (
+            {(job.espStatus === "IN_PROGRESS" || job.espStatus === "REWORK_REQUIRED") && (
               <button 
                 onClick={() => onOpenHandover(job, "ESP_CORE")}
-                className="flex-1 py-3 rounded-2xl bg-green-50 text-green-600 font-black text-[10px] uppercase tracking-wider hover:bg-green-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                  job.espStatus === "REWORK_REQUIRED" 
+                    ? "bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+                    : "bg-green-50 text-green-600 hover:bg-green-600 hover:text-white"
+                }`}
               >
-                <MdCloudUpload className="text-base" /> Bàn giao phần này
+                <MdCloudUpload className="text-base" /> {job.espStatus === "REWORK_REQUIRED" ? "Bàn giao lại" : "Bàn giao phần này"}
               </button>
             )}
             {job.espStatus === "COMPLETED" && (
@@ -112,12 +117,16 @@ export default function JobProgressCard({ job, onUpdateStatus, onOpenHandover }:
                 <MdTimelapse className="text-base" /> Bắt đầu làm
               </button>
             )}
-            {job.shellStatus === "IN_PROGRESS" && (
+            {(job.shellStatus === "IN_PROGRESS" || job.shellStatus === "REWORK_REQUIRED") && (
               <button 
                 onClick={() => onOpenHandover(job, "PLUSH_SHELL")}
-                className="flex-1 py-3 rounded-2xl bg-green-50 text-green-600 font-black text-[10px] uppercase tracking-wider hover:bg-green-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                  job.shellStatus === "REWORK_REQUIRED" 
+                    ? "bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"
+                    : "bg-green-50 text-green-600 hover:bg-green-600 hover:text-white"
+                }`}
               >
-                <MdCloudUpload className="text-base" /> Bàn giao phần này
+                <MdCloudUpload className="text-base" /> {job.shellStatus === "REWORK_REQUIRED" ? "Bàn giao lại" : "Bàn giao phần này"}
               </button>
             )}
             {job.shellStatus === "COMPLETED" && (

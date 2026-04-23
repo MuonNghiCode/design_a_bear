@@ -1,4 +1,4 @@
-export type ProductionStatus = "IN_QUEUE" | "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "FINISHED" | "AWAITING_QC";
+export type ProductionStatus = "IN_QUEUE" | "ASSIGNED" | "IN_PROGRESS" | "COMPLETED" | "FINISHED" | "AWAITING_QC" | "REWORK_REQUIRED";
 export type ProductionPartType = "ESP_CORE" | "PLUSH_SHELL";
 
 export interface BuildComponentResponse {
@@ -57,4 +57,10 @@ export interface HandoverProductionPartRequest {
 export interface UpdateProductionPartStatusRequest {
   partType: ProductionPartType;
   status: ProductionStatus;
+}
+
+export interface SubmitInspectionRequest {
+  score: number;
+  notes?: string;
+  isApproved: boolean;
 }

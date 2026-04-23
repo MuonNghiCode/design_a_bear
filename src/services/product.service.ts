@@ -62,6 +62,13 @@ class ProductService extends BaseApiService {
       `${API_ENDPOINTS.PRODUCTS.GET_BY_ID}/${id}`,
     );
   }
+
+  async getTopProducts(count: number = 20): Promise<ApiResponse<ProductListItem[]>> {
+    return this.get<ProductListItem[]>(
+      `${API_ENDPOINTS.PRODUCTS.GET_ALL}/top`,
+      { count },
+    );
+  }
 }
 
 export const productService = new ProductService();

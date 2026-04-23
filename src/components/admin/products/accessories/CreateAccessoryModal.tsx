@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import { accessoryService } from "@/services/accessory.service";
 import { mediaService } from "@/services/media.service";
-import { useTaxonomyApi } from "@/hooks";
 import { useToast } from "@/contexts/ToastContext";
-import CustomDropdown from "@/components/shared/CustomDropdown";
+import type { CreateAccessoryRequest } from "@/types";
+import { generateSku } from "@/utils/string";
 
 interface Props {
   onClose: () => void;
@@ -15,7 +15,6 @@ interface Props {
 
 export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
   const toast = useToast();
-  const { categories, fetchTaxonomy } = useTaxonomyApi();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -26,20 +25,22 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
     targetPrice: "0",
     baseCost: "0",
     assemblyCost: "0",
-    stockQuantity: "0",
-    weightGram: "100",
+    stockQuantity: "1",
     imageUrl: "",
-    categoryId: "",
+    isActive: true,
   });
-
-  useEffect(() => {
-    fetchTaxonomy();
-  }, [fetchTaxonomy]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const newData = { ...prev, [name]: value };
+      if (name === "name") {
+        newData.sku = generateSku(value);
+      }
+      return newData;
+    });
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,20 +62,21 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.categoryId) {
-      toast.error("Vui lòng chọn danh mục");
-      return;
-    }
     setIsSubmitting(true);
     try {
-      const res = await accessoryService.create({
-        ...formData,
+      const payload: CreateAccessoryRequest = {
+        name: formData.name,
+        sku: formData.sku,
+        description: formData.description,
+        imageUrl: formData.imageUrl,
         targetPrice: Number(formData.targetPrice),
         baseCost: Number(formData.baseCost),
         assemblyCost: Number(formData.assemblyCost),
         stockQuantity: Number(formData.stockQuantity),
-        weightGram: Number(formData.weightGram),
-      } as any);
+        isActive: formData.isActive,
+      };
+
+      const res = await accessoryService.create(payload);
 
       if (res.isSuccess) {
         toast.success("Thêm phụ kiện thành công!");
@@ -118,6 +120,7 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
               {formData.imageUrl ? (
                 <img
                   src={formData.imageUrl}
+                  alt="Preview"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -141,17 +144,33 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-black text-[#6B7280] uppercase">
-              Tên phụ kiện *
-            </label>
-            <input
-              required
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5 flex-1">
+              <label className="text-[11px] font-black text-[#6B7280] uppercase">
+                Tên phụ kiện *
+              </label>
+              <input
+                required
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="VD: Nơ lụa đỏ"
+                className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
+              />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <label className="text-[11px] font-black text-[#6B7280] uppercase">
+                SKU *
+              </label>
+              <input
+                required
+                readOnly
+                name="sku"
+                value={formData.sku}
+                placeholder="no-lua-do"
+                className="w-full bg-gray-50 text-gray-500 text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent shadow-sm cursor-not-allowed"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -174,12 +193,15 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
               </label>
               <input
                 required
+                readOnly
                 type="number"
                 name="stockQuantity"
                 value={formData.stockQuantity}
-                onChange={handleChange}
-                className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
+                className="w-full bg-gray-50 text-gray-500 text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent shadow-sm cursor-not-allowed"
               />
+              <p className="text-[9px] text-[#9CA3AF] font-bold italic">
+                * Mặc định khởi tạo bằng 1
+              </p>
             </div>
           </div>
 
@@ -210,48 +232,6 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black text-[#6B7280] uppercase">
-                Khối lượng (Gram)
-              </label>
-              <input
-                type="number"
-                name="weightGram"
-                value={formData.weightGram}
-                onChange={handleChange}
-                className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black text-[#6B7280] uppercase">
-                SKU *
-              </label>
-              <input
-                required
-                name="sku"
-                value={formData.sku}
-                onChange={handleChange}
-                className="w-full bg-white text-sm font-semibold rounded-xl px-4 py-3 outline-none border-2 border-transparent focus:border-[#17409A]/20 shadow-sm"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-black text-[#6B7280] uppercase">
-              Danh mục *
-            </label>
-            <CustomDropdown
-              options={categories.map((c) => ({
-                label: c.name,
-                value: c.categoryId,
-              }))}
-              value={formData.categoryId}
-              onChange={(v) => setFormData((p) => ({ ...p, categoryId: v }))}
-              buttonClassName="w-full bg-white text-sm font-semibold p-3 rounded-xl border-2 border-transparent shadow-sm flex justify-between items-center"
-            />
-          </div>
-
           <div className="space-y-1.5">
             <label className="text-[11px] font-black text-[#6B7280] uppercase">
               Mô tả
@@ -263,6 +243,23 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
               rows={3}
               className="w-full bg-white text-sm font-semibold p-4 rounded-xl shadow-sm outline-none focus:border-[#17409A]/20 resize-none"
             />
+          </div>
+
+          <div className="flex items-center gap-3 bg-white p-4 rounded-2xl shadow-sm border border-transparent hover:border-[#17409A]/10 transition-all">
+            <div className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none bg-gray-200 cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={formData.isActive}
+                onChange={(e) =>
+                  setFormData((p) => ({ ...p, isActive: e.target.checked }))
+                }
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#17409A]"></div>
+            </div>
+            <span className="text-sm font-bold text-[#1A1A2E]">
+              Phụ kiện đang hoạt động
+            </span>
           </div>
         </form>
 
@@ -276,7 +273,12 @@ export default function CreateAccessoryModal({ onClose, onSuccess }: Props) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || !formData.imageUrl}
+            disabled={
+              isSubmitting ||
+              !formData.imageUrl ||
+              !formData.name ||
+              !formData.sku
+            }
             className="px-8 py-3 rounded-2xl text-sm font-bold text-white bg-[#17409A] hover:bg-[#0E2A66] shadow-lg disabled:opacity-50"
           >
             {isSubmitting ? "Đang lưu..." : "Thêm phụ kiện"}

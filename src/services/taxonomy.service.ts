@@ -4,20 +4,28 @@ import type {
   GetCategoriesResponse,
   GetCharactersResponse,
   ProductCategory,
-  CharacterItem,
+  ProductCharacter,
 } from "@/types";
 
 class TaxonomyService extends BaseApiService {
   async getCategories(): Promise<GetCategoriesResponse> {
-    return this.get<ProductCategory[]>(API_ENDPOINTS.CATEGORIES.GET_ALL, undefined, {
-      withCredentials: false,
-    });
+    return this.get<ProductCategory[]>(
+      API_ENDPOINTS.CATEGORIES.GET_ALL,
+      undefined,
+      {
+        withCredentials: false,
+      },
+    );
   }
 
   async getCharacters(): Promise<GetCharactersResponse> {
-    return this.get<CharacterItem[]>(API_ENDPOINTS.CHARACTERS.GET_ALL, undefined, {
-      withCredentials: false,
-    });
+    return this.get<ProductCharacter[]>(
+      API_ENDPOINTS.CHARACTERS.GET_ALL,
+      undefined,
+      {
+        withCredentials: false,
+      },
+    );
   }
 }
 

@@ -290,6 +290,8 @@ export default function ProductInfoPanel({
           image: product.image || "/teddy_bear.png",
           badge: product.badge,
           badgeColor: product.badgeColor,
+          slug: product.slug,
+          href: `/products/${product.slug || product.id}`,
         },
         quantity,
         targetBuildId,
@@ -541,7 +543,7 @@ export default function ProductInfoPanel({
           {product.characters && product.characters.length > 0 && (
             <div>
               <p className="text-xs font-black tracking-[0.2em] uppercase text-[#9CA3AF] mb-2">
-                Nhân vật
+                Tính cách
               </p>
               <div className="flex flex-wrap gap-2">
                 {product.characters.map((characterName) => (

@@ -10,22 +10,18 @@ import {
   MdEdit,
   MdGridView,
   MdTableRows,
-  MdFileDownload,
   MdWarning,
-  MdClose,
   MdRemoveRedEye,
   MdDelete,
-  MdStar,
 } from "react-icons/md";
 import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
-import type { ProductListItem, ProductDetail } from "@/types";
-import { productService } from "@/services/product.service";
+import type { AccessoryResponse } from "@/types";
 
-import CreateProductModal from "./CreateProductModal";
-import EditProductModal from "./EditProductModal";
-import ProductDetailModal from "./ProductDetailModal";
+import CreateAccessoryModal from "../products/accessories/CreateAccessoryModal";
+import EditAccessoryModal from "../products/accessories/EditAccessoryModal";
+import AccessoryDetailModal from "../products/accessories/AccessoryDetailModal";
 
 type ViewMode = "grid" | "table";
 
@@ -39,12 +35,9 @@ const STATUS_CFG: Record<
 };
 
 const COL_HEADS = [
-  "Sản phẩm",
-  "Danh mục",
+  "Phụ kiện",
   "Giá",
   "Tồn kho",
-  "Đã bán",
-  "Đánh giá",
   "Trạng thái",
   "",
 ];
@@ -66,7 +59,7 @@ function StockBadge({ stock }: { stock: number }) {
   return <span className="text-[10px] font-black text-[#4B5563]">{stock}</span>;
 }
 
-function ProductCard({
+function AccessoryCard({
   p,
   onView,
   onEdit,
@@ -80,15 +73,11 @@ function ProductCard({
   isDeleting: boolean;
 }) {
   const st = STATUS_CFG[p.status];
-  const stockPercent =
-    p.status === "active" && p.stock > 0
-      ? Math.min(100, Math.round((p.stock / 80) * 100))
-      : 0;
 
   return (
     <div
       onClick={() => onView(p)}
-      className="group h-full bg-[#F8F9FF] rounded-2xl overflow-hidden border border-transparent hover:border-[#17409A]/10 hover:shadow-lg hover:shadow-[#17409A]/5 transition-all duration-300 cursor-pointer relative flex flex-col"
+      className="group h-full bg-[#F8F9FF] rounded-2xl overflow-hidden border border-transparent hover:border-[#17409A]/10 hover:shadow-lg hover:shadow-[#17409A]/5 transition-all duration-300 relative flex flex-col cursor-pointer"
     >
       <div className="h-0.5 w-full" style={{ backgroundColor: p.badgeColor }} />
       <div
@@ -96,38 +85,33 @@ function ProductCard({
         style={{ backgroundColor: p.badgeColor + "0d" }}
       >
         <Image
-          src={p.imageUrl || "/teddy_bear.png"}
+          src={p.imageUrl || "/accessory_placeholder.png"}
           alt={p.name}
           width={96}
           height={96}
           className="object-contain transition-transform duration-300 group-hover:scale-110 drop-shadow-md"
         />
-        {p.popular && (
-          <span className="absolute top-2.5 left-2.5 bg-[#FFD93D] text-[#1A1A2E] text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5">
-            <MdStar className="text-xs" /> HOT
+        <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5 translate-x-12 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300">
+           <span
+            className="text-[8px] font-black px-2 py-0.5 rounded-full shadow-sm"
+            style={{ color: st.color, backgroundColor: "white", outline: `1px solid ${st.bg}` }}
+          >
+            {st.label}
           </span>
-        )}
-        <span
-          className="absolute top-2.5 right-2.5 text-[8px] font-black px-2 py-0.5 rounded-full"
-          style={{ color: st.color, backgroundColor: st.bg }}
-        >
-          {st.label}
-        </span>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(p);
+            }}
+            className="w-7 h-7 rounded-lg bg-white shadow-sm flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] transition-colors"
+          >
+            <MdRemoveRedEye className="text-base" />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 flex flex-1 flex-col">
-        <div className="mb-2.5 min-h-14">
-          {p.badge && (
-            <span
-              className="text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 inline-block"
-              style={{
-                color: p.badgeColor,
-                backgroundColor: p.badgeColor + "18",
-              }}
-            >
-              {p.badge}
-            </span>
-          )}
+        <div className="mb-2.5 min-h-10">
           <p className="text-[#1A1A2E] font-black text-sm leading-snug line-clamp-2">
             {p.name}
           </p>
@@ -137,29 +121,8 @@ function ProductCard({
           {formatPrice(p.price)}
         </p>
 
-        <div className="flex items-center justify-between text-[10px] font-semibold text-[#9CA3AF] mb-3 min-h-4">
-          <span>
-            <span className="text-[#4B5563] font-black">{p.sold}</span> đơn
-          </span>
-          {p.rating > 0 ? (
-            <span className="flex items-center gap-0.5 text-[#FFD93D] font-black">
-              <MdStar className="text-xs" />
-              {p.rating}
-            </span>
-          ) : (
-            <span className="text-[#D1D5DB]">—</span>
-          )}
+        <div className="flex items-center justify-between text-[10px] font-semibold text-[#9CA3AF] mb-3">
           <StockBadge stock={p.stock} />
-        </div>
-
-        <div className="h-1 bg-[#E5E7EB] rounded-full overflow-hidden mb-3">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${stockPercent}%`,
-              backgroundColor: p.stock <= 10 ? "#FF8C42" : "#4ECDC4",
-            }}
-          />
         </div>
 
         <div className="mt-auto flex items-center gap-1.5 pt-1 border-t border-[#E9ECEF]">
@@ -175,21 +138,10 @@ function ProductCard({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onView(p);
-            }}
-            className="w-8 h-8 flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 rounded-xl transition-all"
-            title="Xem chi tiết"
-          >
-            <MdRemoveRedEye className="text-base" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
               onDelete(p);
             }}
             disabled={isDeleting}
             className="w-8 h-8 flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/10 rounded-xl transition-all disabled:opacity-50"
-            title="Xóa sản phẩm"
           >
             <MdDelete className="text-base" />
           </button>
@@ -199,7 +151,7 @@ function ProductCard({
   );
 }
 
-function ProductRow({
+function AccessoryRow({
   p,
   onView,
   onEdit,
@@ -207,58 +159,30 @@ function ProductRow({
   isDeleting,
 }: {
   p: ProductAdmin;
-  index: number;
   onView: (p: ProductAdmin) => void;
   onEdit: (p: ProductAdmin) => void;
   onDelete: (p: ProductAdmin) => void;
   isDeleting: boolean;
 }) {
   const st = STATUS_CFG[p.status];
-  const CATEGORY_LABELS: Record<string, string> = {
-    all: "Tất cả",
-    bear: "Gấu",
-    accessory: "Phụ kiện",
-  };
 
   return (
-    <tr
-      onClick={() => onView(p)}
-      className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer"
-    >
+    <tr className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer" onClick={() => onView(p)}>
       <td className="py-3 pr-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 group-hover:scale-105 transition-transform duration-200 bg-[#F4F7FF] flex items-center justify-center">
             <Image
-              src={p.imageUrl || "/teddy_bear.png"}
+              src={p.imageUrl || "/accessory_placeholder.png"}
               alt={p.name}
               width={40}
               height={40}
               className="object-contain w-full h-full"
             />
           </div>
-          <div>
-            <p className="text-[#1A1A2E] font-bold text-sm leading-tight max-w-48 truncate">
-              {p.name}
-            </p>
-            {p.badge && (
-              <span
-                className="text-[8px] font-black px-1.5 py-0.5 rounded-full mt-0.5 inline-block"
-                style={{
-                  color: p.badgeColor,
-                  backgroundColor: p.badgeColor + "18",
-                }}
-              >
-                {p.badge}
-              </span>
-            )}
-          </div>
+          <p className="text-[#1A1A2E] font-bold text-sm leading-tight max-w-48 truncate">
+            {p.name}
+          </p>
         </div>
-      </td>
-
-      <td className="py-3 pr-4">
-        <span className="text-[10px] font-black text-[#6B7280] bg-[#F4F7FF] px-2.5 py-1 rounded-lg whitespace-nowrap">
-          {CATEGORY_LABELS[p.category]}
-        </span>
       </td>
 
       <td className="py-3 pr-4 whitespace-nowrap">
@@ -269,21 +193,6 @@ function ProductRow({
 
       <td className="py-3 pr-4">
         <StockBadge stock={p.stock} />
-      </td>
-
-      <td className="py-3 pr-4">
-        <span className="text-[#1A1A2E] font-black text-sm">{p.sold}</span>
-      </td>
-
-      <td className="py-3 pr-4">
-        {p.rating > 0 ? (
-          <span className="flex items-center gap-1 text-[#FFD93D] font-black text-sm">
-            <MdStar className="text-base" />
-            {p.rating}
-          </span>
-        ) : (
-          <span className="text-[#D1D5DB] text-sm">—</span>
-        )}
       </td>
 
       <td className="py-3 pr-4">
@@ -306,22 +215,20 @@ function ProductRow({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onEdit(p);
+              onView(p);
             }}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#F4F7FF] transition-all"
-            title="Sửa"
           >
-            <MdEdit className="text-sm" />
+            <MdRemoveRedEye className="text-sm" />
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onView(p);
+              onEdit(p);
             }}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all"
-            title="Xem chi tiết"
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#F4F7FF] transition-all"
           >
-            <MdRemoveRedEye className="text-sm" />
+            <MdEdit className="text-sm" />
           </button>
           <button
             onClick={(e) => {
@@ -330,7 +237,6 @@ function ProductRow({
             }}
             disabled={isDeleting}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[#9CA3AF] hover:text-[#EF4444] hover:bg-[#EF4444]/10 transition-all disabled:opacity-50"
-            title="Xóa sản phẩm"
           >
             <MdDelete className="text-sm" />
           </button>
@@ -339,33 +245,6 @@ function ProductRow({
     </tr>
   );
 }
-
-const mapProductToAdmin = (p: ProductListItem, index: number): ProductAdmin => {
-  const badgeColors = [
-    "#17409A",
-    "#7C5CFC",
-    "#4ECDC4",
-    "#FF8C42",
-    "#FF6B9D",
-    "#FFD93D",
-  ];
-  const color = badgeColors[index % badgeColors.length];
-
-  return {
-    id: p.productId,
-    name: p.name,
-    imageUrl: p.imageUrl || "/teddy_bear.png",
-    badge: "Gấu",
-    badgeColor: color,
-    category: "bear",
-    price: p.price,
-    stock: 50, // This should normally come from inventory but using 50 as placeholder
-    sold: p.totalSales,
-    rating: p.averageRating,
-    status: p.isActive ? "active" : "draft",
-    popular: p.viewCountIn10Min > 5,
-  };
-};
 
 const mapAccessoryToAdmin = (
   a: AccessoryResponse,
@@ -382,88 +261,76 @@ const mapAccessoryToAdmin = (
     badgeColor: color,
     category: "accessory",
     price: a.targetPrice,
-    stock: 100,
+    stock: a.available || 0,
     sold: 0,
     rating: 0,
-    status: "active",
+    status: a.isActive ? "active" : "draft",
     popular: false,
   };
 };
 
-export default function ProductsGrid() {
+export default function AccessoriesGrid() {
   const [statusFilter, setStatus] = useState<ProductAdminStatus | "all">("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(
-    null,
-  );
+  const [isUpdateModalOpen, setUpdateModalOpen] = useState(false);
+  const [editingAccessoryId, setEditingAccessoryId] = useState<string | null>(null);
+  
+  const [isDetailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailAccessoryId, setDetailAccessoryId] = useState<string | null>(null);
+
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(
-    null,
-  );
+  const [deletingAccessory, setDeletingAccessory] = useState<ProductAdmin | null>(null);
 
   const {
-    data,
-    loading,
-    fetchProducts,
-    deleteProduct,
+    accessories,
+    accessoriesLoading,
+    fetchAccessories,
+    deleteAccessory,
     isDeleting,
   } = useAdminProductsApi();
   const { success, error: toastError } = useToast();
 
-  const handleRefresh = useCallback(() => {
-    fetchProducts({ pageIndex: 1, pageSize: 50 });
-  }, [fetchProducts]);
-
   useEffect(() => {
-    handleRefresh();
-  }, [handleRefresh]);
-
-  const handleDelete = (p: ProductAdmin) => {
-    setDeletingProduct(p);
-  };
+    fetchAccessories();
+  }, [fetchAccessories]);
 
   const handleDeleteConfirm = async () => {
-    if (!deletingProduct) return;
-    const ok = await deleteProduct(deletingProduct.id);
+    if (!deletingAccessory) return;
+    const ok = await deleteAccessory(deletingAccessory.id);
 
     if (ok) {
       success("Xóa thành công!");
-      handleRefresh();
+      fetchAccessories();
     } else {
       toastError("Có lỗi xảy ra khi xóa.");
     }
-    setDeletingProduct(null);
+    setDeletingAccessory(null);
   };
 
   const filtered = useMemo(() => {
-    if (!data?.items) return [];
-    return data.items
-      .map(mapProductToAdmin)
+    return accessories
+      .map(mapAccessoryToAdmin)
       .filter((p) => {
         if (statusFilter !== "all" && p.status !== statusFilter) return false;
         if (debouncedSearch) {
           const q = debouncedSearch.toLowerCase();
-          return (
-            p.name.toLowerCase().includes(q) ||
-            (p.badge ?? "").toLowerCase().includes(q)
-          );
+          return p.name.toLowerCase().includes(q);
         }
         return true;
       });
-  }, [data, statusFilter, debouncedSearch]);
+  }, [accessories, statusFilter, debouncedSearch]);
 
   return (
     <div className="bg-white rounded-3xl p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
-            Sản phẩm
+            Phụ kiện
           </p>
-          <p className="text-[#1A1A2E] font-black text-xl">Quản lý sản phẩm</p>
+          <p className="text-[#1A1A2E] font-black text-xl">Quản lý phụ kiện</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
@@ -471,7 +338,7 @@ export default function ProductsGrid() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm sản phẩm..."
+              placeholder="Tìm phụ kiện..."
               className="bg-[#F4F7FF] text-[#1A1A2E] text-sm font-semibold placeholder:text-[#9CA3AF] rounded-xl pl-9 pr-4 py-2.5 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-colors w-44"
             />
           </div>
@@ -511,8 +378,7 @@ export default function ProductsGrid() {
           { key: "archived", label: "Lưu trữ" },
         ].map(({ key, label }) => {
           const active = statusFilter === key;
-          const cfg =
-            key !== "all" ? STATUS_CFG[key as ProductAdminStatus] : null;
+          const cfg = key !== "all" ? STATUS_CFG[key as ProductAdminStatus] : null;
           return (
             <button
               key={key}
@@ -520,17 +386,9 @@ export default function ProductsGrid() {
               className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all duration-200 ${active ? "ring-1" : "opacity-70 hover:opacity-100"}`}
               style={
                 active && cfg
-                  ? {
-                      color: cfg.color,
-                      backgroundColor: cfg.bg,
-                      outline: `1px solid ${cfg.color}`,
-                    }
+                  ? { color: cfg.color, backgroundColor: cfg.bg, outline: `1px solid ${cfg.color}` }
                   : active
-                    ? {
-                        color: "#17409A",
-                        backgroundColor: "#17409A18",
-                        outline: "1px solid #17409A",
-                      }
+                    ? { color: "#17409A", backgroundColor: "#17409A18", outline: "1px solid #17409A" }
                     : cfg
                       ? { color: cfg.color, backgroundColor: cfg.bg }
                       : { color: "#9CA3AF", backgroundColor: "#F4F7FF" }
@@ -542,18 +400,24 @@ export default function ProductsGrid() {
         })}
       </div>
 
-      {loading ? (
-        <div className="py-20 text-center text-[#9CA3AF] font-bold">Đang tải sản phẩm...</div>
+      {accessoriesLoading ? (
+         <div className="py-20 text-center text-[#9CA3AF] font-bold">Đang tải phụ kiện...</div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filtered.map((p) => (
-            <ProductCard
+            <AccessoryCard
               key={p.id}
               p={p}
-              onView={(p) => setSelectedProductId(p.id)}
-              onEdit={(p) => setEditingProductId(p.id)}
-              onDelete={handleDelete}
-              isDeleting={isDeleting && deletingProduct?.id === p.id}
+              onView={(p) => {
+                setDetailAccessoryId(p.id);
+                setDetailModalOpen(true);
+              }}
+              onEdit={(p) => {
+                setEditingAccessoryId(p.id);
+                setUpdateModalOpen(true);
+              }}
+              onDelete={(p) => setDeletingAccessory(p)}
+              isDeleting={isDeleting && deletingAccessory?.id === p.id}
             />
           ))}
         </div>
@@ -573,15 +437,20 @@ export default function ProductsGrid() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p, i) => (
-                <ProductRow
+              {filtered.map((p) => (
+                <AccessoryRow
                   key={p.id}
                   p={p}
-                  index={i}
-                  onView={(p) => setSelectedProductId(p.id)}
-                  onEdit={(p) => setEditingProductId(p.id)}
-                  onDelete={handleDelete}
-                  isDeleting={isDeleting && deletingProduct?.id === p.id}
+                  onView={(p) => {
+                    setDetailAccessoryId(p.id);
+                    setDetailModalOpen(true);
+                  }}
+                  onEdit={(p) => {
+                    setEditingAccessoryId(p.id);
+                    setUpdateModalOpen(true);
+                  }}
+                  onDelete={(p) => setDeletingAccessory(p)}
+                  isDeleting={isDeleting && deletingAccessory?.id === p.id}
                 />
               ))}
             </tbody>
@@ -590,71 +459,56 @@ export default function ProductsGrid() {
       )}
 
       {isCreateModalOpen && (
-        <CreateProductModal
+        <CreateAccessoryModal
           onClose={() => setCreateModalOpen(false)}
-          onSuccess={handleRefresh}
-          isSubmitting={false}
-        />
-      )}
-
-      {editingProductId && (
-        <EditProductModal
-          productId={editingProductId}
-          onClose={() => setEditingProductId(null)}
-          onSubmit={async (payload) => {
-            const ok = await productService.updateProduct(
-              editingProductId,
-              payload,
-            );
-            if (ok.isSuccess) {
-              success("Cập nhật thành công");
-              handleRefresh();
-              return true;
-            }
-            toastError("Thất bại");
-            return false;
-          }}
-          isSubmitting={false}
-        />
-      )}
-
-      {selectedProductId && (
-        <ProductDetailModal
-          productId={selectedProductId}
-          onClose={() => setSelectedProductId(null)}
-          onEdit={(id) => {
-            setSelectedProductId(null);
-            setEditingProductId(id);
+          onSuccess={() => {
+            setCreateModalOpen(false);
+            fetchAccessories();
           }}
         />
       )}
 
-      {deletingProduct && (
+      {isUpdateModalOpen && editingAccessoryId && (
+        <EditAccessoryModal
+          accessoryId={editingAccessoryId}
+          onClose={() => setUpdateModalOpen(false)}
+          onSuccess={() => {
+            setUpdateModalOpen(false);
+            fetchAccessories();
+          }}
+        />
+      )}
+
+      {isDetailModalOpen && detailAccessoryId && (
+        <AccessoryDetailModal
+          accessoryId={detailAccessoryId}
+          onClose={() => setDetailModalOpen(false)}
+        />
+      )}
+
+      {deletingAccessory && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in duration-200">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4">
-              <MdDelete className="text-2xl" />
-            </div>
             <h3 className="text-lg font-black text-[#1A1A2E] mb-2">
               Xác nhận xóa?
             </h3>
             <p className="text-sm font-semibold text-[#6B7280] mb-6">
-              Bạn có chắc chắn muốn xóa sản phẩm{" "}
+              Bạn có chắc chắn muốn xóa phụ kiện{" "}
               <span className="text-[#1A1A2E] font-black">
-                "{deletingProduct.name}"
+                "{deletingAccessory.name}"
               </span>
               ?
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => setDeletingProduct(null)}
-                className="flex-1 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E5E7EB] transition-all"
+                onClick={() => setDeletingAccessory(null)}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-[#6B7280] bg-[#F4F7FF]"
               >
                 Hủy
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all"
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-white bg-red-500"
               >
                 Xóa ngay
               </button>

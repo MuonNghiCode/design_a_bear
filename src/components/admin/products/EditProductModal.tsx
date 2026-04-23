@@ -757,20 +757,24 @@ export default function EditProductModal({
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <CustomDropdown
-                        options={categories.map((c) => ({
-                          label: c.name,
-                          value: c.categoryId,
-                        }))}
+                        options={categories
+                          .filter((c) => c.isActive !== false)
+                          .map((c) => ({
+                            label: c.name,
+                            value: c.categoryId,
+                          }))}
                         value={selectedCategoryIds[0] || ""}
                         onChange={(v) => setSelectedCategoryIds(v ? [v] : [])}
                         placeholder="Chọn Category"
                         buttonClassName="w-full flex items-center justify-between bg-white text-sm font-semibold rounded-2xl px-4 py-3 shadow-sm hover:border-[#17409A]/40 transition-colors"
                       />
                       <CustomDropdown
-                        options={characters.map((c) => ({
-                          label: c.name,
-                          value: c.characterId,
-                        }))}
+                        options={characters
+                          .filter((c) => c.isActive !== false)
+                          .map((c) => ({
+                            label: c.name,
+                            value: c.characterId,
+                          }))}
                         value={selectedCharacterIds[0] || ""}
                         onChange={(v) => setSelectedCharacterIds(v ? [v] : [])}
                         placeholder="Chọn Character"

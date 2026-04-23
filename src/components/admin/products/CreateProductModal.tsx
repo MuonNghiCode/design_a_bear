@@ -430,7 +430,7 @@ export default function CreateProductModal({
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <CustomDropdown
-                      options={categories.map((c) => ({
+                      options={categories.filter(c => c.isActive !== false).map((c) => ({
                         label: c.name,
                         value: c.categoryId,
                       }))}
@@ -440,7 +440,7 @@ export default function CreateProductModal({
                       buttonClassName="w-full flex items-center justify-between bg-white text-sm font-semibold rounded-2xl px-4 py-3 shadow-sm hover:border-[#17409A]/40 transition-colors"
                     />
                     <CustomDropdown
-                      options={characters.map((c) => ({
+                      options={characters.filter(c => c.isActive !== false).map((c) => ({
                         label: c.name,
                         value: c.characterId,
                       }))}

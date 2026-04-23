@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { MdAdd, MdCategory, MdStars } from "react-icons/md";
 import { categoryService, characterService } from "@/services";
 import { useToast } from "@/contexts/ToastContext";
-import type { ProductCategory, CharacterItem } from "@/types";
+import type { ProductCategory, ProductCharacter } from "@/types";
 import { generateSlug } from "@/utils/string";
 import CategoryTable from "./CategoryTable";
 import CharacterTable from "./CharacterTable";
@@ -26,7 +26,7 @@ export default function AttributesClient() {
   const [editingCategory, setEditingCategory] =
     useState<ProductCategory | null>(null);
   const [editingCharacter, setEditingCharacter] =
-    useState<CharacterItem | null>(null);
+    useState<ProductCharacter | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -66,7 +66,7 @@ export default function AttributesClient() {
     setIsModalOpen(true);
   }, []);
 
-  const handleOpenEditCharacter = useCallback((char: CharacterItem) => {
+  const handleOpenEditCharacter = useCallback((char: ProductCharacter) => {
     setEditingCharacter(char);
     setEditingCategory(null);
     setFormData({

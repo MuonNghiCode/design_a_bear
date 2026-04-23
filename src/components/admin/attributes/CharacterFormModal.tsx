@@ -1,13 +1,13 @@
 "use client";
 
 import { MdClose, MdAutorenew } from "react-icons/md";
-import type { CharacterItem } from "@/types";
+import type { ProductCharacter } from "@/types";
 import { generateSlug } from "@/utils/string";
 
 interface CharacterFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  editingChar: CharacterItem | null;
+  editingChar: ProductCharacter | null;
   formData: {
     name: string;
     slug: string;

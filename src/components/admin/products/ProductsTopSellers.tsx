@@ -1,110 +1,118 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { MdStar, MdTrendingUp } from "react-icons/md";
-import { PRODUCTS_ADMIN } from "@/data/admin";
-
-// Top 5 by sold
-const TOP5 = [...PRODUCTS_ADMIN]
-  .filter((p) => p.sold > 0)
-  .sort((a, b) => b.sold - a.sold)
-  .slice(0, 5);
-
-const MAX_SOLD = TOP5[0]?.sold ?? 1;
+import { MdTrendingUp, MdVisibility, MdStar } from "react-icons/md";
+import { formatPrice } from "@/utils/currency";
+import { productService } from "@/services/product.service";
+import type { ProductListItem } from "@/types";
 
 export default function ProductsTopSellers() {
-  return (
-    <div className="bg-white rounded-3xl p-6 h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
-            Hiệu suất
-          </p>
-          <p className="text-[#1A1A2E] font-black text-lg">Bán chạy nhất</p>
-        </div>
-        <div className="flex items-center gap-1 bg-[#FFD93D]/15 rounded-full px-2.5 py-1">
-          <MdTrendingUp className="text-[#FF8C42] text-sm" />
-          <span className="text-[10px] font-black text-[#FF8C42]">Top 5</span>
-        </div>
-      </div>
+  const [topProducts, setTopProducts] = useState<ProductListItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-      {/* Product rows */}
-      <div className="flex flex-col gap-4 flex-1">
-        {TOP5.map((p, i) => {
-          const barPct = Math.round((p.sold / MAX_SOLD) * 100);
-          return (
-            <div key={p.id} className="group cursor-pointer">
-              <div className="flex items-center gap-3 mb-1.5">
-                {/* Rank thumbnail */}
-                <div className="relative w-10 h-10 rounded-2xl overflow-hidden shrink-0 transition-transform duration-200 group-hover:scale-105 bg-[#F4F7FF]">
-                  <Image
-                    src={p.imageUrl || "/teddy_bear.png"}
-                    alt={p.name}
-                    width={40}
-                    height={40}
-                    className="object-contain w-full h-full"
-                  />
-                  <span
-                    className="absolute -top-1 -right-1 w-4.5 h-4.5 text-white text-[8px] font-black rounded-full flex items-center justify-center ring-2 ring-white"
-                    style={{
-                      backgroundColor: i === 0 ? "#FFD93D" : p.badgeColor,
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                </div>
+  useEffect(() => {
+    const fetchTop = async () => {
+      try {
+        const res = await productService.getTopProducts(3);
+        if (res.isSuccess) setTopProducts(res.value);
+      } catch (err) {
+        console.error("Top Sellers fetch failed", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTop();
+  }, []);
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-[#1A1A2E] font-bold text-sm leading-tight truncate pr-1">
-                      {p.name}
-                    </p>
-                    <span className="text-[#1A1A2E] font-black text-sm shrink-0">
-                      {p.sold}
-                      <span className="text-[#9CA3AF] font-semibold text-[10px] ml-0.5">
-                        đơn
-                      </span>
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    {p.badge && (
-                      <span
-                        className="text-[8px] font-black px-1.5 py-0.5 rounded-full"
-                        style={{
-                          color: p.badgeColor,
-                          backgroundColor: p.badgeColor + "18",
-                        }}
-                      >
-                        {p.badge}
-                      </span>
-                    )}
-                    {p.rating > 0 && (
-                      <span className="flex items-center gap-0.5 text-[9px] font-black text-[#FFD93D]">
-                        <MdStar className="text-xs" />
-                        {p.rating}
-                      </span>
-                    )}
-                    <span className="text-[#9CA3AF] text-[9px] font-semibold ml-auto">
-                      {((p.price * p.sold) / 1_000_000).toFixed(1)}M VND
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sold bar */}
-              <div className="ml-13 h-1 bg-[#F4F7FF] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${barPct}%`,
-                    backgroundColor: i === 0 ? "#FFD93D" : p.badgeColor,
-                  }}
-                />
+  if (loading) {
+    return (
+      <div className="bg-white rounded-3xl p-6 border border-[#F4F7FF] animate-pulse">
+        <div className="h-6 w-32 bg-gray-100 rounded mb-8" />
+        <div className="space-y-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-4">
+              <div className="w-14 h-14 bg-gray-100 rounded-2xl" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-100 rounded w-3/4" />
+                <div className="h-3 bg-gray-100 rounded w-1/2" />
               </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
+    );
+  }
+
+  if (topProducts.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-3xl p-6 border border-[#F4F7FF]">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.2em] uppercase mb-1">
+            Thống kê
+          </p>
+          <h2 className="text-[#1A1A2E] font-black text-lg">Bán chạy nhất</h2>
+        </div>
+        <div className="w-10 h-10 rounded-2xl bg-[#4ECDC415] text-[#4ECDC4] flex items-center justify-center">
+          <MdTrendingUp className="text-xl" />
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {topProducts.map((p, i) => (
+          <div
+            key={p.productId}
+            className="flex items-center gap-4 group cursor-pointer"
+          >
+            <div className="relative">
+              <div className="w-14 h-14 rounded-2xl bg-[#F4F7FF] flex items-center justify-center overflow-hidden border border-[#F4F7FF] group-hover:border-[#17409A]/50 transition-colors">
+                <Image
+                  src={p.imageUrl || "/product_placeholder.png"}
+                  alt={p.name}
+                  width={56}
+                  height={56}
+                  className="object-contain group-hover:scale-110 transition-transform duration-300"
+                />
+              </div>
+              <div className="absolute -top-2 -left-2 w-5 h-5 rounded-lg bg-[#1A1A2E] text-white flex items-center justify-center text-[9px] font-black border-2 border-white">
+                {i + 1}
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-[#1A1A2E] font-black text-sm truncate mb-1">
+                {p.name}
+              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-[#17409A] font-black text-xs">
+                  {formatPrice(p.price)}
+                </p>
+                <div className="w-1 h-1 rounded-full bg-[#E5E7EB]" />
+                <p className="text-[#9CA3AF] text-[10px] font-bold">
+                  {p.totalSales} đã bán
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-1 text-[#FFB800] text-[10px] font-black">
+                <MdStar className="text-xs" />{" "}
+                {p.averageRating?.toFixed(1) || "5.0"}
+              </div>
+              <div className="flex items-center gap-1 text-[#9CA3AF] text-[9px] font-bold">
+                <MdVisibility className="text-xs opacity-50" />{" "}
+                {p.viewCountIn10Min || 0}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button className="w-full mt-8 py-3 rounded-2xl text-[10px] font-black text-[#6B7280] bg-[#F4F7FF] hover:bg-[#E2E8F0] transition-colors uppercase tracking-widest">
+        Xem báo cáo chi tiết
+      </button>
     </div>
   );
 }

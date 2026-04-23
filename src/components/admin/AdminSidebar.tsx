@@ -43,6 +43,7 @@ const EXPANDABLE_SECTIONS = [
     children: [
       { label: "Sản phẩm", href: "/admin/products" },
       { label: "Phụ kiện", href: "/admin/accessories" },
+      { label: "Bộ sưu tập", href: "/admin/collections" },
       { label: "Kho hàng", href: "/admin/inventory" },
       { label: "Thuộc tính", href: "/admin/attributes" },
       // { label: "Nhóm tùy chỉnh", href: "/admin/personalization-groups" },

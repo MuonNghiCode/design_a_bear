@@ -186,11 +186,22 @@ export default function OrdersTab() {
           bg: "#17409A18",
         };
         const firstItem = order.orderItems[0];
+
+        // Logic lấy tên hiển thị: Ưu tiên buildName > baseProductName > productNameSnapshot > productName
         const firstItemName =
-          firstItem?.productName ||
+          firstItem?.buildDetails?.buildName ||
+          firstItem?.buildDetails?.baseProductName ||
+          firstItem?.productionJobs?.[0]?.productName ||
           firstItem?.productNameSnapshot ||
+          firstItem?.productName ||
           "Sản phẩm không có tên";
-        const firstItemImage = firstItem?.productImageUrl || null;
+
+        // Logic lấy hình ảnh: Ưu tiên buildDetails.baseProductImageUrl > productionJobs[0].imageUrl > productImageUrl
+        const firstItemImage =
+          firstItem?.buildDetails?.baseProductImageUrl ||
+          firstItem?.productionJobs?.[0]?.imageUrl ||
+          firstItem?.productImageUrl ||
+          null;
 
         const detail = orderDetailsMap[order.orderId];
         const isExpanded = expandedOrderId === order.orderId;
@@ -323,10 +334,19 @@ export default function OrdersTab() {
                               key={item.orderItemId}
                               className="rounded-xl bg-white p-3 border border-[#E5E7EB] flex items-start gap-3"
                             >
-                              {item.productImageUrl ? (
+                              {item.buildDetails?.baseProductImageUrl ||
+                              item.productionJobs?.[0]?.imageUrl ||
+                              item.productImageUrl ? (
                                 <img
-                                  src={item.productImageUrl}
+                                  src={
+                                    item.buildDetails?.baseProductImageUrl ||
+                                    item.productionJobs?.[0]?.imageUrl ||
+                                    item.productImageUrl ||
+                                    ""
+                                  }
                                   alt={
+                                    item.buildDetails?.buildName ||
+                                    item.buildDetails?.baseProductName ||
                                     item.productName ||
                                     item.productNameSnapshot ||
                                     "Sản phẩm"
@@ -338,8 +358,11 @@ export default function OrdersTab() {
                               )}
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-bold text-[#1A1A2E] truncate">
-                                  {item.productName ||
+                                  {item.buildDetails?.buildName ||
+                                    item.buildDetails?.baseProductName ||
+                                    item.productionJobs?.[0]?.productName ||
                                     item.productNameSnapshot ||
+                                    item.productName ||
                                     "Sản phẩm không có tên"}
                                 </p>
                                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#6B7280]">
@@ -361,6 +384,33 @@ export default function OrdersTab() {
                                     )}
                                   </span>
                                 </div>
+
+                                {item.buildDetails?.personalizationNote && (
+                                  <p className="mt-1 text-[10px] text-[#FF8C42] font-semibold italic">
+                                    Ghi chú:{" "}
+                                    {item.buildDetails.personalizationNote}
+                                  </p>
+                                )}
+
+                                {item.buildDetails?.buildComponents &&
+                                  item.buildDetails.buildComponents.length >
+                                    0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1">
+                                      {item.buildDetails.buildComponents.map(
+                                        (comp: any, cIdx: number) => (
+                                          <span
+                                            key={cIdx}
+                                            className="px-1.5 py-0.5 rounded bg-[#F3F4F6] text-[9px] font-bold text-[#4B5563]"
+                                          >
+                                            {comp.productName ||
+                                              comp.variantName ||
+                                              "Phụ kiện"}
+                                          </span>
+                                        ),
+                                      )}
+                                    </div>
+                                  )}
+
                                 {order.status === "COMPLETED" &&
                                   (reportedItemMap[item.orderItemId] ? (
                                     <div className="mt-2 flex items-center gap-2 text-xs font-black">

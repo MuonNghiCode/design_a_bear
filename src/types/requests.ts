@@ -312,25 +312,25 @@ export interface ToggleFavoriteRequest {
 /* ── Accessory API Requests ── */
 
 export interface CreateAccessoryRequest {
+  name: string;
   sku: string;
+  description: string;
+  imageUrl: string;
   baseCost: number;
   assemblyCost: number;
   targetPrice: number;
   stockQuantity: number;
-  imageUrl: string;
-  categoryId: string;
-  isActive?: boolean;
+  isActive: boolean;
 }
 
 export interface UpdateAccessoryRequest {
-  name?: string;
-  description?: string;
-  sku?: string;
-  baseCost?: number;
-  assemblyCost?: number;
-  targetPrice?: number;
-  stockQuantity?: number;
-  imageUrl?: string;
-  categoryId?: string;
-  isActive?: boolean;
+  name: string;
+  sku: string;
+  description: string;
+  imageUrl: string;
+  baseCost: number;
+  assemblyCost: number;
+  targetPrice: number;
+  stockQuantity: number;
+  isActive: boolean;
 }

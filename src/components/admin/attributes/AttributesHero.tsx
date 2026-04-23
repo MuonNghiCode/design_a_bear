@@ -18,7 +18,7 @@ const CATEGORY_DISTRIBUTION = [
     value: 4,
     color: "#17409A",
   },
-  { label: "Nhân vật", value: 6, color: "#7C5CFC" },
+  { label: "Tính cách", value: 6, color: "#7C5CFC" },
   { label: "Phụ kiện", value: 3, color: "#FF8C42" },
 ];
 
@@ -96,7 +96,7 @@ export default function AttributesHero({ stats }: AttributesHeroProps) {
           </button>
           <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-black transition-all">
             <MdStar className="text-sm" />
-            Nhân vật
+            Tính cách
           </button>
         </div>
       </div>

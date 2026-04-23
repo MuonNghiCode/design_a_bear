@@ -390,10 +390,10 @@ export default function InventoryClient() {
                                 <thead>
                                   <tr className="bg-[#17409A] text-white">
                                     <th className="px-6 py-3 text-[10px] font-black uppercase text-left">
-                                      Phân loại / Kích cỡ
+                                      Mã SKU cụ thể
                                     </th>
                                     <th className="px-6 py-3 text-[10px] font-black uppercase text-center">
-                                      Mã SKU cụ thể
+                                      Phân loại / Kích cỡ
                                     </th>
                                     <th className="px-6 py-3 text-[10px] font-black uppercase text-center">
                                       Tồn thực
@@ -415,13 +415,13 @@ export default function InventoryClient() {
                                       key={i}
                                       className="hover:bg-[#F4F7FF]/10 transition-colors"
                                     >
-                                      <td className="px-6 py-4 font-black text-[#1A1A2E]">
+                                      <td className="px-6 py-4 font-bold text-gray-500">
+                                        {v.sku || "N/A"}
+                                      </td>
+                                      <td className="px-6 py-4 text-center font-black text-[#1A1A2E]">
                                         {v.sizeTag || "Tiêu chuẩn"}{" "}
                                         {v.sizeDescription &&
                                           `(${v.sizeDescription})`}
-                                      </td>
-                                      <td className="px-6 py-4 text-center font-bold text-gray-500">
-                                        {v.sku || "N/A"}
                                       </td>
                                       <td className="px-6 py-4 text-center font-black">
                                         {v.onHand}

@@ -182,21 +182,22 @@ export interface ProductCategory {
   parentId: string | null;
   name: string;
   slug: string;
-  isActive?: boolean;
+  isActive: boolean;
 }
 
-export interface CharacterItem {
+export interface ProductCharacter {
   characterId: string;
   name: string;
   slug: string;
   licenseBrand: string | null;
+  isActive: boolean;
 }
 
 export type GetCategoriesResponse = ApiResponse<ProductCategory[]>;
 export type GetCategoryResponse = ApiResponse<ProductCategory>;
 
-export type GetCharactersResponse = ApiResponse<CharacterItem[]>;
-export type GetCharacterResponse = ApiResponse<CharacterItem>;
+export type GetCharactersResponse = ApiResponse<ProductCharacter[]>;
+export type GetCharacterResponse = ApiResponse<ProductCharacter>;
 
 export interface ProductReview {
   reviewId: string;
@@ -246,7 +247,7 @@ export interface Product {
 
 export interface ProductDetail extends Product {
   categories: ProductCategory[];
-  characters: CharacterItem[];
+  characters: ProductCharacter[];
   reviews?: ProductReview[];
   comboImages: ProductComboImage[];
   variants: ProductVariantResponse[];

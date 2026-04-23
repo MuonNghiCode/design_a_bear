@@ -11,6 +11,7 @@ import type {
   ProductDetail,
   CreateProductRequest,
   UpdateProductRequest,
+  ProductListItem,
 } from "@/types";
 
 class ProductService extends BaseApiService {
@@ -60,6 +61,13 @@ class ProductService extends BaseApiService {
   async getProductById(id: string): Promise<GetProductDetailResponse> {
     return this.get<ProductDetail>(
       `${API_ENDPOINTS.PRODUCTS.GET_BY_ID}/${id}`,
+    );
+  }
+
+  async getTopProducts(count: number = 20): Promise<ApiResponse<ProductListItem[]>> {
+    return this.get<ProductListItem[]>(
+      `${API_ENDPOINTS.PRODUCTS.GET_ALL}/top`,
+      { count },
     );
   }
 }

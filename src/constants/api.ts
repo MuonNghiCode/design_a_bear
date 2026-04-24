@@ -159,6 +159,10 @@ export const API_ENDPOINTS = {
     BASE: "/api/Favorites",
     TOGGLE: "/api/Favorites/toggle",
   },
+  PRODUCTION_JOBS: {
+    BASE: "/api/ProductionJobs",
+    LOBBY: "/api/ProductionJobs/lobby",
+  },
   COLLECTIONS: {
     GET_ALL: "/api/Collections",
     GET_BY_ID: "/api/Collections/{id}",

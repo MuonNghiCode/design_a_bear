@@ -44,6 +44,12 @@ export default function LoginForm({
       } else if (user?.role === "staff") {
         console.log("[Auth] Route: /staff");
         router.push("/staff");
+      } else if (user?.role === "craftsman") {
+        console.log("[Auth] Route: /craftsman");
+        router.push("/craftsman");
+      } else if (user?.role === "quality_control") {
+        console.log("[Auth] Route: /qc");
+        router.push("/qc");
       } else {
         console.log("[Auth] Route: /");
         router.push("/");

@@ -197,6 +197,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             ? undefined
             : (product as any).productId || product.id,
         };
+        const hasAiProcessor = (accessories || []).some((acc) => {
+          const name = (acc.name || "").toUpperCase();
+          const id = (acc.id || "").toUpperCase();
+          return name.includes("AI PROCESSOR") || id === "CORE-ESP32-AI";
+        });
         const components = await getComponentsForValidation(tempItem);
 
         // Perform batch check (sequential on FE simulator)
@@ -225,6 +230,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
               ? product.id
               : undefined,
           buildId: buildId || null,
+          includesSmartChip: hasAiProcessor,
           quantity,
           unitPriceSnapshot: product.price,
           sizeTag,

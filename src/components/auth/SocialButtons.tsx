@@ -156,6 +156,10 @@ export default function SocialButtons({
         router.push("/admin");
       } else if (user?.role === "staff") {
         router.push("/staff");
+      } else if (user?.role === "craftsman") {
+        router.push("/craftsman");
+      } else if (user?.role === "quality_control") {
+        router.push("/qc");
       } else {
         router.push("/");
       }

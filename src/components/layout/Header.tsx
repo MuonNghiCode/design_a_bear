@@ -347,6 +347,12 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                     className="absolute top-full left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl py-2 border border-gray-100"
                   >
                     <Link
+                      href="/collections"
+                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-bold text-sm transition-colors rounded-xl mx-1 border-b border-gray-50 mb-1"
+                    >
+                      Tất cả bộ sưu tập
+                    </Link>
+                    <Link
                       href="/collections/spring"
                       className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
                     >
@@ -789,6 +795,13 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
             </button>
             {activeDropdown === "collection-mobile" && (
               <div className="mt-3 ml-4 space-y-3">
+                <Link
+                  href="/collections"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="block text-gray-800 font-bold hover:text-blue-600 transition-colors"
+                >
+                  Tất cả bộ sưu tập
+                </Link>
                 <Link
                   href="/collections/spring"
                   onClick={() => setShowMobileMenu(false)}

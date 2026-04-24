@@ -108,6 +108,7 @@ export default function FavoritesPage() {
           price: fav.productPrice,
           image: fav.productImageUrl || "/teddy_bear.png",
           description: "",
+          href: `/products/${fav.productId}`,
         },
         1,
         null,
@@ -195,6 +196,7 @@ export default function FavoritesPage() {
                 {/* Product Image */}
                 <Link
                   href={`/products/${fav.productId}`}
+                  onClick={() => {}} // Placeholder if needed
                   className="shrink-0 w-32 h-32 rounded-2xl overflow-hidden shadow-md bg-[#F4F7FF]"
                 >
                   <Image

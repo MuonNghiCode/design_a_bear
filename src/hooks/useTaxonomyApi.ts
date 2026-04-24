@@ -2,12 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { taxonomyService } from "@/services/taxonomy.service";
-import type { ProductCategory, CharacterItem } from "@/types";
+import type { ProductCategory, ProductCharacter } from "@/types";
 
 export function useTaxonomyApi() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [characters, setCharacters] = useState<CharacterItem[]>([]);
+  const [characters, setCharacters] = useState<ProductCharacter[]>([]);
 
   const fetchTaxonomy = useCallback(async () => {
     setLoading(true);

@@ -16,21 +16,23 @@ import {
   MdRemoveRedEye,
   MdDelete,
   MdStar,
+  MdRefresh,
 } from "react-icons/md";
 import { type ProductAdmin, type ProductAdminStatus } from "@/data/admin";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
-import type { ProductListItem, ProductDetail, AccessoryResponse } from "@/types";
+import type {
+  ProductListItem,
+  ProductDetail,
+  AccessoryResponse,
+} from "@/types";
 import { productService } from "@/services/product.service";
 
 import CreateProductModal from "./CreateProductModal";
 import EditProductModal from "./EditProductModal";
 import ProductDetailModal from "./ProductDetailModal";
-import CreateAccessoryModal from "./accessories/CreateAccessoryModal";
-import EditAccessoryModal from "./accessories/EditAccessoryModal";
 
 type ViewMode = "grid" | "table";
-type CategoryFilter = "all" | "bear" | "accessory";
 
 const STATUS_CFG: Record<
   ProductAdminStatus,
@@ -40,12 +42,6 @@ const STATUS_CFG: Record<
   draft: { label: "Bản nháp", color: "#7C5CFC", bg: "#7C5CFC18" },
   archived: { label: "Lưu trữ", color: "#9CA3AF", bg: "#9CA3AF18" },
 };
-
-const CATEGORY_TABS: { key: CategoryFilter; label: string }[] = [
-  { key: "all", label: "Tất cả" },
-  { key: "bear", label: "Gấu" },
-  { key: "accessory", label: "Phụ kiện" },
-];
 
 const COL_HEADS = [
   "Sản phẩm",
@@ -400,7 +396,6 @@ const mapAccessoryToAdmin = (
 };
 
 export default function ProductsGrid() {
-  const [catFilter, setCatFilter] = useState<CategoryFilter>("all");
   const [statusFilter, setStatus] = useState<ProductAdminStatus | "all">("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
@@ -410,36 +405,18 @@ export default function ProductsGrid() {
     null,
   );
   const [isCreateModalOpen, setCreateModalOpen] = useState(false);
-  const [isCreateAccessoryModalOpen, setCreateAccessoryModalOpen] =
-    useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [editingAccessoryId, setEditingAccessoryId] = useState<string | null>(
-    null,
-  );
   const [deletingProduct, setDeletingProduct] = useState<ProductAdmin | null>(
     null,
   );
 
-  const {
-    data,
-    loading,
-    accessories,
-    accessoriesLoading,
-    fetchProducts,
-    fetchAccessories,
-    deleteProduct,
-    deleteAccessory,
-    isDeleting,
-  } = useAdminProductsApi();
+  const { data, loading, fetchProducts, deleteProduct, isDeleting } =
+    useAdminProductsApi();
   const { success, error: toastError } = useToast();
 
   const handleRefresh = useCallback(() => {
-    if (catFilter === "accessory") {
-      fetchAccessories();
-    } else {
-      fetchProducts({ pageIndex: 1, pageSize: 50 });
-    }
-  }, [catFilter, fetchProducts, fetchAccessories]);
+    fetchProducts({ pageIndex: 1, pageSize: 50 });
+  }, [fetchProducts]);
 
   useEffect(() => {
     handleRefresh();
@@ -451,10 +428,7 @@ export default function ProductsGrid() {
 
   const handleDeleteConfirm = async () => {
     if (!deletingProduct) return;
-    const ok =
-      deletingProduct.category === "accessory"
-        ? await deleteAccessory(deletingProduct.id)
-        : await deleteProduct(deletingProduct.id);
+    const ok = await deleteProduct(deletingProduct.id);
 
     if (ok) {
       success("Xóa thành công!");
@@ -465,47 +439,31 @@ export default function ProductsGrid() {
     setDeletingProduct(null);
   };
 
-  const mappedData = useMemo(() => {
-    if (catFilter === "accessory") {
-      return accessories.map(mapAccessoryToAdmin);
-    }
+  const filtered = useMemo(() => {
     if (!data?.items) return [];
-    return data.items.map(mapProductToAdmin);
-  }, [data, accessories, catFilter]);
-
-  const catCounts = useMemo(() => {
-    return {
-      all: (data?.totalCount ?? 0) + accessories.length,
-      bear: data?.totalCount ?? 0,
-      accessory: accessories.length,
-    };
-  }, [data, accessories]);
-
-  const filtered = useMemo(
-    () =>
-      mappedData.filter((p) => {
-        if (catFilter !== "all" && p.category !== catFilter) return false;
-        if (statusFilter !== "all" && p.status !== statusFilter) return false;
-        if (debouncedSearch) {
-          const q = debouncedSearch.toLowerCase();
-          return (
-            p.name.toLowerCase().includes(q) ||
-            (p.badge ?? "").toLowerCase().includes(q)
-          );
-        }
-        return true;
-      }),
-    [mappedData, catFilter, statusFilter, debouncedSearch],
-  );
+    return data.items.map(mapProductToAdmin).filter((p) => {
+      if (statusFilter !== "all" && p.status !== statusFilter) return false;
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
+        return (
+          p.name.toLowerCase().includes(q) ||
+          (p.badge ?? "").toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [data, statusFilter, debouncedSearch]);
 
   return (
     <div className="bg-white rounded-3xl p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
-            Danh mục
+            Sản phẩm
           </p>
-          <p className="text-[#1A1A2E] font-black text-xl">Quản lý sản phẩm</p>
+          <p className="text-[#1A1A2E] font-black text-xl font-fredoka">
+            Quản lý sản phẩm
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
@@ -537,39 +495,22 @@ export default function ProductsGrid() {
             ))}
           </div>
           <button
-            onClick={() => {
-              if (catFilter === "accessory") setCreateAccessoryModalOpen(true);
-              else setCreateModalOpen(true);
-            }}
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2 bg-[#F4F7FF] text-[#17409A] text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#E5E7EB] transition-all whitespace-nowrap"
+          >
+            <MdRefresh
+              className={`text-base ${loading ? "animate-spin" : ""}`}
+            />
+            Làm mới đồng bộ
+          </button>
+          <button
+            onClick={() => setCreateModalOpen(true)}
             className="flex items-center gap-1.5 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors whitespace-nowrap"
           >
             <MdAdd className="text-base" /> Thêm mới
           </button>
         </div>
-      </div>
-
-      <div className="flex items-center gap-1.5 flex-wrap mb-3">
-        {CATEGORY_TABS.map(({ key, label }) => {
-          const active = catFilter === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setCatFilter(key)}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all duration-200 ${
-                active
-                  ? "bg-[#17409A] text-white shadow-sm"
-                  : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEF9]"
-              }`}
-            >
-              {label}
-              <span
-                className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : "bg-white text-[#9CA3AF]"}`}
-              >
-                {catCounts[key] ?? 0}
-              </span>
-            </button>
-          );
-        })}
       </div>
 
       <div className="flex items-center gap-1.5 flex-wrap mb-6 pb-4 border-b border-[#F4F7FF]">
@@ -611,17 +552,18 @@ export default function ProductsGrid() {
         })}
       </div>
 
-      {viewMode === "grid" ? (
+      {loading ? (
+        <div className="py-20 text-center text-[#9CA3AF] font-bold">
+          Đang tải sản phẩm...
+        </div>
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {filtered.map((p) => (
             <ProductCard
               key={p.id}
               p={p}
               onView={(p) => setSelectedProductId(p.id)}
-              onEdit={(p) => {
-                if (p.category === "accessory") setEditingAccessoryId(p.id);
-                else setEditingProductId(p.id);
-              }}
+              onEdit={(p) => setEditingProductId(p.id)}
               onDelete={handleDelete}
               isDeleting={isDeleting && deletingProduct?.id === p.id}
             />
@@ -649,10 +591,7 @@ export default function ProductsGrid() {
                   p={p}
                   index={i}
                   onView={(p) => setSelectedProductId(p.id)}
-                  onEdit={(p) => {
-                    if (p.category === "accessory") setEditingAccessoryId(p.id);
-                    else setEditingProductId(p.id);
-                  }}
+                  onEdit={(p) => setEditingProductId(p.id)}
                   onDelete={handleDelete}
                   isDeleting={isDeleting && deletingProduct?.id === p.id}
                 />
@@ -667,21 +606,6 @@ export default function ProductsGrid() {
           onClose={() => setCreateModalOpen(false)}
           onSuccess={handleRefresh}
           isSubmitting={false}
-        />
-      )}
-
-      {isCreateAccessoryModalOpen && (
-        <CreateAccessoryModal
-          onClose={() => setCreateAccessoryModalOpen(false)}
-          onSuccess={handleRefresh}
-        />
-      )}
-
-      {editingAccessoryId && (
-        <EditAccessoryModal
-          accessoryId={editingAccessoryId}
-          onClose={() => setEditingAccessoryId(null)}
-          onSuccess={handleRefresh}
         />
       )}
 
@@ -727,8 +651,7 @@ export default function ProductsGrid() {
               Xác nhận xóa?
             </h3>
             <p className="text-sm font-semibold text-[#6B7280] mb-6">
-              Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa sản
-              phẩm{" "}
+              Bạn có chắc chắn muốn xóa sản phẩm{" "}
               <span className="text-[#1A1A2E] font-black">
                 "{deletingProduct.name}"
               </span>

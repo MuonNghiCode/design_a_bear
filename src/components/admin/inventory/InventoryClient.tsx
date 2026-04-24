@@ -11,6 +11,7 @@ import {
   MdBusiness,
   MdArrowForward,
   MdLockOutline,
+  MdRefresh,
 } from "react-icons/md";
 import { productService, inventoryService, accessoryService } from "@/services";
 import type { ProductListItem, Inventory, AccessoryResponse } from "@/types";
@@ -202,8 +203,12 @@ export default function InventoryClient() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button
             onClick={() => fetchData()}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-[#17409A] text-white font-black text-sm hover:bg-[#0E2A66] transition-all shadow-lg shadow-[#17409A]/20"
+            disabled={isLoading}
+            className="flex items-center gap-2 bg-[#F4F7FF] text-[#17409A] text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#E5E7EB] transition-all whitespace-nowrap"
           >
+            <MdRefresh
+              className={`text-base ${isLoading ? "animate-spin" : ""}`}
+            />
             Làm mới đồng bộ
           </button>
         </div>
@@ -390,10 +395,10 @@ export default function InventoryClient() {
                                 <thead>
                                   <tr className="bg-[#17409A] text-white">
                                     <th className="px-6 py-3 text-[10px] font-black uppercase text-left">
-                                      Phân loại / Kích cỡ
+                                      Mã SKU cụ thể
                                     </th>
                                     <th className="px-6 py-3 text-[10px] font-black uppercase text-center">
-                                      Mã SKU cụ thể
+                                      Phân loại / Kích cỡ
                                     </th>
                                     <th className="px-6 py-3 text-[10px] font-black uppercase text-center">
                                       Tồn thực
@@ -415,13 +420,13 @@ export default function InventoryClient() {
                                       key={i}
                                       className="hover:bg-[#F4F7FF]/10 transition-colors"
                                     >
-                                      <td className="px-6 py-4 font-black text-[#1A1A2E]">
+                                      <td className="px-6 py-4 font-bold text-gray-500">
+                                        {v.sku || "N/A"}
+                                      </td>
+                                      <td className="px-6 py-4 text-center font-black text-[#1A1A2E]">
                                         {v.sizeTag || "Tiêu chuẩn"}{" "}
                                         {v.sizeDescription &&
                                           `(${v.sizeDescription})`}
-                                      </td>
-                                      <td className="px-6 py-4 text-center font-bold text-gray-500">
-                                        {v.sku || "N/A"}
                                       </td>
                                       <td className="px-6 py-4 text-center font-black">
                                         {v.onHand}

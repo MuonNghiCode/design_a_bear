@@ -250,6 +250,16 @@ export default function ProductInfoPanel({
         ? `${product.name} (${selectedVariant.sizeTag})`
         : product.name;
       let targetBuildId: string | null = null;
+      const hasAiProcessor = selectedAccessories.some((acc) => {
+        const type = (acc.addonProduct.productType || "").toUpperCase();
+        const name = (acc.addonProduct.name || "").toUpperCase();
+        const sku = (acc.addonProduct.sku || "").toUpperCase();
+        return (
+          type === "AI_PROCESSOR" ||
+          name.includes("AI PROCESSOR") ||
+          sku === "CORE-ESP32-AI"
+        );
+      });
 
       // 1. If user selected accessories, CREATE A BUILD FIRST
       if (selectedAccessories.length > 0) {
@@ -267,6 +277,7 @@ export default function ProductInfoPanel({
           baseProductId: productId,
           buildName: `Thiết kế ${product.name}`,
           personalizationNote: "Mua kèm phụ kiện",
+          includesSmartChip: hasAiProcessor,
           buildComponents: selectedAccessories.map((acc) => ({
             optionProductId: acc.addonProduct.productId,
           })),
@@ -290,6 +301,8 @@ export default function ProductInfoPanel({
           image: product.image || "/teddy_bear.png",
           badge: product.badge,
           badgeColor: product.badgeColor,
+          slug: product.slug,
+          href: `/products/${product.slug || product.id}`,
         },
         quantity,
         targetBuildId,
@@ -541,7 +554,7 @@ export default function ProductInfoPanel({
           {product.characters && product.characters.length > 0 && (
             <div>
               <p className="text-xs font-black tracking-[0.2em] uppercase text-[#9CA3AF] mb-2">
-                Nhân vật
+                Tính cách
               </p>
               <div className="flex flex-wrap gap-2">
                 {product.characters.map((characterName) => (

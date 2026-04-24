@@ -27,6 +27,27 @@ export interface OrderItem {
   lineTotal?: number;
   productNameSnapshot?: string | null;
   personalizationSnapshot?: string | null;
+  weightSnapshot?: number;
+  includesSmartChip?: boolean;
+  sizeTag?: string | null;
+  buildDetails?: {
+    buildId: string;
+    userId: string | null;
+    baseProductId: string;
+    buildName: string;
+    personalizationNote: string;
+    totalWeightGram: number | null;
+    calculatedPrice: number | null;
+    includesSmartChip: boolean;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    sizeTag: string;
+    sizeDescription: string | null;
+    baseProductName: string;
+    baseProductImageUrl: string;
+    buildComponents: any[];
+  } | null;
   productionJobs?: {
     jobId: string;
     orderItemId: string;
@@ -35,6 +56,11 @@ export interface OrderItem {
     startedAt: string | null;
     completedAt: string | null;
     serialNumber: string;
+    productName?: string;
+    imageUrl?: string;
+    sizeTag?: string;
+    weightGram?: number;
+    components?: any[];
   }[];
 }
 
@@ -51,6 +77,7 @@ export interface OrderListItem {
   taxTotal: number;
   shippingTotal: number;
   grandTotal: number;
+  isPaid: boolean;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -70,6 +97,7 @@ export interface Order {
   taxTotal: number;
   shippingTotal: number;
   grandTotal: number;
+  isPaid: boolean;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -182,21 +210,22 @@ export interface ProductCategory {
   parentId: string | null;
   name: string;
   slug: string;
-  isActive?: boolean;
+  isActive: boolean;
 }
 
-export interface CharacterItem {
+export interface ProductCharacter {
   characterId: string;
   name: string;
   slug: string;
   licenseBrand: string | null;
+  isActive: boolean;
 }
 
 export type GetCategoriesResponse = ApiResponse<ProductCategory[]>;
 export type GetCategoryResponse = ApiResponse<ProductCategory>;
 
-export type GetCharactersResponse = ApiResponse<CharacterItem[]>;
-export type GetCharacterResponse = ApiResponse<CharacterItem>;
+export type GetCharactersResponse = ApiResponse<ProductCharacter[]>;
+export type GetCharacterResponse = ApiResponse<ProductCharacter>;
 
 export interface ProductReview {
   reviewId: string;
@@ -246,7 +275,7 @@ export interface Product {
 
 export interface ProductDetail extends Product {
   categories: ProductCategory[];
-  characters: CharacterItem[];
+  characters: ProductCharacter[];
   reviews?: ProductReview[];
   comboImages: ProductComboImage[];
   variants: ProductVariantResponse[];
@@ -642,3 +671,36 @@ export type ToggleFavoriteResponse = ApiResponse<{
   isAdded: boolean;
   message: string;
 }>;
+
+/* ── Collection API Responses ── */
+
+export interface CollectionResponse {
+  collectionId: string;
+  name: string;
+  slug: string;
+  products?: ProductListItem[]; // Optional: for detail view if BE supports it
+}
+
+export interface CreateCollectionRequest {
+  name: string;
+  slug: string;
+}
+
+export interface UpdateCollectionRequest {
+  name: string;
+  slug: string;
+}
+
+export type GetCollectionsResponse = ApiResponse<CollectionResponse[]>;
+export type GetCollectionResponse = ApiResponse<CollectionResponse>;
+
+export interface FulfillmentResponse {
+  fulfillmentId: string;
+  orderId: string;
+  status: string;
+  trackingNumber?: string;
+  carrier?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  createdAt: string;
+}

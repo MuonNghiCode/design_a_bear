@@ -279,7 +279,7 @@ export default function CartDrawer() {
                   }}
                 >
                   <Link
-                    href={`/products/${item.product.id}`}
+                    href={item.product.href || `/products/${item.product.slug || item.product.id}`}
                     onClick={animateClose}
                   >
                     <div
@@ -312,7 +312,7 @@ export default function CartDrawer() {
                           </span>
                         )}
                         <Link
-                          href={`/products/${item.product.id}`}
+                          href={item.product.href || `/products/${item.product.slug || item.product.id}`}
                           onClick={animateClose}
                         >
                           <p
@@ -324,7 +324,9 @@ export default function CartDrawer() {
                         </Link>
 
                         {/* Build Details (Size & Accessories) */}
-                        {(item.sizeTag || (item.accessories && item.accessories.length > 0)) && (
+                        {(item.sizeTag ||
+                          (item.accessories &&
+                            item.accessories.length > 0)) && (
                           <div className="mt-1.5 space-y-1.5">
                             {item.sizeTag && (
                               <div className="flex items-center gap-1.5">
@@ -332,25 +334,36 @@ export default function CartDrawer() {
                                   Size:
                                 </span>
                                 <span className="text-[11px] font-black text-[#17409A]">
-                                  {item.sizeTag} {item.sizeDetails && <span className="text-[9px] font-bold text-[#9CA3AF] ml-1">({item.sizeDetails})</span>}
+                                  {item.sizeTag}{" "}
+                                  {item.sizeDetails && (
+                                    <span className="text-[9px] font-bold text-[#9CA3AF] ml-1">
+                                      ({item.sizeDetails})
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                             )}
-                            {item.accessories && item.accessories.length > 0 && (
-                              <div className="flex flex-col gap-1">
-                                <span className="text-[9px] font-black uppercase tracking-wider text-[#9CA3AF]">
-                                  Phụ kiện:
-                                </span>
-                                <div className="space-y-0.5">
-                                  {item.accessories.map((acc, idx) => (
-                                    <p key={idx} className="text-[10px] font-bold text-[#4B5563] flex items-start gap-1">
-                                      <span className="text-[#17409A]">•</span>
-                                      {acc.name}
-                                    </p>
-                                  ))}
+                            {item.accessories &&
+                              item.accessories.length > 0 && (
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[9px] font-black uppercase tracking-wider text-[#9CA3AF]">
+                                    Phụ kiện:
+                                  </span>
+                                  <div className="space-y-0.5">
+                                    {item.accessories.map((acc, idx) => (
+                                      <p
+                                        key={idx}
+                                        className="text-[10px] font-bold text-[#4B5563] flex items-start gap-1"
+                                      >
+                                        <span className="text-[#17409A]">
+                                          •
+                                        </span>
+                                        {acc.name}
+                                      </p>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
                           </div>
                         )}
 
@@ -367,7 +380,8 @@ export default function CartDrawer() {
                               </p>
                             ) : item.availableStock < 5 ? (
                               <p className="text-[10px] font-bold text-[#FF8C42]">
-                                Sắp hết hàng: Chỉ còn {item.availableStock} chiếc
+                                Sắp hết hàng: Chỉ còn {item.availableStock}{" "}
+                                chiếc
                               </p>
                             ) : null}
                           </div>

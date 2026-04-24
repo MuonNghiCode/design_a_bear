@@ -123,6 +123,7 @@ export const API_ENDPOINTS = {
     REJECT: "/api/ProductIssueReports/{id}/reject",
   },
   SHIPPING: {
+    BASE: "/api/Shipping",
     CALCULATE_FEE: "/api/Shipping/calculate-fee",
   },
   INVENTORIES: {
@@ -158,6 +159,20 @@ export const API_ENDPOINTS = {
   FAVORITES: {
     BASE: "/api/Favorites",
     TOGGLE: "/api/Favorites/toggle",
+  },
+  PRODUCTION_JOBS: {
+    BASE: "/api/ProductionJobs",
+    LOBBY: "/api/ProductionJobs/lobby",
+  },
+  COLLECTIONS: {
+    GET_ALL: "/api/Collections",
+    GET_BY_ID: "/api/Collections/{id}",
+    GET_BY_SLUG: "/api/Collections/slug/{slug}",
+    CREATE: "/api/Collections",
+    UPDATE: "/api/Collections/{id}",
+    DELETE: "/api/Collections/{id}",
+    ADD_PRODUCT: "/api/Collections/matrix",
+    REMOVE_PRODUCT: "/api/Collections/matrix",
   },
 } as const;
 

@@ -41,6 +41,7 @@ function mapApiToUI(
     buildId: apiItem.buildId,
     product: {
       id: apiItem.productId,
+      slug: apiItem.productSlug,
       name: safeProductName,
       description: apiItem.sku
         ? `Mã SP: ${apiItem.sku}`
@@ -54,7 +55,7 @@ function mapApiToUI(
       badgeColor: "#17409A",
       href: apiItem.productSlug
         ? `/products/${apiItem.productSlug}`
-        : previousItem?.product.href,
+        : previousItem?.product.href || `/products/${apiItem.productId}`,
     },
     quantity: apiItem.quantity,
     // Build details
@@ -192,18 +193,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const tempItem: any = {
           product,
           accessories,
-          baseVariantId: buildId ? undefined : (product as any).productId || product.id
+          baseVariantId: buildId
+            ? undefined
+            : (product as any).productId || product.id,
         };
+        const hasAiProcessor = (accessories || []).some((acc) => {
+          const name = (acc.name || "").toUpperCase();
+          const id = (acc.id || "").toUpperCase();
+          return name.includes("AI PROCESSOR") || id === "CORE-ESP32-AI";
+        });
         const components = await getComponentsForValidation(tempItem);
 
         // Perform batch check (sequential on FE simulator)
         const stockMap = await inventoryService.batchCheck(components);
-        
+
         // Check for any failures
         for (const comp of components) {
           const available = stockMap[comp.identityId] || 0;
           if (available < (quantity || 1)) {
-            toast.error(`Sản phẩm không đủ hàng trong kho (Còn lại: ${available})`);
+            toast.error(
+              `Sản phẩm không đủ hàng trong kho (Còn lại: ${available})`,
+            );
             return;
           }
         }
@@ -211,13 +221,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         const addRes = await addItemToCart({
           cartId: cartId!,
-          productId: buildId ? undefined : (product as any).productId || product.id,
+          productId: buildId
+            ? undefined
+            : (product as any).productId || product.id,
           variantId: buildId
             ? undefined
             : (product as any).productId
               ? product.id
               : undefined,
           buildId: buildId || null,
+          includesSmartChip: hasAiProcessor,
           quantity,
           unitPriceSnapshot: product.price,
           sizeTag,
@@ -255,7 +268,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
                   buildId: buildId,
                   product: {
                     ...product,
-                    href: product.href || `/products/${product.id}`,
+                    href:
+                      product.href || `/products/${product.slug || product.id}`,
                   },
                   quantity,
                   sizeTag,

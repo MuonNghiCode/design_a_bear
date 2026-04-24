@@ -174,6 +174,7 @@ export interface CreateBuildRequest {
   baseProductId: string;
   buildName: string;
   personalizationNote: string;
+  includesSmartChip?: boolean;
   buildComponents: { optionProductId: string }[];
 }
 
@@ -203,6 +204,7 @@ export interface AddToCartRequest {
   productId: string;
   variantId?: string | null;
   buildId: string | null;
+  includesSmartChip?: boolean;
   quantity: number;
   unitPriceSnapshot: number;
   productImageUrlSnapshot?: string | null;
@@ -312,25 +314,39 @@ export interface ToggleFavoriteRequest {
 /* ── Accessory API Requests ── */
 
 export interface CreateAccessoryRequest {
+  name: string;
   sku: string;
+  description: string;
+  imageUrl: string;
   baseCost: number;
   assemblyCost: number;
   targetPrice: number;
   stockQuantity: number;
-  imageUrl: string;
-  categoryId: string;
-  isActive?: boolean;
+  isActive: boolean;
 }
 
 export interface UpdateAccessoryRequest {
-  name?: string;
-  description?: string;
-  sku?: string;
-  baseCost?: number;
-  assemblyCost?: number;
-  targetPrice?: number;
-  stockQuantity?: number;
-  imageUrl?: string;
-  categoryId?: string;
-  isActive?: boolean;
+  name: string;
+  sku: string;
+  description: string;
+  imageUrl: string;
+  baseCost: number;
+  assemblyCost: number;
+  targetPrice: number;
+  stockQuantity: number;
+  isActive: boolean;
+}
+
+export interface CreateFulfillmentRequest {
+  orderId: string;
+  trackingNumber?: string;
+  carrier?: string;
+}
+
+export interface UpdateFulfillmentRequest {
+  status: string;
+  trackingNumber?: string;
+  carrier?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
 }

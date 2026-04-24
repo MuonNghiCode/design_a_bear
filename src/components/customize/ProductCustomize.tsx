@@ -357,7 +357,11 @@ interface Props {
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
-export default function ProductCustomize({ accentColor, product, quantity }: Props) {
+export default function ProductCustomize({
+  accentColor,
+  product,
+  quantity,
+}: Props) {
   const [addingToCart, setAddingToCart] = useState(false);
   const { isAuthenticated } = useAuth();
   const router = useRouter();
@@ -515,13 +519,17 @@ export default function ProductCustomize({ accentColor, product, quantity }: Pro
           image: product.image || "/teddy_bear.png",
           badge: product.badge,
           badgeColor: product.badgeColor,
+          slug: product.slug,
+          href: `/products/${product.slug || product.id}`,
         },
-        quantity
+        quantity,
       );
-      // alert("Đã thêm gấu tuỳ chỉnh vào giỏ hàng!"); 
+      // alert("Đã thêm gấu tuỳ chỉnh vào giỏ hàng!");
       // Context will handle opening the drawer
     } catch (err) {
-      alert("Lỗi khi thêm vào giỏ: " + (err instanceof Error ? err.message : ""));
+      alert(
+        "Lỗi khi thêm vào giỏ: " + (err instanceof Error ? err.message : ""),
+      );
     } finally {
       setAddingToCart(false);
     }
@@ -886,7 +894,11 @@ function CustomizeSummary({
         className="w-full py-4 rounded-2xl text-white font-black text-sm tracking-wide shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02] disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 cursor-pointer"
         style={{ backgroundColor: accentColor }}
       >
-        {addingToCart ? "Đang xử lý..." : isComplete ? "Thêm vào giỏ hàng" : "Hoàn tất để tiếp tục"}
+        {addingToCart
+          ? "Đang xử lý..."
+          : isComplete
+            ? "Thêm vào giỏ hàng"
+            : "Hoàn tất để tiếp tục"}
       </button>
 
       {isComplete && (
@@ -1027,7 +1039,7 @@ function StepTheme({
     <div>
       <StepHeading
         number="02"
-        title="Chủ đề nhân vật"
+        title="Chủ đề Tính cách"
         subtitle="Trang phục và câu chuyện sẽ xoay quanh chủ đề bé yêu thích"
         accentColor={accentColor}
       />

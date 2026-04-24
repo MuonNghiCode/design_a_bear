@@ -16,7 +16,7 @@ import type {
   RegisterRequest,
 } from "@/types";
 
-export type UserRole = "admin" | "staff" | "user";
+export type UserRole = "admin" | "staff" | "user" | "craftsman" | "quality_control";
 
 export interface User {
   id: string;
@@ -92,6 +92,14 @@ function mapRole(rawRole?: string | number, roleName?: string): UserRole {
     return "admin";
   if (roleValue === "2" || roleValue === "staff" || nameValue === "staff")
     return "staff";
+  if (roleValue === "4" || roleValue === "craftsman" || nameValue === "craftsman")
+    return "craftsman";
+  if (
+    roleValue === "5" ||
+    roleValue === "qualitycontrol" ||
+    nameValue === "qualitycontrol"
+  )
+    return "quality_control";
 
   return "user";
 }

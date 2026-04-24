@@ -336,3 +336,17 @@ export interface UpdateAccessoryRequest {
   stockQuantity: number;
   isActive: boolean;
 }
+
+export interface CreateFulfillmentRequest {
+  orderId: string;
+  trackingNumber?: string;
+  carrier?: string;
+}
+
+export interface UpdateFulfillmentRequest {
+  status: string;
+  trackingNumber?: string;
+  carrier?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+}

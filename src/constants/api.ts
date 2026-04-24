@@ -123,6 +123,7 @@ export const API_ENDPOINTS = {
     REJECT: "/api/ProductIssueReports/{id}/reject",
   },
   SHIPPING: {
+    BASE: "/api/Shipping",
     CALCULATE_FEE: "/api/Shipping/calculate-fee",
   },
   INVENTORIES: {

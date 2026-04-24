@@ -9,6 +9,7 @@ import {
   MdClose,
   MdImage,
   MdFactCheck,
+  MdEditNote,
 } from "react-icons/md";
 import { productionJobService } from "@/services";
 import { ProductionJob } from "@/types";
@@ -192,6 +193,37 @@ export default function QCInspectionDetailClient({ jobId }: Props) {
               </div>
             </div>
           </div>
+
+          {(job.espHandoverNote || job.shellHandoverNote) && (
+            <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm space-y-6">
+              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                <MdEditNote className="text-[#17409A] text-2xl" /> Ghi chú từ Thợ
+              </h3>
+              
+              <div className="space-y-4">
+                {job.espHandoverNote && (
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-black text-[#17409A] uppercase tracking-widest mb-2">
+                      Mạch thông minh (ESP)
+                    </p>
+                    <p className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      {job.espHandoverNote}
+                    </p>
+                  </div>
+                )}
+                {job.shellHandoverNote && (
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-black text-[#17409A] uppercase tracking-widest mb-2">
+                      Vỏ gấu bông
+                    </p>
+                    <p className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      {job.shellHandoverNote}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm space-y-6">
             <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">

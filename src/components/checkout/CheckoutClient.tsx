@@ -303,8 +303,8 @@ export default function CheckoutClient() {
             defaultForm.address = defAddr.line1 || "";
             defaultForm.wardName = defAddr.line2 || "";
             defaultForm.note = defAddr.label || "";
-            defaultForm.provinceName = defAddr.city || "";
-            defaultForm.districtName = defAddr.state || "";
+            defaultForm.provinceName = defAddr.state || "";
+            defaultForm.districtName = defAddr.city || "";
             setAddresses(addressRes.value);
 
             if (defAddr.addressId) {
@@ -351,8 +351,8 @@ export default function CheckoutClient() {
     const userId = userObj ? JSON.parse(userObj).id : null;
     const normalizedPhone = normalizePhoneNumber(form.phone);
 
-    const city = (form.provinceName || form.province).trim();
-    const state = (form.districtName || form.district).trim();
+    const city = (form.districtName || form.district).trim();
+    const state = (form.provinceName || form.province).trim();
 
     const normalizedCurrent = {
       fullName: form.name.trim().toLowerCase(),

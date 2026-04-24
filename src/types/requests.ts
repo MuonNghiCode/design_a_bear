@@ -174,6 +174,7 @@ export interface CreateBuildRequest {
   baseProductId: string;
   buildName: string;
   personalizationNote: string;
+  includesSmartChip?: boolean;
   buildComponents: { optionProductId: string }[];
 }
 
@@ -203,6 +204,7 @@ export interface AddToCartRequest {
   productId: string;
   variantId?: string | null;
   buildId: string | null;
+  includesSmartChip?: boolean;
   quantity: number;
   unitPriceSnapshot: number;
   productImageUrlSnapshot?: string | null;

@@ -250,6 +250,16 @@ export default function ProductInfoPanel({
         ? `${product.name} (${selectedVariant.sizeTag})`
         : product.name;
       let targetBuildId: string | null = null;
+      const hasAiProcessor = selectedAccessories.some((acc) => {
+        const type = (acc.addonProduct.productType || "").toUpperCase();
+        const name = (acc.addonProduct.name || "").toUpperCase();
+        const sku = (acc.addonProduct.sku || "").toUpperCase();
+        return (
+          type === "AI_PROCESSOR" ||
+          name.includes("AI PROCESSOR") ||
+          sku === "CORE-ESP32-AI"
+        );
+      });
 
       // 1. If user selected accessories, CREATE A BUILD FIRST
       if (selectedAccessories.length > 0) {
@@ -267,6 +277,7 @@ export default function ProductInfoPanel({
           baseProductId: productId,
           buildName: `Thiết kế ${product.name}`,
           personalizationNote: "Mua kèm phụ kiện",
+          includesSmartChip: hasAiProcessor,
           buildComponents: selectedAccessories.map((acc) => ({
             optionProductId: acc.addonProduct.productId,
           })),

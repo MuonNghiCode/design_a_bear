@@ -13,11 +13,13 @@ export interface ProductionJob {
   jobId: string;
   orderItemId: string;
   status: ProductionStatus;
+  qcStatus?: ProductionStatus;
   hasSmartChip: boolean;
   assignedUser?: string;
   startedAt?: string;
   completedAt?: string;
   serialNumber?: string;
+  rejectionReason?: string;
   
   // Part specific fields
   espTechnicianId?: string;
@@ -31,9 +33,12 @@ export interface ProductionJob {
   shellFinishedAt?: string;
   shellHandoverPhotoUrls?: string;
   shellHandoverNote?: string;
+  qcHandoverNote?: string;
 
   // Extra info for UI
   productName?: string;
+  baseProductName?: string;
+  buildName?: string;
   imageUrl?: string;
   size?: string;
   sizeTag?: string;
@@ -63,4 +68,5 @@ export interface SubmitInspectionRequest {
   score: number;
   notes?: string;
   isApproved: boolean;
+  rejectedPartType?: string;
 }

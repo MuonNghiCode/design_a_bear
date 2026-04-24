@@ -11,13 +11,20 @@ interface LobbyJobCardProps {
 }
 
 export default function LobbyJobCard({ job, onClaim }: LobbyJobCardProps) {
+  const displayName =
+    job.buildName || job.baseProductName || job.productName || "Sản phẩm";
+  const originName =
+    job.baseProductName && job.baseProductName !== displayName
+      ? job.baseProductName
+      : null;
+
   return (
     <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all duration-500 group flex flex-col">
       {/* Product Image */}
       <div className="relative h-48 bg-slate-100 overflow-hidden">
         <Image
           src={job.imageUrl || "/teddy_bear.png"}
-          alt={job.productName || "Teddy Bear"}
+          alt={displayName}
           fill
           className="object-contain p-4 group-hover:scale-110 transition-transform duration-700"
         />
@@ -38,16 +45,30 @@ export default function LobbyJobCard({ job, onClaim }: LobbyJobCardProps) {
 
       {/* Content */}
       <div className="p-6 flex-1 flex flex-col">
-        <h3 className="text-lg font-black text-[#17409A] line-clamp-1">{job.productName}</h3>
-        
+        <h3 className="text-lg font-black text-[#17409A] line-clamp-1">
+          {displayName}
+        </h3>
+        {originName && (
+          <p className="mt-1 text-xs font-semibold text-slate-500 line-clamp-1">
+            Goc san pham: {originName}
+          </p>
+        )}
+
         <div className="mt-4 space-y-3 flex-1">
           <div className="flex items-center gap-2 text-slate-500">
             <MdOutlineCategory className="text-lg text-[#17409A]" />
-            <span className="text-sm font-bold">{job.size || "Kích thước chuẩn"}</span>
+            <span className="text-sm font-bold">
+              {job.size || "Kích thước chuẩn"}
+            </span>
           </div>
           <div className="flex items-center gap-2 text-slate-500">
             <GiHammerBreak className="text-lg text-[#17409A]" />
-            <span className="text-sm font-bold">Thù lao: <span className="text-[#17409A]">{job.craftsmanCommission.toLocaleString()}đ</span></span>
+            <span className="text-sm font-bold">
+              Thù lao:{" "}
+              <span className="text-[#17409A]">
+                {job.craftsmanCommission.toLocaleString()}đ
+              </span>
+            </span>
           </div>
         </div>
 

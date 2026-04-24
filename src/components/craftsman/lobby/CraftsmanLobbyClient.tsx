@@ -29,6 +29,25 @@ export default function CraftsmanLobbyClient() {
 
   useEffect(() => {
     fetchLobby();
+
+    const intervalId = window.setInterval(() => {
+      fetchLobby();
+    }, 15000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchLobby();
+      }
+    };
+
+    window.addEventListener("focus", fetchLobby);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", fetchLobby);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   const handleClaim = async (jobId: string) => {
@@ -69,18 +88,22 @@ export default function CraftsmanLobbyClient() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="w-12 h-12 border-4 border-[#17409A]/20 border-t-[#17409A] rounded-full animate-spin" />
-          <p className="text-[#17409A] font-black uppercase tracking-widest text-xs">Đang tìm đơn mới...</p>
+          <p className="text-[#17409A] font-black uppercase tracking-widest text-xs">
+            Đang tìm đơn mới...
+          </p>
         </div>
       ) : jobs.length === 0 ? (
         <div className="bg-white rounded-[40px] p-20 flex flex-col items-center justify-center text-center border border-dashed border-slate-200">
           <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-6">
             <GiPawPrint className="text-5xl" />
           </div>
-          <h2 className="text-xl font-black text-slate-400">Sảnh việc hiện đang trống</h2>
+          <h2 className="text-xl font-black text-slate-400">
+            Sảnh việc hiện đang trống
+          </h2>
           <p className="text-slate-400 mt-2 max-w-xs">
             Hiện chưa có đơn hàng nào cần chế tác. Hãy quay lại sau nhé!
           </p>
-          <button 
+          <button
             onClick={fetchLobby}
             className="mt-8 px-8 py-3 rounded-2xl bg-[#17409A] text-white font-black uppercase tracking-widest text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-900/20"
           >

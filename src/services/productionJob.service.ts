@@ -40,8 +40,8 @@ class ProductionJobService extends BaseApiService {
     return this.post<void>(`${API_ENDPOINTS.PRODUCTION_JOBS.BASE}/${id}/handover`, payload);
   }
 
-  async submitInspection(id: string, score: number, notes: string, isApproved: boolean): Promise<ApiResponse<void>> {
-    return this.post<void>(`${API_ENDPOINTS.PRODUCTION_JOBS.BASE}/${id}/qc-inspection`, { score, notes, isApproved });
+  async submitInspection(id: string, score: number, notes: string, isApproved: boolean, rejectedPartType?: string): Promise<ApiResponse<void>> {
+    return this.post<void>(`${API_ENDPOINTS.PRODUCTION_JOBS.BASE}/${id}/qc-inspection`, { score, notes, isApproved, rejectedPartType });
   }
 }
 

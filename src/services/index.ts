@@ -17,3 +17,4 @@ export * from "./accessory.service";
 export * from "./productionJob.service";
 export * from "./collection.service";
 
+export * from './fulfillment.service';

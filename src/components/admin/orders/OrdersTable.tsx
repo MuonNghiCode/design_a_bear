@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatPrice } from "@/utils/currency";
 import { useDebounce } from "@/hooks";
 import {
@@ -13,10 +14,14 @@ import {
 import { GiPawPrint } from "react-icons/gi";
 import { orderService } from "@/services/order.service";
 import { addressService } from "@/services/address.service";
+import { fulfillmentService } from "@/services/fulfillment.service";
+import { shippingService } from "@/services/shipping.service";
 import { useToast } from "@/contexts/ToastContext";
 import CustomDropdown from "@/components/shared/CustomDropdown";
-import type { OrderListItem, AddressDetail } from "@/types";
+import type { OrderListItem, AddressDetail, Order } from "@/types";
+import type { FulfillmentResponse } from "@/types/responses";
 import { formatShortOrderCode } from "@/utils/order";
+import { MdLocalShipping, MdPrint } from "react-icons/md";
 
 export type OrderStatus =
   | "pending"
@@ -112,6 +117,7 @@ interface OrdersTableProps {
 }
 
 export default function OrdersTable({ orders, loading, usersMap, onRefresh }: OrdersTableProps) {
+  const { user } = useAuth();
   const [tab, setTab] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
@@ -119,6 +125,10 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
   const [selectedAddress, setSelectedAddress] = useState<AddressDetail | null>(
     null,
   );
+  const [fulfillment, setFulfillment] = useState<FulfillmentResponse | null>(null);
+  const [pushingGhtk, setPushingGhtk] = useState(false);
+  const [trackingData, setTrackingData] = useState<any>(null);
+  const [loadingTracking, setLoadingTracking] = useState(false);
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
@@ -130,14 +140,16 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
   ) => {
     try {
       setLoadingDetails(orderId);
-      setSelectedAddress(null);
+      setTrackingData(null);
+      setFulfillment(null);
 
       const orderAction = orderService.getOrderById(orderId);
       const addressAction = shippingAddressId
         ? addressService.getAddressById(shippingAddressId)
         : Promise.resolve(null);
+      const fulfillmentAction = fulfillmentService.getByOrderId(orderId);
 
-      const [res, addressRes] = await Promise.all([orderAction, addressAction]);
+      const [res, addressRes, fulfillmentRes] = await Promise.all([orderAction, addressAction, fulfillmentAction]);
 
       if (res.isSuccess && res.value) {
         setSelected(res.value);
@@ -150,6 +162,10 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
 
       if (addressRes?.isSuccess && addressRes.value) {
         setSelectedAddress(addressRes.value);
+      }
+
+      if (fulfillmentRes?.isSuccess && fulfillmentRes.value && fulfillmentRes.value.length > 0) {
+        setFulfillment(fulfillmentRes.value[0]);
       }
     } catch (e: any) {
       console.error(e);
@@ -164,6 +180,91 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
 
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
+
+  const handleSubmitToGhtk = async () => {
+    if (!selected || !selectedAddress) return;
+    setPushingGhtk(true);
+    try {
+      const orderRes = await orderService.getOrderById(selected.orderId);
+      if (!orderRes.isSuccess || !orderRes.value) throw new Error("Không thể tải thông tin đơn hàng");
+      const fullOrder = orderRes.value;
+
+      const products = fullOrder.orderItems.map((item) => {
+        let weight = item.weightSnapshot || 500;
+        if (weight === 0) weight = 500;
+        return {
+          name:
+            item.buildDetails?.buildName ||
+            item.buildDetails?.baseProductName ||
+            item.productNameSnapshot ||
+            item.productName ||
+            "Sản phẩm đồ chơi",
+          weight: weight,
+          quantity: item.quantity,
+          productCode: item.sku || undefined,
+        };
+      });
+
+      const isOldAddress = selectedAddress.city.includes("Thành phố") || selectedAddress.city.includes("Tỉnh");
+      const province = isOldAddress ? selectedAddress.city : (selectedAddress.state || selectedAddress.city);
+      const district = isOldAddress ? selectedAddress.state : selectedAddress.city;
+
+      const res = await shippingService.submitExpressOrder({
+        orderId: selected.orderId,
+        customerName: selectedAddress.fullName,
+        customerPhone: selectedAddress.phoneNumber,
+        customerAddress: `${selectedAddress.line1}${selectedAddress.line2 ? `, ${selectedAddress.line2}` : ""}`,
+        customerProvince: province,
+        customerDistrict: district,
+        customerWard: selectedAddress.line2 || undefined,
+        hamlet: selectedAddress.line2 || undefined,
+        pickMoney: fullOrder.isPaid ? 0 : fullOrder.grandTotal,
+        value: fullOrder.subtotal,
+        products: products,
+      });
+
+      if (res.isSuccess && res.value?.order?.label) {
+        success("Đẩy đơn sang GHTK thành công!");
+        const label = res.value.order.label;
+        const fulfillRes = await fulfillmentService.create({
+          orderId: selected.orderId,
+          trackingNumber: label,
+          carrier: "GHTK",
+        });
+        if (fulfillRes.isSuccess && fulfillRes.value) {
+          setFulfillment(fulfillRes.value);
+          // Auto transition to SHIPPING status
+          await orderService.updateOrderStatus(selected.orderId, { status: "SHIPPING" });
+          handleRefresh();
+        }
+      } else {
+        toastError(res.error?.description || "GHTK từ chối đẩy đơn");
+      }
+    } catch (e: any) {
+      console.error(e);
+      toastError("Lỗi khi đẩy đơn: " + (e.message || "Unknown"));
+    } finally {
+      setPushingGhtk(false);
+    }
+  };
+
+  const handleTrackGhtk = async () => {
+    if (!fulfillment?.trackingNumber) return;
+    setLoadingTracking(true);
+    try {
+      const res = await shippingService.getTrackingStatus(fulfillment.trackingNumber);
+      if (res.isSuccess && res.value) {
+        setTrackingData(res.value);
+      } else {
+        toastError(res.error?.description || "Không thể lấy thông tin tracking");
+      }
+    } catch (e: any) {
+      console.error(e);
+      toastError("Lỗi mạng khi lấy tracking");
+    } finally {
+      setLoadingTracking(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -596,13 +697,19 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
 
                     <div className="relative w-full sm:w-37.5">
                       <CustomDropdown
-                        options={BACKEND_STATUSES.map((sts) => ({
+                        options={BACKEND_STATUSES.filter(sts => {
+                          if (user?.role === 'staff') {
+                            // Staff only allowed to switch to SHIPPING or keep current
+                            return sts.value === 'SHIPPING' || sts.value === selected.status;
+                          }
+                          return true;
+                        }).map((sts) => ({
                           label: sts.label,
                           value: sts.value,
                         }))}
                         value={selected.status}
                         onChange={handleStatusUpdate}
-                        disabled={updatingStatus !== null}
+                        disabled={updatingStatus !== null || (user?.role === 'staff' && selected.status === 'SHIPPING')}
                         buttonClassName="w-full bg-white/60 backdrop-blur-sm border border-white hover:bg-white text-[11px] font-black tracking-wide text-[#1A1A2E] py-2.5 px-3 rounded-2xl cursor-pointer shadow-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
                         chevronClassName="text-[#1A1A2E] text-sm opacity-60 transition-transform"
                         menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-white bg-white shadow-xl py-1 overflow-hidden"
@@ -746,6 +853,77 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
                         <p className="text-[#4B5563] text-xs leading-relaxed font-medium">
                           {selectedAddress.state}, {selectedAddress.city}
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* GHTK Shipping Section */}
+                  {(selected.status === "READY_FOR_PICKUP" || fulfillment) && (
+                    <div>
+                      <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
+                        Giao hàng (GHTK)
+                      </p>
+                      <div className="bg-[#F8F9FF] rounded-2xl p-4">
+                        {fulfillment ? (
+                          <>
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <p className="text-[#1A1A2E] font-bold text-sm">
+                                  Mã vận đơn: {fulfillment.trackingNumber}
+                                </p>
+                                <p className="text-[#9CA3AF] text-[11px] font-semibold mt-0.5">
+                                  Đơn vị: {fulfillment.carrier || "GHTK"}
+                                </p>
+                              </div>
+                              <a
+                                href={shippingService.getPrintLabelUrl(fulfillment.trackingNumber || "")}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#17409A] px-3 py-1.5 rounded-lg text-[11px] font-black hover:bg-[#F4F7FF] transition-colors"
+                              >
+                                <MdPrint className="text-sm" />
+                                In phiếu gửi
+                              </a>
+                            </div>
+
+                            {/* Tracking button and data */}
+                            {!trackingData ? (
+                              <button
+                                onClick={handleTrackGhtk}
+                                disabled={loadingTracking}
+                                className="w-full flex items-center justify-center gap-2 bg-[#17409A] text-white py-2 rounded-xl text-xs font-black hover:bg-[#0f2d70] transition-colors disabled:opacity-50"
+                              >
+                                <MdLocalShipping className="text-base" />
+                                {loadingTracking ? "Đang lấy thông tin..." : "Theo dõi hành trình"}
+                              </button>
+                            ) : (
+                              <div className="mt-3 p-3 bg-white rounded-xl border border-[#E5E7EB]">
+                                <p className="text-[#1A1A2E] font-bold text-xs mb-1">
+                                  Trạng thái: <span className="text-[#17409A]">{trackingData.status_text}</span>
+                                </p>
+                                <p className="text-[#6B7280] text-[10px] font-semibold">
+                                  Cập nhật lúc: {trackingData.action_time}
+                                </p>
+                                {trackingData.reason && (
+                                  <p className="text-[#FF8C42] text-[10px] italic mt-1">Lý do: {trackingData.reason}</p>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <button
+                            onClick={handleSubmitToGhtk}
+                            disabled={pushingGhtk}
+                            className="w-full flex items-center justify-center gap-2 bg-[#17409A] text-white py-2.5 rounded-xl text-xs font-black hover:bg-[#0f2d70] transition-colors disabled:opacity-50"
+                          >
+                            {pushingGhtk ? (
+                              <MdAutorenew className="animate-spin text-base" />
+                            ) : (
+                              <MdLocalShipping className="text-base" />
+                            )}
+                            Đẩy đơn sang GHTK
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}

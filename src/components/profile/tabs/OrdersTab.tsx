@@ -8,7 +8,12 @@ import type { Order, ProductIssueReport } from "@/types";
 import { formatShortOrderCode } from "@/utils/order";
 import ProductIssueModal from "@/components/orders/ProductIssueModal";
 import { productIssueService } from "@/services/productIssue.service";
+import { fulfillmentService } from "@/services/fulfillment.service";
+import { shippingService } from "@/services/shipping.service";
+import { orderService } from "@/services/order.service";
 import { formatDateTime } from "@/utils/date";
+import type { FulfillmentResponse } from "@/types/responses";
+import { MdLocalShipping, MdAutorenew } from "react-icons/md";
 
 const STATUS_STYLE: Record<
   string,
@@ -18,11 +23,14 @@ const STATUS_STYLE: Record<
   PAID: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
   CANCELLED: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
   PROCESSING: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
+  PRINTING: { label: "Đang in", color: "#06B6D4", bg: "#06B6D418" },
+  READY_FOR_PICKUP: { label: "Sẵn sàng lấy", color: "#4ECDC4", bg: "#4ECDC418" },
+  SHIPPING: { label: "Đang giao", color: "#14B8A6", bg: "#14B8A618" },
   COMPLETED: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
   REFUNDED: { label: "Đã hoàn tiền", color: "#6B7280", bg: "#6B728018" },
 };
 
-const BILLABLE_STATUSES = new Set(["PAID", "PROCESSING", "COMPLETED"]);
+const BILLABLE_STATUSES = new Set(["PAID", "PROCESSING", "PRINTING", "READY_FOR_PICKUP", "SHIPPING", "COMPLETED"]);
 
 function formatMoney(amount: number, currency: string) {
   const locale = currency === "USD" ? "en-US" : "vi-VN";
@@ -45,11 +53,15 @@ export default function OrdersTab() {
   );
   const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [fulfillmentMap, setFulfillmentMap] = useState<Record<string, FulfillmentResponse | null>>({});
+  const [trackingDataMap, setTrackingDataMap] = useState<Record<string, any>>({});
+  const [trackingLoadingMap, setTrackingLoadingMap] = useState<Record<string, boolean>>({});
 
   // Issues Modal State
   const [issueModalOpen, setIssueModalOpen] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [selectedItemName, setSelectedItemName] = useState("");
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [reportedItemMap, setReportedItemMap] = useState<
     Record<string, ProductIssueReport>
   >({});
@@ -134,13 +146,71 @@ export default function OrdersTab() {
 
     setDetailLoadingId(order.orderId);
     try {
-      const detail = await getOrderById(order.orderId);
+      const orderAction = getOrderById(order.orderId);
+      const fulfillmentAction = fulfillmentService.getByOrderId(order.orderId);
+
+      const [detail, fulfillmentRes] = await Promise.all([orderAction, fulfillmentAction]);
+      
       setOrderDetailsMap((prev) => ({ ...prev, [order.orderId]: detail }));
+      
+      if (fulfillmentRes.isSuccess && fulfillmentRes.value && fulfillmentRes.value.length > 0) {
+        setFulfillmentMap((prev) => ({ ...prev, [order.orderId]: fulfillmentRes.value[0] }));
+      } else {
+        setFulfillmentMap((prev) => ({ ...prev, [order.orderId]: null }));
+      }
     } catch {
       // error handled in UI block below
     } finally {
       setDetailLoadingId(null);
     }
+  };
+
+  const handleTrackGhtk = async (orderId: string, trackingNumber: string) => {
+    setTrackingLoadingMap((prev) => ({ ...prev, [orderId]: true }));
+    try {
+      const res = await shippingService.getTrackingStatus(trackingNumber);
+      if (res.isSuccess && res.value) {
+        setTrackingDataMap((prev) => ({ ...prev, [orderId]: res.value }));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTrackingLoadingMap((prev) => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  const handleConfirmReceived = async (orderId: string) => {
+    setConfirmingId(orderId);
+    try {
+      const res = await orderService.updateOrderStatus(orderId, {
+        status: "COMPLETED",
+        notes: "Khách hàng xác nhận đã nhận hàng",
+      });
+      if (res.isSuccess) {
+        setOrders(orders.map(o => o.orderId === orderId ? { ...o, status: "COMPLETED" } : o));
+        if (orderDetailsMap[orderId]) {
+          setOrderDetailsMap((prev) => ({
+            ...prev,
+            [orderId]: { ...prev[orderId], status: "COMPLETED" }
+          }));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  const getPipelineSteps = (order: Order) => {
+    const status = order.status?.toUpperCase();
+    return [
+      { label: "Chờ duyệt", completed: true },
+      { label: "Chế tác", active: ["PROCESSING", "PRINTING"].includes(status), completed: ["READY_FOR_PICKUP", "SHIPPING", "COMPLETED"].includes(status) },
+      { label: "Kiểm định", active: status === "READY_FOR_PICKUP", completed: ["SHIPPING", "COMPLETED"].includes(status) },
+      { label: "Đang giao", active: status === "SHIPPING", completed: status === "COMPLETED" },
+      { label: "Hoàn thành", active: status === "COMPLETED", completed: status === "COMPLETED" },
+    ];
   };
 
   return (
@@ -319,6 +389,34 @@ export default function OrdersTab() {
                       </p>
                     </div>
 
+                    {/* Timeline */}
+                    <div className="mt-4 bg-white rounded-2xl p-4 border border-[#E5E7EB]">
+                      <div className="flex items-center justify-between relative">
+                        {getPipelineSteps(detail).map((step, idx, arr) => (
+                          <div key={idx} className="flex flex-col items-center relative z-10 flex-1">
+                            <div
+                              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
+                                step.completed ? "bg-[#4ECDC4] text-white" : step.active ? "bg-[#17409A] text-white animate-pulse" : "bg-[#E5E7EB] text-[#9CA3AF]"
+                              }`}
+                            >
+                              {step.completed ? "✓" : idx + 1}
+                            </div>
+                            <span className={`text-[9px] font-bold mt-1.5 whitespace-nowrap ${step.active ? "text-[#17409A]" : "text-[#6B7280]"}`}>
+                              {step.label}
+                            </span>
+                            {idx < arr.length - 1 && (
+                              <div className="absolute left-1/2 top-2.5 w-full h-[2px] bg-[#E5E7EB] -z-10">
+                                <div
+                                  className="h-full bg-[#4ECDC4] transition-all duration-500"
+                                  style={{ width: step.completed ? "100%" : "0%" }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="mt-3">
                       <p className="text-xs font-black text-[#17409A] mb-2">
                         Danh sách sản phẩm
@@ -474,6 +572,77 @@ export default function OrdersTab() {
                         </div>
                       )}
                     </div>
+
+                    {/* Fulfillment Section for User */}
+                    {fulfillmentMap[order.orderId] && (
+                      <div className="mt-4 pt-4 border-t border-[#E5E7EB]">
+                        <p className="text-xs font-black text-[#17409A] mb-2">
+                          Thông tin giao hàng
+                        </p>
+                        <div className="bg-[#F8F9FF] rounded-xl p-3 border border-[#E5E7EB]">
+                          <p className="text-[#1A1A2E] text-xs font-bold mb-1">
+                            Mã vận đơn: {fulfillmentMap[order.orderId]?.trackingNumber}
+                          </p>
+                          <p className="text-[#6B7280] text-[11px] font-semibold mb-3">
+                            Đơn vị vận chuyển: {fulfillmentMap[order.orderId]?.carrier || "GHTK"}
+                          </p>
+
+                          {!trackingDataMap[order.orderId] ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTrackGhtk(order.orderId, fulfillmentMap[order.orderId]?.trackingNumber || "");
+                              }}
+                              disabled={trackingLoadingMap[order.orderId]}
+                              className="flex items-center gap-2 bg-white border border-[#17409A] text-[#17409A] px-3 py-1.5 rounded-lg text-[11px] font-black hover:bg-[#17409A] hover:text-white transition-colors disabled:opacity-50"
+                            >
+                              {trackingLoadingMap[order.orderId] ? (
+                                <MdAutorenew className="animate-spin text-sm" />
+                              ) : (
+                                <MdLocalShipping className="text-sm" />
+                              )}
+                              Theo dõi đơn hàng
+                            </button>
+                          ) : (
+                            <div className="mt-2 p-2 bg-white rounded-lg border border-[#E5E7EB]">
+                              <p className="text-[#1A1A2E] font-bold text-[11px] mb-1">
+                                Trạng thái: <span className="text-[#17409A]">{trackingDataMap[order.orderId].order?.status_text || trackingDataMap[order.orderId].message}</span>
+                              </p>
+                              <p className="text-[#6B7280] text-[10px] font-semibold">
+                                Cập nhật lúc: {trackingDataMap[order.orderId].order?.action_time || "N/A"}
+                              </p>
+                              {trackingDataMap[order.orderId].order?.reason && (
+                                <p className="text-[#FF8C42] text-[10px] italic mt-1">
+                                  Ghi chú: {trackingDataMap[order.orderId].order.reason}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Confirmation Button for User */}
+                    {order.status === "SHIPPING" && (
+                      <div className="mt-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleConfirmReceived(order.orderId);
+                          }}
+                          disabled={confirmingId === order.orderId}
+                          className="w-full bg-[#4ECDC4] hover:bg-[#3db8af] text-white font-black py-3 rounded-xl text-sm shadow-lg shadow-[#4ECDC4]/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                        >
+                          {confirmingId === order.orderId ? (
+                            <MdAutorenew className="animate-spin inline mr-2 text-lg" />
+                          ) : null}
+                          Đã nhận được hàng
+                        </button>
+                        <p className="text-center text-[10px] text-[#9CA3AF] font-bold mt-2">
+                          * Vui lòng chỉ xác nhận sau khi đã kiểm tra kỹ sản phẩm
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

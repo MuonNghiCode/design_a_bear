@@ -77,6 +77,7 @@ export interface OrderListItem {
   taxTotal: number;
   shippingTotal: number;
   grandTotal: number;
+  isPaid: boolean;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -96,6 +97,7 @@ export interface Order {
   taxTotal: number;
   shippingTotal: number;
   grandTotal: number;
+  isPaid: boolean;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -691,3 +693,14 @@ export interface UpdateCollectionRequest {
 
 export type GetCollectionsResponse = ApiResponse<CollectionResponse[]>;
 export type GetCollectionResponse = ApiResponse<CollectionResponse>;
+
+export interface FulfillmentResponse {
+  fulfillmentId: string;
+  orderId: string;
+  status: string;
+  trackingNumber?: string;
+  carrier?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  createdAt: string;
+}

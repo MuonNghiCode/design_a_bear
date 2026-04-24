@@ -203,7 +203,7 @@ export default function StaffOrdersTable() {
         if (fulfillRes.isSuccess && fulfillRes.value) {
           setFulfillment(fulfillRes.value);
           // Auto transition to SHIPPING status
-          await orderService.updateOrderStatus(selected.orderId, "SHIPPING");
+          await orderService.updateOrderStatus(selected.orderId, { status: "SHIPPING" });
           handleRefresh();
         }
       } else {

@@ -234,7 +234,7 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
         if (fulfillRes.isSuccess && fulfillRes.value) {
           setFulfillment(fulfillRes.value);
           // Auto transition to SHIPPING status
-          await orderService.updateOrderStatus(selected.orderId, "SHIPPING");
+          await orderService.updateOrderStatus(selected.orderId, { status: "SHIPPING" });
           handleRefresh();
         }
       } else {

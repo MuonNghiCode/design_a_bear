@@ -452,45 +452,64 @@ export default function ProductInfoPanel({
               const isSelected = selectedAccessories.some(
                 (r) => r.ruleId === rule.ruleId,
               );
+              const isAccOutOfStock = (rule.addonProduct.available ?? 0) <= 0;
+
               return (
                 <button
                   key={rule.ruleId}
-                  onClick={() => handleToggleAccessory(rule)}
+                  onClick={() => !isAccOutOfStock && handleToggleAccessory(rule)}
+                  disabled={isAccOutOfStock}
                   className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all group ${
                     isSelected
                       ? "border-[#17409A] bg-[#F4F7FF]"
-                      : "border-gray-100 hover:border-[#17409A]/30"
+                      : isAccOutOfStock
+                        ? "border-gray-50 bg-gray-50/50 opacity-60 cursor-not-allowed"
+                        : "border-gray-100 hover:border-[#17409A]/30"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
-                        isSelected
-                          ? "border-[#17409A] bg-[#17409A] text-white"
-                          : "border-gray-300 bg-white group-hover:border-[#17409A]/50"
-                      }`}
-                    >
-                      {isSelected && (
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
+                  <div className="flex flex-col items-start gap-1">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${
+                          isSelected
+                            ? "border-[#17409A] bg-[#17409A] text-white"
+                            : "border-gray-300 bg-white group-hover:border-[#17409A]/50"
+                        }`}
+                      >
+                        {isSelected && (
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                      <span
+                        className={`font-semibold text-sm ${isSelected ? "text-[#17409A]" : "text-gray-700"}`}
+                      >
+                        {rule.addonProduct.name}
+                      </span>
+                    </div>
+                    {/* Stock Display for Accessory */}
+                    <div className="ml-8">
+                      {(rule.addonProduct.available ?? 0) > 0 ? (
+                        <span className="text-[10px] font-bold text-[#059669] bg-green-50 px-2 py-0.5 rounded-md border border-green-100">
+                          Còn {rule.addonProduct.available} sản phẩm
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-[#FF6B9D] bg-red-50 px-2 py-0.5 rounded-md border border-red-100">
+                          Hết hàng
+                        </span>
                       )}
                     </div>
-                    <span
-                      className={`font-semibold text-sm ${isSelected ? "text-[#17409A]" : "text-gray-700"}`}
-                    >
-                      {rule.addonProduct.name}
-                    </span>
                   </div>
                   <span className="font-bold text-sm text-[#1A1A2E]">
                     + {formatPrice(rule.addonProduct.price)}

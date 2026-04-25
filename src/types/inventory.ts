@@ -6,13 +6,13 @@ export interface Inventory {
   onHand: number;
   reserved: number;
   updatedAt: string;
-  // Computed fields from Backend
   productName?: string;
   productType?: string;
   sku?: string;
   imageUrl?: string;
   sizeTag?: string;
   sizeDescription?: string;
+  totalAvailable: number;
   location?: Location;
 }
 

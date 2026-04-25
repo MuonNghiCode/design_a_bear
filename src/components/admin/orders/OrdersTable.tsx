@@ -116,7 +116,12 @@ interface OrdersTableProps {
   onRefresh: () => void;
 }
 
-export default function OrdersTable({ orders, loading, usersMap, onRefresh }: OrdersTableProps) {
+export default function OrdersTable({
+  orders,
+  loading,
+  usersMap,
+  onRefresh,
+}: OrdersTableProps) {
   const { user } = useAuth();
   const [tab, setTab] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
@@ -125,7 +130,9 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
   const [selectedAddress, setSelectedAddress] = useState<AddressDetail | null>(
     null,
   );
-  const [fulfillment, setFulfillment] = useState<FulfillmentResponse | null>(null);
+  const [fulfillment, setFulfillment] = useState<FulfillmentResponse | null>(
+    null,
+  );
   const [pushingGhtk, setPushingGhtk] = useState(false);
   const [trackingData, setTrackingData] = useState<any>(null);
   const [loadingTracking, setLoadingTracking] = useState(false);
@@ -149,7 +156,11 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
         : Promise.resolve(null);
       const fulfillmentAction = fulfillmentService.getByOrderId(orderId);
 
-      const [res, addressRes, fulfillmentRes] = await Promise.all([orderAction, addressAction, fulfillmentAction]);
+      const [res, addressRes, fulfillmentRes] = await Promise.all([
+        orderAction,
+        addressAction,
+        fulfillmentAction,
+      ]);
 
       if (res.isSuccess && res.value) {
         setSelected(res.value);
@@ -164,7 +175,11 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
         setSelectedAddress(addressRes.value);
       }
 
-      if (fulfillmentRes?.isSuccess && fulfillmentRes.value && fulfillmentRes.value.length > 0) {
+      if (
+        fulfillmentRes?.isSuccess &&
+        fulfillmentRes.value &&
+        fulfillmentRes.value.length > 0
+      ) {
         setFulfillment(fulfillmentRes.value[0]);
       }
     } catch (e: any) {
@@ -186,7 +201,8 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
     setPushingGhtk(true);
     try {
       const orderRes = await orderService.getOrderById(selected.orderId);
-      if (!orderRes.isSuccess || !orderRes.value) throw new Error("Không thể tải thông tin đơn hàng");
+      if (!orderRes.isSuccess || !orderRes.value)
+        throw new Error("Không thể tải thông tin đơn hàng");
       const fullOrder = orderRes.value;
 
       const products = fullOrder.orderItems.map((item) => {
@@ -205,23 +221,58 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
         };
       });
 
-      const isOldAddress = selectedAddress.city.includes("Thành phố") || selectedAddress.city.includes("Tỉnh");
-      const province = isOldAddress ? selectedAddress.city : (selectedAddress.state || selectedAddress.city);
-      const district = isOldAddress ? selectedAddress.state : selectedAddress.city;
+      let province = selectedAddress.state?.trim();
+      let district = selectedAddress.city?.trim();
 
-      const res = await shippingService.submitExpressOrder({
+
+      const cityIsMajorProvince =
+        district?.includes("Thành phố Hồ Chí Minh") ||
+        district?.includes("Thành phố Hà Nội") ||
+        district?.includes("Tỉnh");
+      const stateIsMajorProvince =
+        province?.includes("Thành phố Hồ Chí Minh") ||
+        province?.includes("Thành phố Hà Nội") ||
+        province?.includes("Tỉnh");
+
+ 
+      if (cityIsMajorProvince && !stateIsMajorProvince) {
+        [province, district] = [district, province];
+      }
+
+      const ward = selectedAddress.line2?.trim();
+      const address = selectedAddress.line1?.trim();
+
+      // Validation before sending to GHTK
+      if (!province || !district || !ward || !address) {
+        const missingFields = [];
+        if (!address) missingFields.push("Số nhà/Đường (Địa chỉ dòng 1)");
+        if (!ward) missingFields.push("Phường/Xã (Địa chỉ dòng 2)");
+        if (!district) missingFields.push("Quận/Huyện");
+        if (!province) missingFields.push("Tỉnh/Thành phố");
+
+        toastError(
+          `Thiếu thông tin địa chỉ: ${missingFields.join(", ")}. Vui lòng cập nhật địa chỉ khách hàng trước khi đẩy đơn.`,
+        );
+        return;
+      }
+
+      const payload: any = {
         orderId: selected.orderId,
         customerName: selectedAddress.fullName,
         customerPhone: selectedAddress.phoneNumber,
-        customerAddress: `${selectedAddress.line1}${selectedAddress.line2 ? `, ${selectedAddress.line2}` : ""}`,
+        customerAddress: address,
         customerProvince: province,
         customerDistrict: district,
-        customerWard: selectedAddress.line2 || undefined,
-        hamlet: selectedAddress.line2 || undefined,
+        customerWard: ward,
+        hamlet: ward,
         pickMoney: fullOrder.isPaid ? 0 : fullOrder.grandTotal,
         value: fullOrder.subtotal,
         products: products,
-      });
+      };
+
+      console.log("Submitting to GHTK with payload:", payload);
+
+      const res = await shippingService.submitExpressOrder(payload);
 
       if (res.isSuccess && res.value?.order?.label) {
         success("Đẩy đơn sang GHTK thành công!");
@@ -234,7 +285,9 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
         if (fulfillRes.isSuccess && fulfillRes.value) {
           setFulfillment(fulfillRes.value);
           // Auto transition to SHIPPING status
-          await orderService.updateOrderStatus(selected.orderId, { status: "SHIPPING" });
+          await orderService.updateOrderStatus(selected.orderId, {
+            status: "SHIPPING",
+          });
           handleRefresh();
         }
       } else {
@@ -252,11 +305,15 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
     if (!fulfillment?.trackingNumber) return;
     setLoadingTracking(true);
     try {
-      const res = await shippingService.getTrackingStatus(fulfillment.trackingNumber);
+      const res = await shippingService.getTrackingStatus(
+        fulfillment.trackingNumber,
+      );
       if (res.isSuccess && res.value) {
         setTrackingData(res.value);
       } else {
-        toastError(res.error?.description || "Không thể lấy thông tin tracking");
+        toastError(
+          res.error?.description || "Không thể lấy thông tin tracking",
+        );
       }
     } catch (e: any) {
       console.error(e);
@@ -697,10 +754,13 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
 
                     <div className="relative w-full sm:w-37.5">
                       <CustomDropdown
-                        options={BACKEND_STATUSES.filter(sts => {
-                          if (user?.role === 'staff') {
+                        options={BACKEND_STATUSES.filter((sts) => {
+                          if (user?.role === "staff") {
                             // Staff only allowed to switch to SHIPPING or keep current
-                            return sts.value === 'SHIPPING' || sts.value === selected.status;
+                            return (
+                              sts.value === "SHIPPING" ||
+                              sts.value === selected.status
+                            );
                           }
                           return true;
                         }).map((sts) => ({
@@ -709,7 +769,11 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
                         }))}
                         value={selected.status}
                         onChange={handleStatusUpdate}
-                        disabled={updatingStatus !== null || (user?.role === 'staff' && selected.status === 'SHIPPING')}
+                        disabled={
+                          updatingStatus !== null ||
+                          (user?.role === "staff" &&
+                            selected.status === "SHIPPING")
+                        }
                         buttonClassName="w-full bg-white/60 backdrop-blur-sm border border-white hover:bg-white text-[11px] font-black tracking-wide text-[#1A1A2E] py-2.5 px-3 rounded-2xl cursor-pointer shadow-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
                         chevronClassName="text-[#1A1A2E] text-sm opacity-60 transition-transform"
                         menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-white bg-white shadow-xl py-1 overflow-hidden"
@@ -799,7 +863,8 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
                                     : itemName}
                                 </p>
                                 <p className="text-[#6B7280] text-[11px] font-semibold mt-1">
-                                  SL: {item.quantity} x {formatPrice(item.unitPrice)}
+                                  SL: {item.quantity} x{" "}
+                                  {formatPrice(item.unitPrice)}
                                 </p>
                                 <p className="text-[#17409A] text-[11px] font-black mt-0.5">
                                   Thành tiền: {formatPrice(lineTotal)}
@@ -807,19 +872,29 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
 
                                 {item.buildDetails?.personalizationNote && (
                                   <p className="mt-1 text-[10px] text-[#FF8C42] font-semibold italic">
-                                    Ghi chú: {item.buildDetails.personalizationNote}
+                                    Ghi chú:{" "}
+                                    {item.buildDetails.personalizationNote}
                                   </p>
                                 )}
 
-                                {item.buildDetails?.buildComponents && item.buildDetails.buildComponents.length > 0 && (
-                                  <div className="mt-1.5 flex flex-wrap gap-1">
-                                    {item.buildDetails.buildComponents.map((comp: any, cIdx: number) => (
-                                      <span key={cIdx} className="px-1.5 py-0.5 rounded bg-white border border-[#E5E7EB] text-[9px] font-bold text-[#4B5563]">
-                                        {comp.productName || comp.variantName || "Phụ kiện"}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
+                                {item.buildDetails?.buildComponents &&
+                                  item.buildDetails.buildComponents.length >
+                                    0 && (
+                                    <div className="mt-1.5 flex flex-wrap gap-1">
+                                      {item.buildDetails.buildComponents.map(
+                                        (comp: any, cIdx: number) => (
+                                          <span
+                                            key={cIdx}
+                                            className="px-1.5 py-0.5 rounded bg-white border border-[#E5E7EB] text-[9px] font-bold text-[#4B5563]"
+                                          >
+                                            {comp.productName ||
+                                              comp.variantName ||
+                                              "Phụ kiện"}
+                                          </span>
+                                        ),
+                                      )}
+                                    </div>
+                                  )}
                               </div>
                             </div>
                           );
@@ -876,7 +951,9 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
                                 </p>
                               </div>
                               <a
-                                href={shippingService.getPrintLabelUrl(fulfillment.trackingNumber || "")}
+                                href={shippingService.getPrintLabelUrl(
+                                  fulfillment.trackingNumber || "",
+                                )}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#17409A] px-3 py-1.5 rounded-lg text-[11px] font-black hover:bg-[#F4F7FF] transition-colors"
@@ -894,18 +971,25 @@ export default function OrdersTable({ orders, loading, usersMap, onRefresh }: Or
                                 className="w-full flex items-center justify-center gap-2 bg-[#17409A] text-white py-2 rounded-xl text-xs font-black hover:bg-[#0f2d70] transition-colors disabled:opacity-50"
                               >
                                 <MdLocalShipping className="text-base" />
-                                {loadingTracking ? "Đang lấy thông tin..." : "Theo dõi hành trình"}
+                                {loadingTracking
+                                  ? "Đang lấy thông tin..."
+                                  : "Theo dõi hành trình"}
                               </button>
                             ) : (
                               <div className="mt-3 p-3 bg-white rounded-xl border border-[#E5E7EB]">
                                 <p className="text-[#1A1A2E] font-bold text-xs mb-1">
-                                  Trạng thái: <span className="text-[#17409A]">{trackingData.status_text}</span>
+                                  Trạng thái:{" "}
+                                  <span className="text-[#17409A]">
+                                    {trackingData.status_text}
+                                  </span>
                                 </p>
                                 <p className="text-[#6B7280] text-[10px] font-semibold">
                                   Cập nhật lúc: {trackingData.action_time}
                                 </p>
                                 {trackingData.reason && (
-                                  <p className="text-[#FF8C42] text-[10px] italic mt-1">Lý do: {trackingData.reason}</p>
+                                  <p className="text-[#FF8C42] text-[10px] italic mt-1">
+                                    Lý do: {trackingData.reason}
+                                  </p>
                                 )}
                               </div>
                             )}

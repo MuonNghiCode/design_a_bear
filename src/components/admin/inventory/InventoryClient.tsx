@@ -153,7 +153,7 @@ export default function InventoryClient() {
         return {
           onHand: acc.onHand + (curr.onHand || 0),
           reserved: acc.reserved + (curr.reserved || 0),
-          available: acc.available + (curr.onHand || 0),
+          available: acc.available + (curr.totalAvailable || 0),
         };
       },
       { onHand: 0, reserved: 0, available: 0 },
@@ -438,7 +438,7 @@ export default function InventoryClient() {
                                       </td>
                                       <td className="px-6 py-4 text-center">
                                         <span className="text-green-600 font-black">
-                                          {v.onHand}
+                                          {v.totalAvailable}
                                         </span>
                                       </td>
                                       <td className="px-6 py-4 text-right">

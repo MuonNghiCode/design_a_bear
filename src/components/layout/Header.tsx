@@ -601,12 +601,13 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                     aria-label="Tài khoản"
                   >
                     {user?.avatar ? (
-                      <Image
+                      <img
                         src={user.avatar}
                         alt={user.name}
                         width={36}
                         height={36}
                         className="rounded-full object-cover w-9 h-9"
+                        referrerPolicy="no-referrer"
                       />
                     ) : (
                       <span className="text-[#17409A] font-black text-xs">

@@ -294,7 +294,7 @@ export default function ProfileClient() {
   if (!mounted || loading) return null;
   if (!user) return null;
 
-  const roleCfg = ROLE_CFG[user.role ?? "user"];
+  const roleCfg = ROLE_CFG[user.role ?? "customer"];
   const initials = user.name
     .split(" ")
     .slice(-2)

@@ -14,7 +14,7 @@ export default function QCLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (
       !loading &&
-      (!isAuthenticated || (user?.role !== "quality_control" && user?.role !== "admin"))
+      (!isAuthenticated || user?.role !== "quality_control")
     ) {
       router.replace("/auth");
     }
@@ -23,7 +23,7 @@ export default function QCLayout({ children }: { children: React.ReactNode }) {
   if (
     loading ||
     !isAuthenticated ||
-    (user?.role !== "quality_control" && user?.role !== "admin")
+    user?.role !== "quality_control"
   ) {
     return null;
   }

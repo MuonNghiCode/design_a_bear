@@ -326,6 +326,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                 )}
               </div>
 
+              {false && (
               <div
                 className="relative"
                 onMouseEnter={() => openDropdown("collection")}
@@ -373,6 +374,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                   </div>
                 )}
               </div>
+              )}
 
               <Link
                 href="/story"
@@ -775,6 +777,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
           </div>
 
           {/* Collections Section */}
+          {false && (
           <div>
             <button
               onClick={() =>
@@ -826,6 +829,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </div>
             )}
           </div>
+          )}
 
           {/* Other Links */}
           <Link

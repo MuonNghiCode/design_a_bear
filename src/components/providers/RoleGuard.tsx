@@ -21,6 +21,8 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
     if (!loading && isAuthenticated && user) {
       const isAdminPath = pathname.startsWith("/admin");
       const isStaffPath = pathname.startsWith("/staff");
+      const isCraftsmanPath = pathname.startsWith("/craftsman");
+      const isQcPath = pathname.startsWith("/qc");
       const isAuthPath = pathname.startsWith("/auth");
       
       // We exclude /api routes and internal next paths if necessary, 
@@ -28,20 +30,22 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
       // Here we focus on visible page routes.
 
       if (user.role === "admin") {
-        // Admin must stay in /admin. Cannot access user pages or /staff pages.
         if (!isAdminPath && !isAuthPath) {
-          console.log("[RoleGuard] Redirecting Admin to /admin dashboard");
           router.replace("/admin");
         }
       } else if (user.role === "staff") {
-        // Staff must stay in /staff. Cannot access user pages or /admin pages.
         if (!isStaffPath && !isAuthPath) {
-          console.log("[RoleGuard] Redirecting Staff to /staff dashboard");
           router.replace("/staff");
         }
+      } else if (user.role === "craftsman") {
+        if (!isCraftsmanPath && !isAuthPath) {
+          router.replace("/craftsman");
+        }
+      } else if (user.role === "quality_control") {
+        if (!isQcPath && !isAuthPath) {
+          router.replace("/qc");
+        }
       }
-      // Note: "user" role (Role 3) can access everything EXCEPT /admin and /staff
-      // (which is handled by other guards usually found in those specific pages).
     }
   }, [user, loading, isAuthenticated, pathname, router]);
 

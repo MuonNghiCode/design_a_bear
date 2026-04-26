@@ -20,7 +20,7 @@ export default function CraftsmanLayout({
   useEffect(() => {
     if (
       !loading &&
-      (!isAuthenticated || (user?.role !== "craftsman" && user?.role !== "admin"))
+      (!isAuthenticated || user?.role !== "craftsman")
     ) {
       router.replace("/auth");
     }
@@ -29,7 +29,7 @@ export default function CraftsmanLayout({
   if (
     loading ||
     !isAuthenticated ||
-    (user?.role !== "craftsman" && user?.role !== "admin")
+    user?.role !== "craftsman"
   ) {
     return null;
   }

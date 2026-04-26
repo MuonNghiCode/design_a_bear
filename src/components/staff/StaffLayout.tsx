@@ -20,7 +20,7 @@ export default function StaffLayout({
   useEffect(() => {
     if (
       !loading &&
-      (!isAuthenticated || (user?.role !== "staff" && user?.role !== "admin"))
+      (!isAuthenticated || user?.role !== "staff")
     ) {
       router.replace("/auth");
     }
@@ -29,7 +29,7 @@ export default function StaffLayout({
   if (
     loading ||
     !isAuthenticated ||
-    (user?.role !== "staff" && user?.role !== "admin")
+    user?.role !== "staff"
   ) {
     return null;
   }

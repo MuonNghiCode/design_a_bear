@@ -9,3 +9,5 @@ export * from "./useProductDetailApi";
 export * from "./useReviewApi";
 export * from "./useTaxonomyApi";
 export * from "./useAdminReportsApi";
+export * from "./usePayrollApi";
+export * from "./useDashboardData";

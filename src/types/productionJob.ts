@@ -20,6 +20,9 @@ export interface ProductionJob {
   completedAt?: string;
   serialNumber?: string;
   rejectionReason?: string;
+  technicianId?: string;
+  qcInspectorId?: string;
+  qcFinishedAt?: string;
   
   // Part specific fields
   espTechnicianId?: string;

@@ -72,7 +72,7 @@ export const ROLE_CFG: Record<
 > = {
   admin: { label: "Quản trị viên", color: "#FF8C42" },
   staff: { label: "Nhân viên", color: "#7C5CFC" },
-  user: { label: "Thành viên", color: "#17409A" },
+  customer: { label: "Thành viên", color: "#17409A" },
 };
 
 export const SECURITY_ITEMS = [

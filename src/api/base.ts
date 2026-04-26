@@ -95,17 +95,22 @@ class BaseApiService {
           url.includes("/signup") ||
           url.includes("/verify-email") ||
           url.includes("/google-login") ||
-          url.includes("/google-complete-profile");
+          url.includes("/google-complete-profile") ||
+          url.includes("/users/profile");
 
         if (
           (error.response?.status === 401 || error.response?.status === 403) &&
           !isPublicEndpoint
         ) {
           if (typeof window !== "undefined") {
-            localStorage.removeItem(STORAGE_KEYS.TOKEN);
-            localStorage.removeItem(STORAGE_KEYS.USER);
-            localStorage.removeItem("dab_user");
-            window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+            const hasToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+            // Only trigger "unauthorized" (session expired) if we actually had a token
+            if (hasToken) {
+              localStorage.removeItem(STORAGE_KEYS.TOKEN);
+              localStorage.removeItem(STORAGE_KEYS.USER);
+              localStorage.removeItem("dab_user");
+              window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+            }
           }
         }
         return Promise.reject(error);

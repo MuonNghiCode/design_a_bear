@@ -373,10 +373,7 @@ function mapApiReviewToView(r: ProductReview): ReviewView {
 
 function isCompletedOrderStatus(status?: string | null): boolean {
   const normalized = (status || "").toUpperCase();
-  return (
-    normalized === "DONE" ||
-    normalized === "COMPLETED"
-  );
+  return normalized === "DONE" || normalized === "COMPLETED";
 }
 
 const DEFAULT_REVIEWS: ProductReview[] = [];
@@ -430,10 +427,14 @@ export default function ProductReviews({
       setApiReviews(reviews);
     });
 
-    canReviewProduct(productId).then((allowed) => {
-      if (!active) return;
-      setCanReview(allowed === true);
-    });
+    if (user) {
+      canReviewProduct(productId).then((allowed) => {
+        if (!active) return;
+        setCanReview(allowed === true);
+      });
+    } else {
+      setCanReview(false);
+    }
 
     getProductAverageRating(productId).then((avg) => {
       if (!active) return;

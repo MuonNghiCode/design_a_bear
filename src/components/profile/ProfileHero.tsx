@@ -43,11 +43,11 @@ export default function ProfileHero({
           <div className="ac relative shrink-0">
             <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-linear-to-br from-[#4ECDC4] to-[#17409A] border-4 border-white/20 flex items-center justify-center text-white font-black text-3xl shadow-2xl shadow-[#0E2A66]/40">
               {user.avatar ? (
-                <Image
+                <img
                   src={user.avatar}
                   alt={user.name}
-                  fill
-                  className="object-cover rounded-3xl"
+                  className="w-full h-full object-cover rounded-3xl"
+                  referrerPolicy="no-referrer"
                 />
               ) : (
                 initials

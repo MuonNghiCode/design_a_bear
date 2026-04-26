@@ -12,19 +12,12 @@ export default function QCLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (
-      !loading &&
-      (!isAuthenticated || user?.role !== "quality_control")
-    ) {
+    if (!loading && (!isAuthenticated || user?.role !== "quality_control")) {
       router.replace("/auth");
     }
   }, [isAuthenticated, user, loading, router]);
 
-  if (
-    loading ||
-    !isAuthenticated ||
-    user?.role !== "quality_control"
-  ) {
+  if (loading || !isAuthenticated || user?.role !== "quality_control") {
     return null;
   }
 
@@ -34,10 +27,7 @@ export default function QCLayout({ children }: { children: React.ReactNode }) {
       style={{ fontFamily: "'Nunito', sans-serif", backgroundColor: "#17409A" }}
     >
       {/* Sidebar */}
-      <QCSidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      <QCSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Mobile backdrop */}
       {sidebarOpen && (

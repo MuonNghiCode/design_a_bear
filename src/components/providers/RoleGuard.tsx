@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 /**
  * RoleGuard Component
- * 
+ *
  * Ensures that Admin and Staff users are strictly confined to their respective dashboards.
  * If an Admin or Staff user attempts to access client-facing pages (Home, Products, Checkout, etc.),
  * they are automatically redirected back to their specified workspace.
@@ -24,8 +24,8 @@ export default function RoleGuard({ children }: { children: React.ReactNode }) {
       const isCraftsmanPath = pathname.startsWith("/craftsman");
       const isQcPath = pathname.startsWith("/qc");
       const isAuthPath = pathname.startsWith("/auth");
-      
-      // We exclude /api routes and internal next paths if necessary, 
+
+      // We exclude /api routes and internal next paths if necessary,
       // though middleware or standard next-handling usually covers those.
       // Here we focus on visible page routes.
 

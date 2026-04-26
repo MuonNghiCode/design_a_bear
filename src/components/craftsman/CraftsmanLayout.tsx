@@ -18,19 +18,12 @@ export default function CraftsmanLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (
-      !loading &&
-      (!isAuthenticated || user?.role !== "craftsman")
-    ) {
+    if (!loading && (!isAuthenticated || user?.role !== "craftsman")) {
       router.replace("/auth");
     }
   }, [isAuthenticated, user, loading, router]);
 
-  if (
-    loading ||
-    !isAuthenticated ||
-    user?.role !== "craftsman"
-  ) {
+  if (loading || !isAuthenticated || user?.role !== "craftsman") {
     return null;
   }
 
@@ -40,7 +33,10 @@ export default function CraftsmanLayout({
       style={{ fontFamily: "'Nunito', sans-serif", backgroundColor: ACCENT }}
     >
       {/* Sidebar */}
-      <CraftsmanSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <CraftsmanSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Mobile backdrop */}
       {sidebarOpen && (

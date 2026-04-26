@@ -327,53 +327,53 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </div>
 
               {false && (
-              <div
-                className="relative"
-                onMouseEnter={() => openDropdown("collection")}
-                onMouseLeave={scheduleClose}
-              >
-                <button className="flex items-center gap-1 text-gray-800 hover:text-blue-600 transition-colors font-medium">
-                  Bộ sưu tập
-                  <IoChevronDown
-                    className={`text-base transition-transform duration-300 ${activeDropdown === "collection" ? "rotate-180" : ""}`}
-                  />
-                </button>
-                {activeDropdown === "collection" && (
-                  <div
-                    ref={(el) => {
-                      dropdownRefs.current["collection"] = el;
-                    }}
-                    onMouseEnter={() => openDropdown("collection")}
-                    onMouseLeave={scheduleClose}
-                    className="absolute top-full left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl py-2 border border-gray-100"
-                  >
-                    <Link
-                      href="/collections"
-                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-bold text-sm transition-colors rounded-xl mx-1 border-b border-gray-50 mb-1"
+                <div
+                  className="relative"
+                  onMouseEnter={() => openDropdown("collection")}
+                  onMouseLeave={scheduleClose}
+                >
+                  <button className="flex items-center gap-1 text-gray-800 hover:text-blue-600 transition-colors font-medium">
+                    Bộ sưu tập
+                    <IoChevronDown
+                      className={`text-base transition-transform duration-300 ${activeDropdown === "collection" ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {activeDropdown === "collection" && (
+                    <div
+                      ref={(el) => {
+                        dropdownRefs.current["collection"] = el;
+                      }}
+                      onMouseEnter={() => openDropdown("collection")}
+                      onMouseLeave={scheduleClose}
+                      className="absolute top-full left-0 mt-2 w-52 bg-white rounded-2xl shadow-xl py-2 border border-gray-100"
                     >
-                      Tất cả bộ sưu tập
-                    </Link>
-                    <Link
-                      href="/collections/spring"
-                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
-                    >
-                      Bộ sưu tập xuân
-                    </Link>
-                    <Link
-                      href="/collections/summer"
-                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
-                    >
-                      Bộ sưu tập hè
-                    </Link>
-                    <Link
-                      href="/collections/special"
-                      className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
-                    >
-                      Phiên bản đặc biệt
-                    </Link>
-                  </div>
-                )}
-              </div>
+                      <Link
+                        href="/collections"
+                        className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-bold text-sm transition-colors rounded-xl mx-1 border-b border-gray-50 mb-1"
+                      >
+                        Tất cả bộ sưu tập
+                      </Link>
+                      <Link
+                        href="/collections/spring"
+                        className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
+                      >
+                        Bộ sưu tập xuân
+                      </Link>
+                      <Link
+                        href="/collections/summer"
+                        className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
+                      >
+                        Bộ sưu tập hè
+                      </Link>
+                      <Link
+                        href="/collections/special"
+                        className="block px-4 py-2.5 hover:bg-[#F4F7FF] text-gray-800 hover:text-[#17409A] font-semibold text-sm transition-colors rounded-xl mx-1"
+                      >
+                        Phiên bản đặc biệt
+                      </Link>
+                    </div>
+                  )}
+                </div>
               )}
 
               <Link
@@ -458,7 +458,9 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                     <div
                       ref={resultsRef}
                       className="absolute top-full left-0 right-0 mt-3 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
-                      style={{ filter: "drop-shadow(0 20px 25px rgb(0 0 0 / 0.1))" }}
+                      style={{
+                        filter: "drop-shadow(0 20px 25px rgb(0 0 0 / 0.1))",
+                      }}
                     >
                       <div className="p-2">
                         {isSearching ? (
@@ -483,27 +485,38 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                                   className="flex items-center gap-4 p-2 hover:bg-[#F4F7FF] rounded-xl transition-all group"
                                 >
                                   <div className="w-14 h-14 bg-gray-50 rounded-lg overflow-hidden shrink-0 border border-gray-100 group-hover:scale-105 transition-transform duration-300">
-                                      <Image
-                                        src={product.imageUrl || "/placeholder-product.webp"}
-                                        alt={product.name}
-                                        width={56}
-                                        height={56}
-                                        className="object-cover w-full h-full"
-                                        unoptimized={!!product.imageUrl}
-                                      />
+                                    <Image
+                                      src={
+                                        product.imageUrl ||
+                                        "/placeholder-product.webp"
+                                      }
+                                      alt={product.name}
+                                      width={56}
+                                      height={56}
+                                      className="object-cover w-full h-full"
+                                      unoptimized={!!product.imageUrl}
+                                    />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <h4
                                       className="text-sm font-bold text-gray-800 truncate"
-                                      style={{ fontFamily: "'Fredoka', sans-serif" }}
+                                      style={{
+                                        fontFamily: "'Fredoka', sans-serif",
+                                      }}
                                     >
                                       {product.name}
                                     </h4>
                                     <p
                                       className="text-xs font-semibold text-blue-600 mt-0.5"
-                                      style={{ fontFamily: "'Fredoka', sans-serif" }}
+                                      style={{
+                                        fontFamily: "'Fredoka', sans-serif",
+                                      }}
                                     >
-                                      Từ {product.minPrice?.toLocaleString("vi-VN")}₫
+                                      Từ{" "}
+                                      {product.minPrice?.toLocaleString(
+                                        "vi-VN",
+                                      )}
+                                      ₫
                                     </p>
                                   </div>
                                   <IoBagOutline className="text-gray-300 group-hover:text-blue-600 transition-colors text-lg mr-2" />
@@ -778,57 +791,57 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
 
           {/* Collections Section */}
           {false && (
-          <div>
-            <button
-              onClick={() =>
-                setActiveDropdown(
-                  activeDropdown === "collection-mobile"
-                    ? null
-                    : "collection-mobile",
-                )
-              }
-              className="flex items-center justify-between w-full text-gray-800 font-bold text-lg"
-            >
-              Bộ sưu tập
-              <IoChevronDown
-                className={`text-xl transition-transform duration-300 ${
-                  activeDropdown === "collection-mobile" ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-            {activeDropdown === "collection-mobile" && (
-              <div className="mt-3 ml-4 space-y-3">
-                <Link
-                  href="/collections"
-                  onClick={() => setShowMobileMenu(false)}
-                  className="block text-gray-800 font-bold hover:text-blue-600 transition-colors"
-                >
-                  Tất cả bộ sưu tập
-                </Link>
-                <Link
-                  href="/collections/spring"
-                  onClick={() => setShowMobileMenu(false)}
-                  className="block text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Bộ sưu tập xuân
-                </Link>
-                <Link
-                  href="/collections/summer"
-                  onClick={() => setShowMobileMenu(false)}
-                  className="block text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Bộ sưu tập hè
-                </Link>
-                <Link
-                  href="/collections/special"
-                  onClick={() => setShowMobileMenu(false)}
-                  className="block text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  Phiên bản đặc biệt
-                </Link>
-              </div>
-            )}
-          </div>
+            <div>
+              <button
+                onClick={() =>
+                  setActiveDropdown(
+                    activeDropdown === "collection-mobile"
+                      ? null
+                      : "collection-mobile",
+                  )
+                }
+                className="flex items-center justify-between w-full text-gray-800 font-bold text-lg"
+              >
+                Bộ sưu tập
+                <IoChevronDown
+                  className={`text-xl transition-transform duration-300 ${
+                    activeDropdown === "collection-mobile" ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {activeDropdown === "collection-mobile" && (
+                <div className="mt-3 ml-4 space-y-3">
+                  <Link
+                    href="/collections"
+                    onClick={() => setShowMobileMenu(false)}
+                    className="block text-gray-800 font-bold hover:text-blue-600 transition-colors"
+                  >
+                    Tất cả bộ sưu tập
+                  </Link>
+                  <Link
+                    href="/collections/spring"
+                    onClick={() => setShowMobileMenu(false)}
+                    className="block text-gray-600 hover:text-blue-600 transition-colors"
+                  >
+                    Bộ sưu tập xuân
+                  </Link>
+                  <Link
+                    href="/collections/summer"
+                    onClick={() => setShowMobileMenu(false)}
+                    className="block text-gray-600 hover:text-blue-600 transition-colors"
+                  >
+                    Bộ sưu tập hè
+                  </Link>
+                  <Link
+                    href="/collections/special"
+                    onClick={() => setShowMobileMenu(false)}
+                    className="block text-gray-600 hover:text-blue-600 transition-colors"
+                  >
+                    Phiên bản đặc biệt
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Other Links */}

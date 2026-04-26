@@ -626,22 +626,7 @@ export default function EditProductModal({
                       className="w-full bg-gray-100 text-sm font-semibold rounded-2xl px-4 py-3 outline-none border-2 border-transparent text-gray-400 cursor-not-allowed shadow-inner"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-black text-[#6B7280] tracking-wide uppercase">
-                      Loại sản phẩm *
-                    </label>
-                    <CustomDropdown
-                      options={[
-                        { label: "Gấu", value: "Standard" },
-                        { label: "Phụ kiện", value: "ACCESSORY" },
-                      ]}
-                      value={formData.productType}
-                      onChange={(v) =>
-                        setFormData((p) => ({ ...p, productType: v }))
-                      }
-                      buttonClassName="w-full flex items-center justify-between bg-white text-sm font-semibold rounded-2xl px-4 py-3 shadow-sm hover:border-[#17409A]/40 transition-colors"
-                    />
-                  </div>
+                  {/* Loại sản phẩm field hidden to keep it fixed */}
                 </div>
               </div>
 

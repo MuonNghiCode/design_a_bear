@@ -43,7 +43,6 @@ const EXPANDABLE_SECTIONS = [
     children: [
       { label: "Sản phẩm", href: "/admin/products" },
       { label: "Phụ kiện", href: "/admin/accessories" },
-      { label: "Bộ sưu tập", href: "/admin/collections" },
       { label: "Kho hàng", href: "/admin/inventory" },
       { label: "Thuộc tính", href: "/admin/attributes" },
       // { label: "Nhóm tùy chỉnh", href: "/admin/personalization-groups" },
@@ -53,7 +52,8 @@ const EXPANDABLE_SECTIONS = [
     icon: MdBarChart,
     label: "Phân tích & Báo cáo",
     children: [
-      { label: "Báo cáo", href: "/admin/reports" },
+      { label: "Báo cáo doanh thu", href: "/admin/reports" },
+      { label: "Bảng lương", href: "/admin/payroll" },
       { label: "Thống kê", href: "/admin/analytics" },
       { label: "Đánh giá", href: "/admin/reviews" },
     ],

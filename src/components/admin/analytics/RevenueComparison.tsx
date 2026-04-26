@@ -16,7 +16,7 @@ interface RevenueComparisonProps {
 // SVG dimensions
 const W = 480,
   H = 160;
-const PAD_L = 36,
+const PAD_L = 40,
   PAD_R = 20,
   PAD_T = 12,
   PAD_B = 28;
@@ -27,10 +27,10 @@ export default function RevenueComparison({
   data,
   lastYearData,
   labels,
-  title = "So sánh doanh thu",
-  subtitle = "Năm nay vs Năm ngoái",
-  thisYearLabel = "2026",
-  lastYearLabel = "2025",
+  title = "Phân tích doanh thu",
+  subtitle = "Dữ liệu thống kê thời gian thực",
+  thisYearLabel = "Kỳ hiện tại",
+  lastYearLabel = "Kỳ trước",
 }: RevenueComparisonProps) {
   // Use provided props or fall back to mock data
   const currentData = data || REVENUE_COMPARISON.thisYear;
@@ -51,7 +51,7 @@ export default function RevenueComparison({
 
   const smoothPath = (values: number[]) => {
     if (values.length < 2) return "";
-    const cp = (xAt(1) - xAt(0)) * 0.38;
+    const cp = (xAt(1) - xAt(0)) * 0.4;
     return values.reduce((acc, v, i) => {
       const x = xAt(i),
         y = yAt(v);
@@ -75,10 +75,6 @@ export default function RevenueComparison({
     () => currentData.map((v, i) => ({ x: xAt(i), y: yAt(v) })),
     [currentData, MAX_V, N],
   );
-  const lastYearPts = useMemo(
-    () => (prevData ? prevData.map((v, i) => ({ x: xAt(i), y: yAt(v) })) : []),
-    [prevData, MAX_V, N],
-  );
 
   const GRID_Y = [MAX_V, MAX_V * 0.66, MAX_V * 0.33];
 
@@ -90,42 +86,38 @@ export default function RevenueComparison({
       ? (((thisTotal - lastTotal) / lastTotal) * 100).toFixed(1)
       : "0";
 
-  // Guard: cần ít nhất 2 điểm để vẽ đường biểu đồ
+  // Guard: need at least 2 points
   if (N < 2) {
     return (
-      <div className="bg-white rounded-3xl p-6 h-full flex flex-col shadow-sm border border-[#F4F7FF] items-center justify-center gap-3">
-        <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase">
+      <div className="bg-white rounded-[32px] p-8 h-full flex flex-col shadow-sm border border-[#F0F0F8] items-center justify-center">
+        <p className="text-[#9CA3AF] text-[10px] font-black tracking-widest uppercase">
           {title}
         </p>
-        <p className="text-[#1A1A2E] font-black text-xl">{subtitle}</p>
         <p className="text-[#D1D5DB] font-bold text-sm mt-4">
-          Đang tải dữ liệu biểu đồ...
+          Đang cập nhật dữ liệu...
         </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-3xl p-6 h-full flex flex-col shadow-sm border border-[#F4F7FF]">
+    <div className="bg-white rounded-[32px] p-8 h-full flex flex-col shadow-sm border border-[#F0F0F8]" style={{ fontFamily: "var(--font-nunito), Nunito, sans-serif" }}>
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase">
+          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.25em] uppercase">
             {title}
           </p>
-          <p className="text-[#1A1A2E] font-black text-xl mt-0.5">{subtitle}</p>
+          <p className="text-[#1A1A2E] font-black text-xl mt-1 tracking-tight">{subtitle}</p>
         </div>
-        <div className="flex items-center gap-4 text-xs font-black">
+        <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest">
           <span className="flex items-center gap-1.5">
-            <span className="w-6 h-0.5 bg-[#17409A] rounded inline-block" />
-            <span className="text-[#6B7280]">{thisYearLabel}</span>
+            <span className="w-2.5 h-2.5 bg-[#17409A] rounded-full inline-block" />
+            <span className="text-[#17409A]">{thisYearLabel}</span>
           </span>
           {prevData && (
             <span className="flex items-center gap-1.5">
-              <span
-                className="w-6 h-0.5 bg-[#9CA3AF] rounded inline-block border-dashed"
-                style={{ borderTop: "2px dashed #9CA3AF", height: 0 }}
-              />
+              <span className="w-2.5 h-2.5 bg-[#D1D5DB] rounded-full inline-block" />
               <span className="text-[#9CA3AF]">{lastYearLabel}</span>
             </span>
           )}
@@ -136,7 +128,7 @@ export default function RevenueComparison({
       <div className="flex-1 min-h-0">
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="w-full h-full"
+          className="w-full h-full overflow-visible"
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Grid lines */}
@@ -149,21 +141,22 @@ export default function RevenueComparison({
                   y1={y}
                   x2={W - PAD_R}
                   y2={y}
-                  stroke="#F4F7FF"
+                  stroke="#F8F9FF"
                   strokeWidth={1}
                 />
                 <text
-                  x={PAD_L - 4}
+                  x={PAD_L - 8}
                   y={y + 3.5}
                   textAnchor="end"
                   fontSize={8}
                   fill="#9CA3AF"
-                  fontFamily="Nunito, sans-serif"
+                  fontFamily="inherit"
+                  fontWeight="bold"
                 >
                   {v >= 1000000
                     ? (v / 1000000).toFixed(1) + "M"
                     : v >= 1000
-                      ? (v / 1000).toFixed(1) + "K"
+                      ? (v / 1000).toFixed(0) + "K"
                       : Math.round(v)}
                 </text>
               </g>
@@ -175,9 +168,9 @@ export default function RevenueComparison({
             <path
               d={lastYearPath}
               fill="none"
-              stroke="#D1D5DB"
+              stroke="#E5E7EB"
               strokeWidth={2}
-              strokeDasharray="6 3"
+              strokeDasharray="4 4"
             />
           )}
 
@@ -186,45 +179,28 @@ export default function RevenueComparison({
             d={thisYearPath}
             fill="none"
             stroke="#17409A"
-            strokeWidth={2.5}
+            strokeWidth={3}
+            strokeLinecap="round"
           />
 
-          {/* Dots — last year */}
-          {prevData &&
-            lastYearPts.map((pt, i) => (
-              <circle key={i} cx={pt.x} cy={pt.y} r={2.5} fill="#D1D5DB" />
-            ))}
-
           {/* Dots — this year */}
-          {thisYearPts.map((pt, i) => (
-            <g key={i}>
+          {thisYearPts.map((pt, i) => {
+            if (N > 15 && i % Math.ceil(N / 10) !== 0 && i !== N - 1) return null;
+            return (
               <circle
+                key={i}
                 cx={pt.x}
                 cy={pt.y}
-                r={N > 15 ? 2.5 : 4}
+                r={4}
                 fill="white"
                 stroke="#17409A"
-                strokeWidth={N > 15 ? 1 : 2}
+                strokeWidth={2}
               />
-              {/* Value label on last point */}
-              {i === N - 1 && N <= 15 && (
-                <text
-                  x={pt.x + 8}
-                  y={pt.y + 4}
-                  fontSize={9}
-                  fill="#17409A"
-                  fontFamily="Nunito, sans-serif"
-                  fontWeight="800"
-                >
-                  {currentData[i]?.toLocaleString()}
-                </text>
-              )}
-            </g>
-          ))}
+            );
+          })}
 
           {/* Labels */}
           {currentLabels.map((label, i) => {
-            // Show all labels if N is small, otherwise space them out
             if (N > 12 && i % Math.ceil(N / 8) !== 0 && i !== N - 1)
               return null;
             return (
@@ -235,8 +211,8 @@ export default function RevenueComparison({
                 textAnchor="middle"
                 fontSize={9}
                 fill={i === N - 1 ? "#17409A" : "#9CA3AF"}
-                fontFamily="Nunito, sans-serif"
-                fontWeight={i === N - 1 ? "800" : "600"}
+                fontFamily="inherit"
+                fontWeight="black"
               >
                 {label}
               </text>
@@ -246,29 +222,29 @@ export default function RevenueComparison({
       </div>
 
       {/* Footer summary */}
-      <div className="flex items-center gap-6 mt-3 pt-4 border-t border-[#F4F7FF]">
+      <div className="flex items-center gap-8 mt-6 pt-6 border-t border-[#F0F0F8]">
         <div>
-          <p className="text-[#9CA3AF] text-[10px] font-black tracking-wider uppercase">
+          <p className="text-[#9CA3AF] text-[9px] font-black tracking-widest uppercase">
             {thisYearLabel}
           </p>
-          <p className="text-[#1A1A2E] font-black text-lg">
-            {thisTotal.toLocaleString("vi-VN")}
+          <p className="text-[#17409A] font-black text-xl">
+            {thisTotal.toLocaleString("vi-VN")} đ
           </p>
         </div>
         {prevData && (
           <div>
-            <p className="text-[#9CA3AF] text-[10px] font-black tracking-wider uppercase">
+            <p className="text-[#9CA3AF] text-[9px] font-black tracking-widest uppercase">
               {lastYearLabel}
             </p>
-            <p className="text-[#9CA3AF] font-black text-lg">
-              {lastTotal.toLocaleString("vi-VN")}
+            <p className="text-[#9CA3AF] font-bold text-xl">
+              {lastTotal.toLocaleString("vi-VN")} đ
             </p>
           </div>
         )}
         {growth !== "0" && (
           <div className="ml-auto">
-            <span className="bg-[#4ECDC4]/15 text-[#4ECDC4] font-black text-sm px-3 py-1.5 rounded-xl">
-              {+growth >= 0 ? "↑" : "↓"} {Math.abs(+growth)}% tăng trưởng
+            <span className={`font-black text-xs px-4 py-2 rounded-2xl ${+growth >= 0 ? "bg-[#4ECDC415] text-[#4ECDC4]" : "bg-[#FF6B9D15] text-[#FF6B9D]"}`}>
+              {+growth >= 0 ? "+" : ""}{growth}%
             </span>
           </div>
         )}

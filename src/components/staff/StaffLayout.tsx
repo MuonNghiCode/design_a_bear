@@ -18,19 +18,12 @@ export default function StaffLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (
-      !loading &&
-      (!isAuthenticated || (user?.role !== "staff" && user?.role !== "admin"))
-    ) {
+    if (!loading && (!isAuthenticated || user?.role !== "staff")) {
       router.replace("/auth");
     }
   }, [isAuthenticated, user, loading, router]);
 
-  if (
-    loading ||
-    !isAuthenticated ||
-    (user?.role !== "staff" && user?.role !== "admin")
-  ) {
+  if (loading || !isAuthenticated || user?.role !== "staff") {
     return null;
   }
 

@@ -267,6 +267,8 @@ export interface Product {
   reserved?: number;
   available?: number;
   totalSales?: number;
+  averageRating?: number;
+  viewCountIn10Min?: number;
   model3DUrl?: string;
   createdAt: string;
   updatedAt: string;

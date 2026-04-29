@@ -367,6 +367,7 @@ export default function AddProductPage() {
     <div className="max-w-[1450px] mx-auto px-4 md:px-10 pb-24">
       <PageHeader
         title="Thêm sản phẩm mới"
+        sticky={true}
         actions={
           <div className="flex gap-3">
             <button
@@ -422,6 +423,7 @@ export default function AddProductPage() {
         <SidebarSettings 
           formData={formData} 
           categories={categories} 
+          characters={characters}
           accessoriesList={accessoriesList} 
           onToggle={handleToggle} 
           onPriceChange={handleChange} 

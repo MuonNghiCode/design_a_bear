@@ -371,6 +371,7 @@ export default function EditProductPage() {
     <div className="max-w-[1450px] mx-auto px-4 md:px-10 pb-24">
       <PageHeader
         title={`Sửa: ${formData.name}`}
+        sticky={true}
         actions={
           <div className="flex gap-3">
             <button onClick={() => router.back()} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-gray-100 text-gray-400 font-black text-xs hover:bg-gray-50 transition-all shadow-sm">
@@ -429,6 +430,7 @@ export default function EditProductPage() {
         <SidebarSettings 
           formData={formData}
           categories={categories}
+          characters={characters}
           accessoriesList={accessoriesList}
           onToggle={handleToggle}
           onPriceChange={handlePriceChange}

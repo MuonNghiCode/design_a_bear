@@ -12,9 +12,10 @@ interface PageHeaderProps {
   title: string;
   breadcrumbs?: Breadcrumb[];
   actions?: React.ReactNode;
+  sticky?: boolean;
 }
 
-export default function PageHeader({ title, actions }: PageHeaderProps) {
+export default function PageHeader({ title, actions, sticky }: PageHeaderProps) {
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,10 +29,15 @@ export default function PageHeader({ title, actions }: PageHeaderProps) {
   }, []);
 
   return (
-    <div ref={headerRef} className="mb-8 opacity-0">
+    <div 
+      ref={headerRef} 
+      className={`mb-8 opacity-0 transition-all duration-300 ${
+        sticky ? "sticky top-0 z-[100] -mx-4 px-4 md:-mx-10 md:px-10 py-6 bg-[#F8FAFC]/80 backdrop-blur-xl border-b border-white/20 shadow-[0_1px_2px_rgba(0,0,0,0.02)]" : ""
+      }`}
+    >
       {/* Title & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-black text-[#1A1A2E] tracking-tight">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-[1450px] mx-auto">
+        <h1 className="text-3xl font-black text-[#1A1A2E] tracking-tight font-fredoka uppercase">
           {title}
         </h1>
         {actions && <div className="flex items-center gap-3">{actions}</div>}

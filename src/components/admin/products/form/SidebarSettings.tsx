@@ -12,6 +12,7 @@ import {
 interface SidebarSettingsProps {
   formData: any;
   categories: any[];
+  characters: any[];
   accessoriesList: any[];
   onToggle: (name: string) => void;
   onPriceChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -21,6 +22,7 @@ interface SidebarSettingsProps {
 export const SidebarSettings = ({
   formData,
   categories,
+  characters,
   accessoriesList,
   onToggle,
   onPriceChange,
@@ -117,8 +119,28 @@ export const SidebarSettings = ({
             </div>
           </div>
 
+          <div className="space-y-3 pt-6 border-t border-gray-50">
+            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Tính cách / Nhân vật</label>
+            <div className="flex flex-wrap gap-3">
+              {characters.map(char => (
+                <button
+                  key={char.characterId}
+                  type="button"
+                  onClick={() => onMultiSelect("characterIds", char.characterId)}
+                  className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${
+                    formData.characterIds.includes(char.characterId)
+                      ? "bg-purple-600 text-white"
+                      : "bg-[#F4F7FF] text-gray-400"
+                  }`}
+                >
+                  {char.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-4 pt-6 border-t border-gray-50">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Phụ kiện</label>
+            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Phụ kiện đi kèm</label>
             <div className="grid grid-cols-1 gap-3">
               {accessoriesList.map(acc => {
                 const isSelected = formData.accessoryIds.includes(acc.accessoryId);

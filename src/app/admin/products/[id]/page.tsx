@@ -11,7 +11,9 @@ import {
   MdCategory,
   MdStar,
   MdVisibility,
-  MdShoppingCart
+  MdShoppingCart,
+  MdImage,
+  MdLayers
 } from "react-icons/md";
 import { useToast } from "@/contexts/ToastContext";
 import { productService } from "@/services";
@@ -78,6 +80,7 @@ export default function ProductDetailPage() {
     <div className="max-w-[1440px] mx-auto px-4 md:px-10 pb-20">
       <PageHeader
         title={product.name}
+        sticky={true}
         actions={
           <div className="flex gap-4">
             <button
@@ -110,9 +113,9 @@ export default function ProductDetailPage() {
           <div className="bg-white rounded-[40px] p-10 shadow-sm border border-white/50 flex flex-col items-center text-center">
             <div className="w-full aspect-square rounded-[48px] bg-[#F4F7FF] border border-white p-10 mb-8 flex items-center justify-center shadow-inner group">
               <img 
-                src={product.imageUrl || "/teddy_bear.png"} 
+                src={product.imageUrl || product.media?.[0]?.url || "/teddy_bear.png"} 
                 className="w-full h-full object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" 
-                alt="" 
+                alt={product.name} 
               />
             </div>
             <h2 className="text-2xl font-black text-[#1A1A2E] mb-2">{product.name}</h2>
@@ -223,6 +226,65 @@ export default function ProductDetailPage() {
                   )) || <span className="text-sm text-gray-400 italic">Trống</span>}
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Media Gallery */}
+          <section className="bg-white rounded-[40px] p-12 shadow-sm border border-white/50 space-y-8">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-600">
+                <MdImage className="text-3xl" />
+              </div>
+              <h2 className="text-2xl font-black text-[#1A1A2E]">Thư viện ảnh gốc ({product.media?.length || 0})</h2>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+              {product.media?.map((m, idx) => (
+                <div key={idx} className="group relative aspect-square rounded-[32px] bg-[#F4F7FF] border border-white overflow-hidden shadow-sm hover:shadow-md transition-all">
+                  <img src={m.url} className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500" alt={m.altText} />
+                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-white/80 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform">
+                    <p className="text-[10px] font-black text-[#1A1A2E] truncate uppercase tracking-tighter">{m.altText || "Product Image"}</p>
+                  </div>
+                </div>
+              )) || (
+                <div className="col-span-full py-12 text-center text-gray-300 font-bold uppercase tracking-widest border-2 border-dashed border-[#F4F7FF] rounded-[32px]">
+                  Chưa có ảnh thư viện
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Combo Matrix Gallery */}
+          <section className="bg-white rounded-[40px] p-12 shadow-sm border border-white/50 space-y-8">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600">
+                <MdLayers className="text-3xl" />
+              </div>
+              <h2 className="text-2xl font-black text-[#1A1A2E]">Ma trận ảnh tổ hợp ({product.comboImages?.length || 0})</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {product.comboImages?.map((ci, idx) => (
+                <div key={idx} className="flex gap-6 p-6 bg-[#F4F7FF] rounded-[32px] border border-white shadow-sm hover:border-purple-200 transition-all">
+                  <div className="w-32 h-32 rounded-2xl bg-white p-4 shrink-0 border border-purple-50 flex items-center justify-center shadow-inner">
+                    <img src={ci.imageUrl} className="w-full h-full object-contain" alt="" />
+                  </div>
+                  <div className="flex flex-col justify-center min-w-0">
+                    <p className="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-2">Tổ hợp #{idx + 1}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {ci.combinationKey?.split("|").map((accId, i) => (
+                        <span key={i} className="px-3 py-1 bg-white border border-purple-50 text-[10px] font-black text-[#17409A] rounded-lg shadow-sm">
+                          {accId.slice(0, 8)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )) || (
+                <div className="col-span-full py-12 text-center text-gray-300 font-bold uppercase tracking-widest border-2 border-dashed border-[#F4F7FF] rounded-[32px]">
+                  Chưa có ảnh ma trận
+                </div>
+              )}
             </div>
           </section>
         </div>

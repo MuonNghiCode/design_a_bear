@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import gsap from "gsap";
+import { MdAdd } from "react-icons/md";
 import AccessoriesGrid from "@/components/admin/accessories/AccessoriesGrid";
+import AccessoriesHero from "@/components/admin/accessories/AccessoriesHero";
+import AccessoriesTopStats from "@/components/admin/accessories/AccessoriesTopStats";
 
 export default function AccessoriesClient() {
+  const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,8 +40,24 @@ export default function AccessoriesClient() {
             Phụ kiện
           </h1>
           <p className="text-[#9CA3AF] text-sm font-semibold">
-            Quản lý linh kiện và phụ kiện · Tháng 3 / 2026
+            Quản lý linh kiện và kho hàng · Tháng 3 / 2026
           </p>
+        </div>
+        <button 
+          onClick={() => router.push("/admin/accessories/add")}
+          className="flex items-center gap-2 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors shadow-lg shadow-[#17409A]/20"
+        >
+          + Thêm phụ kiện mới
+        </button>
+      </div>
+
+      {/* Hero + Stats section */}
+      <div className="ac grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="lg:col-span-3">
+          <AccessoriesHero />
+        </div>
+        <div className="lg:col-span-2">
+          <AccessoriesTopStats />
         </div>
       </div>
 

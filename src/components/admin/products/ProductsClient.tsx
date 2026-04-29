@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import ProductsHero from "@/components/admin/products/ProductsHero";
 import ProductsTopSellers from "@/components/admin/products/ProductsTopSellers";
 import ProductsGrid from "@/components/admin/products/ProductsGrid";
 
 export default function ProductsClient() {
+  const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,17 +42,20 @@ export default function ProductsClient() {
             Quản lý danh mục và kho hàng · Tháng 3 / 2026
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors">
+        <button 
+          onClick={() => router.push("/admin/products/add")}
+          className="flex items-center gap-2 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors"
+        >
           + Thêm sản phẩm mới
         </button>
       </div>
 
       {/* Hero (left 2/5) + Top sellers (right 3/5) */}
       <div className="ac grid grid-cols-1 lg:grid-cols-5 gap-5">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <ProductsHero />
         </div>
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-2">
           <ProductsTopSellers />
         </div>
       </div>

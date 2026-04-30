@@ -24,7 +24,11 @@ import { formatPrice } from "@/utils/currency";
 import { formatShortOrderCode } from "@/utils/order";
 import type { OrderListItem, AddressDetail, Order, UserDetail } from "@/types";
 import type { FulfillmentResponse } from "@/types/responses";
+import type { GhtkTrackingStatusResponse } from "@/types/shipping";
 import CustomDropdown from "@/components/shared/CustomDropdown";
+import { shippingService } from "@/services/shipping.service";
+import { useToast } from "@/contexts/ToastContext";
+import Skeleton from "@/components/shared/Skeleton";
 
 interface OrderDetailsViewProps {
   order: Order | OrderListItem;
@@ -65,7 +69,10 @@ export default function OrderDetailsView({
   const router = useRouter();
   const headerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { success, error: toastError } = useToast();
   const [avatarError, setAvatarError] = useState(false);
+  const [trackingData, setTrackingData] = useState<GhtkTrackingStatusResponse | null>(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -100,6 +107,34 @@ export default function OrderDetailsView({
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+    success("Đã sao chép vào bộ nhớ tạm");
+  };
+
+  const handlePrintLabel = () => {
+    if (!fulfillment?.trackingNumber) {
+      toastError("Đơn hàng chưa có mã vận đơn");
+      return;
+    }
+    const url = shippingService.getPrintLabelUrl(fulfillment.trackingNumber);
+    window.open(url, '_blank');
+  };
+
+  const handleTrackDetail = async () => {
+    if (!fulfillment?.trackingNumber) return;
+    setTrackingLoading(true);
+    try {
+      const res = await shippingService.getTrackingStatus(fulfillment.trackingNumber);
+      if (res.isSuccess && res.value) {
+        setTrackingData(res.value);
+        success("Đã cập nhật thông tin vận chuyển");
+      } else {
+        toastError(res.error?.description || "Không thể lấy thông tin vận chuyển");
+      }
+    } catch (e) {
+      toastError("Lỗi kết nối khi lấy thông tin vận chuyển");
+    } finally {
+      setTrackingLoading(false);
+    }
   };
 
   const statusDisplay = statusCfg[order.status.toLowerCase()] || { label: order.status, color: "#6B7280", bg: "#F3F4F6" };
@@ -141,10 +176,12 @@ export default function OrderDetailsView({
 
           <div className="flex items-center gap-4">
             <button 
-              className="px-6 py-3.5 rounded-2xl bg-white/80 backdrop-blur-sm border border-white text-gray-500 text-[11px] font-black hover:bg-white transition-all flex items-center gap-2 uppercase tracking-widest shadow-sm"
+              onClick={handlePrintLabel}
+              disabled={!fulfillment}
+              className="px-6 py-3.5 rounded-2xl bg-white/80 backdrop-blur-sm border border-white text-gray-500 text-[11px] font-black hover:bg-white transition-all flex items-center gap-2 uppercase tracking-widest shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <MdPrint className="text-lg" />
-              In hóa đơn
+              In nhãn GHTK
             </button>
             <div className="relative min-w-[220px]">
               <CustomDropdown
@@ -206,7 +243,6 @@ export default function OrderDetailsView({
                 <div className="relative flex justify-between">
                   {TIMELINE_STAGES.map((stage, idx) => {
                     const isActive = idx <= currentStageIndex;
-                    const isCurrent = idx === currentStageIndex;
                     
                     return (
                       <div key={stage.id} className="flex flex-col items-center gap-4">
@@ -430,8 +466,17 @@ export default function OrderDetailsView({
               </div>
 
               {fulfillment ? (
-                <div className="space-y-4">
-                  <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] ml-1">Thông tin vận đơn</p>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] ml-1">Thông tin vận đơn</p>
+                    <button 
+                      onClick={handleTrackDetail}
+                      disabled={trackingLoading}
+                      className="text-[9px] font-black text-[#17409A] uppercase tracking-widest hover:underline disabled:opacity-50"
+                    >
+                      {trackingLoading ? "Đang cập nhật..." : "Làm mới tracking"}
+                    </button>
+                  </div>
                   <div className="p-6 bg-[#F8FAFC] rounded-[24px] border border-gray-100 flex items-center justify-between">
                     <div>
                       <p className="text-[10px] font-black text-[#17409A] uppercase tracking-widest mb-1">{fulfillment.carrier}</p>
@@ -439,6 +484,34 @@ export default function OrderDetailsView({
                     </div>
                     <MdQrCode className="text-gray-300 text-3xl" />
                   </div>
+
+                  {trackingData ? (
+                    <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Trạng thái hiện tại</span>
+                        <span className="text-[10px] font-black text-[#17409A] uppercase tracking-wider">{trackingData.order?.status_text || "N/A"}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cập nhật cuối</span>
+                        <span className="text-[10px] font-bold text-gray-500">{trackingData.order?.action_time || "N/A"}</span>
+                      </div>
+                      {trackingData.order?.reason && (
+                        <div className="pt-2 border-t border-blue-100/30">
+                          <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Ghi chú vận chuyển</p>
+                          <p className="text-[11px] font-bold text-amber-700 italic">“{trackingData.order.reason}”</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={handleTrackDetail}
+                      disabled={trackingLoading}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-white border border-gray-100 rounded-xl text-[10px] font-black text-gray-400 hover:text-[#17409A] hover:bg-gray-50 transition-all uppercase tracking-widest"
+                    >
+                      {trackingLoading ? <MdAutorenew className="animate-spin text-sm" /> : <MdLocalShipping className="text-sm" />}
+                      Xem chi tiết hành trình
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -483,6 +556,91 @@ export default function OrderDetailsView({
               </div>
             </section>
 
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function OrderDetailsSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      <div className="bg-white/70 backdrop-blur-md border-b border-white/50 sticky top-0 z-30 px-8 py-6">
+        <div className="max-w-[1400px] mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            <Skeleton className="w-12 h-12 rounded-2xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <Skeleton className="h-12 w-32 rounded-2xl" />
+            <Skeleton className="h-12 w-48 rounded-2xl" />
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-[1400px] mx-auto px-8 mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-8">
+            <div className="bg-white rounded-[32px] p-10 border border-gray-100">
+              <Skeleton className="h-6 w-40 mb-10" />
+              <div className="flex justify-between px-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex flex-col items-center gap-4">
+                    <Skeleton className="w-12 h-12 rounded-2xl" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[32px] p-10 border border-gray-100">
+              <div className="flex justify-between mb-10">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-8 w-24 rounded-xl" />
+              </div>
+              <div className="space-y-6">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="flex gap-8 p-6 bg-[#F8FAFC] rounded-[24px]">
+                    <Skeleton className="w-28 h-28 rounded-[20px]" />
+                    <div className="flex-1 space-y-4">
+                      <div className="flex justify-between">
+                        <Skeleton className="h-6 w-1/2" />
+                        <Skeleton className="h-6 w-24" />
+                      </div>
+                      <Skeleton className="h-4 w-1/4" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-6 w-20" />
+                        <Skeleton className="h-6 w-20" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-4 space-y-8">
+            <div className="bg-white rounded-[32px] p-8 border border-gray-100">
+              <Skeleton className="h-6 w-32 mb-8" />
+              <div className="flex items-center gap-5 p-5 bg-[#F8FAFC] rounded-[24px]">
+                <Skeleton className="w-14 h-14 rounded-2xl" />
+                <Skeleton className="h-5 w-32" />
+              </div>
+              <div className="mt-8 space-y-4">
+                <div className="flex gap-4">
+                  <Skeleton className="w-10 h-10 rounded-xl" />
+                  <div className="space-y-2"><Skeleton className="h-3 w-16" /><Skeleton className="h-4 w-32" /></div>
+                </div>
+                <div className="flex gap-4">
+                  <Skeleton className="w-10 h-10 rounded-xl" />
+                  <div className="space-y-2"><Skeleton className="h-3 w-16" /><Skeleton className="h-4 w-32" /></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

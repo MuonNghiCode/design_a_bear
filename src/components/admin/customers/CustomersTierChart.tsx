@@ -1,5 +1,6 @@
 "use client";
 
+import Skeleton from "@/components/shared/Skeleton";
 import {
   MdDiamond,
   MdEmojiEvents,
@@ -20,30 +21,22 @@ export default function CustomersTierChart({
 }: CustomersTierChartProps) {
   const total = customers.length;
 
-  // Since we don't have real "tier" logic in BE yet, we segment by role or something similar
-  // For now, let's categorize them by "Parent", "User", "Khách hàng" as tiers
   const tiers = [
     {
       label: "Kim cương",
-      count:
-        customers.filter((c) => c.roleName?.toLowerCase().includes("diamond"))
-          .length || 0,
+      count: customers.filter((c) => (c.roleName || "").toLowerCase().includes("diamond")).length || 0,
       color: "#7C5CFC",
       icon: MdDiamond,
     },
     {
       label: "Vàng",
-      count:
-        customers.filter((c) => c.roleName?.toLowerCase().includes("gold"))
-          .length || 0,
+      count: customers.filter((c) => (c.roleName || "").toLowerCase().includes("gold")).length || 0,
       color: "#FFD93D",
       icon: MdEmojiEvents,
     },
     {
       label: "Bạc",
-      count:
-        customers.filter((c) => c.roleName?.toLowerCase().includes("silver"))
-          .length || 0,
+      count: customers.filter((c) => (c.roleName || "").toLowerCase().includes("silver")).length || 0,
       color: "#9CA3AF",
       icon: MdMilitaryTech,
     },
@@ -60,50 +53,68 @@ export default function CustomersTierChart({
   ];
 
   if (loading) {
-    return <div className="h-full rounded-3xl bg-gray-50 animate-pulse" />;
+    return (
+      <div className="bg-white rounded-3xl p-6 h-full flex flex-col min-h-[300px] border border-gray-100 shadow-sm">
+        <Skeleton className="h-3 w-16 mb-1" />
+        <Skeleton className="h-6 w-32 mb-8" />
+        <div className="space-y-6 flex-1">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="flex justify-between"><Skeleton className="h-4 w-24" /><Skeleton className="h-4 w-8" /></div>
+              <Skeleton className="h-1.5 w-full rounded-full" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="h-4 w-32 mt-6 pt-4 border-t border-gray-50" />
+      </div>
+    );
   }
 
   return (
-    <div className="bg-white rounded-[40px] p-8 h-full flex flex-col border border-[#F0F0F8] shadow-sm">
-      <div className="flex items-start justify-between mb-8">
+    <div className="relative bg-white rounded-3xl p-6 h-full flex flex-col min-h-[300px] border border-[#F4F7FF] shadow-sm shadow-[#F4F7FF]/50">
+      {/* Header matching OrdersPipeline */}
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.3em] uppercase mb-1">
+          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
             Phân hạng
           </p>
-          <h3 className="text-[#1A1A2E] font-black text-xl tracking-tight">
-            Cơ cấu thành viên
-          </h3>
+          <p className="text-[#1A1A2E] font-black text-lg">Cơ cấu thành viên</p>
         </div>
-        <div className="flex items-center gap-2 bg-[#F4F7FF] text-[#17409A] px-3 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest">
-          <MdPeople /> {total}
-        </div>
+        <span className="text-[10px] font-black text-[#17409A] bg-[#17409A]/8 px-3 py-1.5 rounded-full">
+          {total} người
+        </span>
       </div>
 
-      <div className="flex flex-col gap-6 flex-1">
+      <div className="flex flex-col gap-5 flex-1">
         {tiers.map((t) => {
           const pct = total > 0 ? Math.round((t.count / total) * 100) : 0;
           return (
             <div key={t.label}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2.5">
                   <div
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                    style={{ backgroundColor: t.color + "15" }}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: t.color + "12" }}
                   >
                     <t.icon style={{ color: t.color, fontSize: 18 }} />
                   </div>
-                  <span className="text-[#1A1A2E] font-black text-sm">
+                  <span className="text-[#1A1A2E] font-black text-[13px] tracking-tight">
                     {t.label}
                   </span>
                 </div>
-                <div className="text-right">
-                  <p className="text-[#1A1A2E] font-black text-sm">{t.count}</p>
-                  <p className="text-[#9CA3AF] text-[10px] font-bold">{pct}%</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#1A1A2E] font-black text-sm">{t.count}</span>
+                  <span 
+                    className="text-[9px] font-black px-1.5 py-0.5 rounded-md"
+                    style={{ color: t.color, backgroundColor: t.color + "12" }}
+                  >
+                    {pct}%
+                  </span>
                 </div>
               </div>
-              <div className="h-2 w-full bg-[#F4F7FF] rounded-full overflow-hidden">
+              <div className="h-1.5 w-full bg-[#F4F7FF] rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-all duration-1000"
+                  className="h-full rounded-full transition-all duration-1000 ease-out"
                   style={{ width: `${pct}%`, backgroundColor: t.color }}
                 />
               </div>
@@ -112,14 +123,10 @@ export default function CustomersTierChart({
         })}
       </div>
 
-      <div className="mt-8 p-6 rounded-[32px] bg-[#F8FAFF] border border-[#F0F0F8]">
-        <p className="text-[#9CA3AF] text-[9px] font-black tracking-widest uppercase mb-2">
-          Thông tin
-        </p>
-        <p className="text-[#1A1A2E] font-bold text-xs leading-relaxed">
-          Hệ thống phân hạng dựa trên tổng chi tiêu tích lũy của khách hàng.
-        </p>
-      </div>
+      {/* Footer matching OrdersPipeline */}
+      <p className="text-[#9CA3AF] text-[10px] font-semibold mt-4 pt-4 border-t border-[#F4F7FF]">
+        Cập nhật theo thời gian thực · {new Date().toLocaleDateString("vi-VN", { month: "long", year: "numeric" })}
+      </p>
     </div>
   );
 }

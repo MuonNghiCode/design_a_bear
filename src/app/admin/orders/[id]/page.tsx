@@ -8,7 +8,7 @@ import { fulfillmentService } from "@/services/fulfillment.service";
 import { userService } from "@/services/user.service";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
-import OrderDetailsView from "@/components/admin/orders/OrderDetailsView";
+import OrderDetailsView, { OrderDetailsSkeleton } from "@/components/admin/orders/OrderDetailsView";
 import type { Order, AddressDetail, UserDetail } from "@/types";
 import type { FulfillmentResponse } from "@/types/responses";
 import { MdAutorenew } from "react-icons/md";
@@ -127,14 +127,7 @@ export default function OrderDetailsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-        <div className="flex flex-col items-center gap-4">
-          <MdAutorenew className="text-4xl text-[#17409A] animate-spin" />
-          <p className="text-sm font-black text-[#1A1A2E] tracking-widest uppercase">Đang tải dữ liệu...</p>
-        </div>
-      </div>
-    );
+    return <OrderDetailsSkeleton />;
   }
 
   if (!order) {

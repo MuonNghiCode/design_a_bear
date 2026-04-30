@@ -34,7 +34,7 @@ const EXPANDABLE_SECTIONS = [
       { label: "Đơn hàng", href: "/admin/orders" },
       { label: "Khách hàng", href: "/admin/customers" },
       { label: "Mã giảm giá", href: "/admin/promotions" },
-      { label: "Nhân viên", href: "/admin/staff" },
+      // { label: "Nhân viên", href: "/admin/staff" },
     ],
   },
   {

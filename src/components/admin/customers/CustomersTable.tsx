@@ -20,6 +20,7 @@ import { useDebounce } from "@/hooks";
 import type { UserDetail } from "@/types";
 import { formatDate } from "@/utils/date";
 import DataTable from "@/components/admin/common/DataTable";
+import Pagination from "@/components/admin/common/Pagination";
 import ConfirmDialog from "@/components/admin/common/ConfirmDialog";
 
 function UserAvatar({ user, size = "w-12 h-12" }: { user: UserDetail; size?: string }) {
@@ -86,6 +87,9 @@ export default function CustomersTable() {
   const [confirmTarget, setConfirmTarget] = useState<UserDetail | null>(null);
   const { success, error: toastError } = useToast();
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -122,6 +126,16 @@ export default function CustomersTable() {
         }),
     [users, statusFilter, debouncedSearch],
   );
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, debouncedSearch]);
 
   const handleBlockToggle = async () => {
     if (!confirmTarget) return;
@@ -194,7 +208,7 @@ export default function CustomersTable() {
       </div>
 
       <DataTable
-        data={filtered}
+        data={paginatedData}
         isLoading={loading}
         columns={[
           {
@@ -282,6 +296,13 @@ export default function CustomersTable() {
             ),
           },
         ]}
+      />
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={loading}
       />
 
       <ConfirmDialog

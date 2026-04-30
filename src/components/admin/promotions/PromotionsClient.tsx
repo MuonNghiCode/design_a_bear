@@ -3,26 +3,26 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
 import { MdRefresh } from "react-icons/md";
-import CustomersHero from "@/components/admin/customers/CustomersHero";
-import CustomersTable from "@/components/admin/customers/CustomersTable";
-import { userService } from "@/services/user.service";
-import type { UserDetail } from "@/types";
+import PromotionsHero from "./PromotionsHero";
+import PromotionsTable from "./PromotionsTable";
+import { promotionService } from "@/services/promotion.service";
+import type { Promotion } from "@/types";
 
-export default function CustomersClient() {
+export default function PromotionsClient() {
   const ref = useRef<HTMLDivElement>(null);
-  const [users, setUsers] = useState<UserDetail[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchPromotions = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await userService.getUsers();
+      const res = await promotionService.getAllPromotions();
       if (res.isSuccess) {
-        setUsers(res.value || []);
+        setPromotions(res.value || []);
       }
     } catch (err) {
-      console.error("Failed to fetch users", err);
+      console.error("Failed to fetch promotions", err);
     } finally {
       setLoading(false);
     }
@@ -30,13 +30,13 @@ export default function CustomersClient() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await fetchUsers();
+    await fetchPromotions();
     setRefreshing(false);
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    fetchPromotions();
+  }, [fetchPromotions]);
 
   useEffect(() => {
     if (!ref.current || loading) return;
@@ -57,22 +57,16 @@ export default function CustomersClient() {
     return () => ctx.revert();
   }, [loading]);
 
-  // Filter only customers/parents
-  const customers = users.filter(u => {
-    const role = (u.roleName || "").toLowerCase();
-    return role.includes("customer") || role === "user" || role === "khách hàng" || role === "parent";
-  });
-
   return (
     <div ref={ref} className="space-y-8 pb-12" style={{ fontFamily: "var(--font-nunito), Nunito, sans-serif" }}>
       {/* ── Page Header ── */}
       <div className="ac flex items-end justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-[#1A1A2E] font-black text-2xl leading-tight">
-            Khách hàng
+            Mã giảm giá
           </h1>
           <p className="text-[#9CA3AF] text-sm font-semibold tracking-wide opacity-70">
-            Quản lý cơ sở dữ liệu khách hàng ·{" "}
+            Quản lý chiến dịch ưu đãi ·{" "}
             {new Date().toLocaleDateString("vi-VN", {
               month: "long",
               year: "numeric",
@@ -89,14 +83,14 @@ export default function CustomersClient() {
         </button>
       </div>
 
-      {/* Full-width Customers Hero */}
+      {/* Full-width Promotions Hero */}
       <div className="ac">
-        <CustomersHero customers={customers} loading={loading} />
+        <PromotionsHero promotions={promotions} loading={loading} />
       </div>
 
-      {/* Full-width customers table */}
+      {/* Full-width promotions table */}
       <div className="ac">
-        <CustomersTable />
+        <PromotionsTable promotions={promotions} loading={loading} onRefresh={fetchPromotions} />
       </div>
     </div>
   );

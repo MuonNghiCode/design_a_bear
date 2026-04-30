@@ -17,6 +17,7 @@ import { type ProductAdminStatus } from "@/data/admin";
 import { useAdminProductsApi } from "@/hooks/useAdminProductsApi";
 import { useToast } from "@/contexts/ToastContext";
 import DataTable from "@/components/admin/common/DataTable";
+import Pagination from "@/components/admin/common/Pagination";
 import ConfirmDialog from "@/components/admin/common/ConfirmDialog";
 
 export default function ProductsGrid() {
@@ -25,6 +26,8 @@ export default function ProductsGrid() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const { data, loading, fetchProducts, deleteProduct } = useAdminProductsApi();
   const { success, error: toastError } = useToast();
@@ -59,6 +62,16 @@ export default function ProductsGrid() {
         return statusMatch && searchMatch;
       });
   }, [data, statusFilter, debouncedSearch]);
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, debouncedSearch]);
 
   return (
     <div className="space-y-6">
@@ -105,7 +118,7 @@ export default function ProductsGrid() {
       </div>
 
       <DataTable
-        data={filtered}
+        data={paginatedData}
         isLoading={loading}
         columns={[
           {
@@ -189,6 +202,13 @@ export default function ProductsGrid() {
             ),
           },
         ]}
+      />
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={loading}
       />
 
       <ConfirmDialog

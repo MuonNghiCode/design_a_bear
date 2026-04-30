@@ -45,9 +45,9 @@ export default function ProductsClient() {
         <div className="flex items-center gap-3">
           <button 
             onClick={() => window.location.reload()}
-            className="flex items-center gap-2 bg-white text-[#17409A] text-[13px] font-black px-6 py-3 rounded-2xl border border-[#F4F7FF] shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+            className="flex items-center gap-2 bg-white text-[#17409A] text-[11px] font-black px-6 py-3.5 rounded-2xl hover:bg-[#F4F7FF] transition-all border border-[#F4F7FF] shadow-sm active:scale-95 uppercase tracking-widest"
           >
-            <MdRefresh className="text-xl" />
+            <MdRefresh className="text-lg" />
             Làm mới dữ liệu
           </button>
         </div>

@@ -12,6 +12,7 @@ import {
 } from "react-icons/md";
 import { formatShortOrderCode } from "@/utils/order";
 import DataTable from "@/components/admin/common/DataTable";
+import Pagination from "@/components/admin/common/Pagination";
 import type { OrderListItem } from "@/types";
 
 function UserAvatar({ url, name, userId }: { url?: string; name: string; userId: string }) {
@@ -104,6 +105,9 @@ export default function OrdersTable({
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
   const filtered = useMemo(
     () =>
       orders
@@ -120,6 +124,17 @@ export default function OrdersTable({
         }),
     [orders, statusFilter, debouncedSearch, usersMap],
   );
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage]);
+
+  // Reset page when filter/search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, debouncedSearch]);
 
   return (
     <div className="space-y-6">
@@ -159,7 +174,7 @@ export default function OrdersTable({
       </div>
 
       <DataTable
-        data={filtered}
+        data={paginatedData}
         isLoading={loading}
         columns={[
           {
@@ -244,6 +259,13 @@ export default function OrdersTable({
             ),
           },
         ]}
+      />
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={loading}
       />
     </div>
   );

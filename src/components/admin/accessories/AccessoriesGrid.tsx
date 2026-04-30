@@ -15,6 +15,7 @@ import {
 import { useAdminAccessoriesApi } from "@/hooks/useAdminAccessoriesApi";
 import { useToast } from "@/contexts/ToastContext";
 import DataTable from "@/components/admin/common/DataTable";
+import Pagination from "@/components/admin/common/Pagination";
 import ConfirmDialog from "@/components/admin/common/ConfirmDialog";
 
 export default function AccessoriesGrid() {
@@ -23,6 +24,8 @@ export default function AccessoriesGrid() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   const { accessories, loading, fetchAccessories, deleteAccessory } = useAdminAccessoriesApi();
   const { success, error: toastError } = useToast();
@@ -56,6 +59,16 @@ export default function AccessoriesGrid() {
         return statusMatch && searchMatch;
       });
   }, [accessories, statusFilter, debouncedSearch]);
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, debouncedSearch]);
 
   return (
     <div className="space-y-6">
@@ -102,7 +115,7 @@ export default function AccessoriesGrid() {
       </div>
 
       <DataTable
-        data={filtered}
+        data={paginatedData}
         isLoading={loading}
         columns={[
           {
@@ -177,6 +190,13 @@ export default function AccessoriesGrid() {
             ),
           },
         ]}
+      />
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        isLoading={loading}
       />
 
       <ConfirmDialog

@@ -14,6 +14,7 @@ import { productService, inventoryService, accessoryService } from "@/services";
 import type { Inventory } from "@/types";
 import { useToast } from "@/contexts/ToastContext";
 import DataTable from "@/components/admin/common/DataTable";
+import Pagination from "@/components/admin/common/Pagination";
 import InventoryHero from "./InventoryHero";
 import InventoryTopStats from "./InventoryTopStats";
 
@@ -34,6 +35,9 @@ export default function InventoryClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"ALL" | "BEAR" | "ACCESSORY">("ALL");
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   
   const toast = useToast();
 
@@ -130,6 +134,13 @@ export default function InventoryClient() {
     return matchesSearch;
   });
 
+  const totalPages = Math.ceil(filteredItems.length / pageSize);
+  const paginatedItems = filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeTab]);
+
   const getAggregate = (id: string) => {
     const invs = inventories[id] || [];
     return invs.reduce(
@@ -175,9 +186,10 @@ export default function InventoryClient() {
         </div>
         <button 
           onClick={() => fetchData()}
-          className="flex items-center gap-2 bg-white text-[#17409A] text-xs font-black px-4 py-2.5 rounded-xl border border-white/50 shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+          className="flex items-center gap-2 bg-white text-[#17409A] text-[11px] font-black px-6 py-3.5 rounded-2xl hover:bg-[#F4F7FF] transition-all border border-[#F4F7FF] shadow-sm active:scale-95 disabled:opacity-50 uppercase tracking-widest"
+          disabled={isLoading}
         >
-          <MdRefresh className={`text-base ${isLoading ? "animate-spin" : ""}`} />
+          <MdRefresh className={`text-lg ${isLoading ? "animate-spin" : ""}`} />
           Làm mới dữ liệu
         </button>
       </div>
@@ -229,7 +241,7 @@ export default function InventoryClient() {
 
       <div className="ac">
         <DataTable
-          data={filteredItems}
+          data={paginatedItems}
           isLoading={isLoading}
           columns={[
             {
@@ -335,6 +347,12 @@ export default function InventoryClient() {
               ),
             },
           ]}
+        />
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          isLoading={isLoading}
         />
       </div>
     </div>

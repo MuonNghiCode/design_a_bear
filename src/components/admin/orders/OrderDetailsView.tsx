@@ -156,7 +156,7 @@ export default function OrderDetailsView({
             </button>
             <div>
               <div className="flex items-center gap-4 mb-1">
-                <h1 className="text-3xl font-black text-[#17409A] font-mono tracking-tighter">
+                <h1 className="text-3xl font-black text-[#1A1A2E] font-mono tracking-tighter">
                   #{formatShortOrderCode(order.orderNumber || order.orderId)}
                 </h1>
                 <span 
@@ -311,7 +311,7 @@ export default function OrderDetailsView({
                           <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mt-2">SKU: {item.sku || "N/A"}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-black text-[#17409A]">{formatPrice(item.unitPrice)}</p>
+                          <p className="text-lg font-black text-[#1A1A2E]">{formatPrice(item.unitPrice)}</p>
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Số lượng: {item.quantity}</p>
                         </div>
                       </div>
@@ -354,25 +354,25 @@ export default function OrderDetailsView({
                   </div>
                 </div>
 
-                <div className="bg-[#17409A] rounded-[24px] p-8 space-y-5 shadow-2xl shadow-gray-300">
+                <div className="bg-[#F8FAFC] rounded-[24px] p-8 space-y-5 border border-gray-100 shadow-sm">
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-white/30 font-black uppercase tracking-[0.2em]">Tạm tính</span>
-                    <span className="text-white font-bold">{formatPrice(order.subtotal)}</span>
+                    <span className="text-gray-400 font-black uppercase tracking-[0.2em]">Tạm tính</span>
+                    <span className="text-gray-600 font-bold">{formatPrice(order.subtotal)}</span>
                   </div>
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-white/30 font-black uppercase tracking-[0.2em]">Phí vận chuyển</span>
-                    <span className="text-white font-bold">{formatPrice(order.shippingTotal)}</span>
+                    <span className="text-gray-400 font-black uppercase tracking-[0.2em]">Phí vận chuyển</span>
+                    <span className="text-gray-600 font-bold">{formatPrice(order.shippingTotal)}</span>
                   </div>
                   {order.discountTotal > 0 && (
                     <div className="flex justify-between items-center text-[11px]">
-                      <span className="text-emerald-400/60 font-black uppercase tracking-[0.2em]">Giảm giá</span>
-                      <span className="text-emerald-400 font-bold">-{formatPrice(order.discountTotal)}</span>
+                      <span className="text-emerald-500/60 font-black uppercase tracking-[0.2em]">Giảm giá</span>
+                      <span className="text-emerald-500 font-bold">-{formatPrice(order.discountTotal)}</span>
                     </div>
                   )}
-                  <div className="h-px bg-white/5 my-2" />
+                  <div className="h-px bg-gray-100 my-2" />
                   <div className="flex justify-between items-end pt-2">
-                    <span className="text-white/40 font-black text-[11px] uppercase tracking-[0.25em] mb-1">Tổng cộng</span>
-                    <span className="text-white font-black text-3xl font-mono tracking-tighter">{formatPrice(order.grandTotal)}</span>
+                    <span className="text-gray-400 font-black text-[11px] uppercase tracking-[0.25em] mb-1">Tổng cộng</span>
+                    <span className="text-[#17409A] font-black text-3xl font-mono tracking-tighter">{formatPrice(order.grandTotal)}</span>
                   </div>
                 </div>
               </div>
@@ -392,7 +392,7 @@ export default function OrderDetailsView({
               </div>
 
               <div className="flex items-center gap-5 p-5 bg-[#F8FAFC] rounded-[24px] border border-gray-100/50">
-                <div className="w-14 h-14 rounded-2xl bg-[#17409A] flex items-center justify-center text-white font-black text-xl shadow-lg overflow-hidden border-2 border-white">
+                <div className="w-14 h-14 rounded-2xl bg-[#F4F7FF] flex items-center justify-center text-[#17409A] font-black text-xl shadow-sm overflow-hidden border-2 border-white">
                   {orderUser?.avatarUrl && !avatarError ? (
                     <img 
                       src={orderUser.avatarUrl} 
@@ -408,7 +408,7 @@ export default function OrderDetailsView({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-base font-black text-[#1A1A2E] truncate uppercase tracking-tight">{address?.fullName || "Khách vãng lai"}</p>
-                  <p className="text-[9px] font-black text-[#17409A] uppercase tracking-[0.15em] bg-blue-50 px-3 py-1 rounded-full inline-block mt-2">
+                  <p className="text-[9px] font-black text-[#17409A] uppercase tracking-[0.15em] bg-[#F4F7FF] px-3 py-1 rounded-full inline-block mt-2">
                     {order.userId ? "Thành viên" : "Khách mới"}
                   </p>
                 </div>

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
-import { MdAdd } from "react-icons/md";
+import { MdAdd, MdRefresh } from "react-icons/md";
 import AccessoriesGrid from "@/components/admin/accessories/AccessoriesGrid";
 import AccessoriesHero from "@/components/admin/accessories/AccessoriesHero";
 import AccessoriesTopStats from "@/components/admin/accessories/AccessoriesTopStats";
@@ -43,12 +43,15 @@ export default function AccessoriesClient() {
             Quản lý linh kiện và kho hàng · Tháng 3 / 2026
           </p>
         </div>
-        <button 
-          onClick={() => router.push("/admin/accessories/add")}
-          className="flex items-center gap-2 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors shadow-lg shadow-[#17409A]/20"
-        >
-          + Thêm phụ kiện mới
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-2 bg-white text-[#17409A] text-[13px] font-black px-6 py-3 rounded-2xl border border-[#F4F7FF] shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+          >
+            <MdRefresh className="text-xl" />
+            Làm mới dữ liệu
+          </button>
+        </div>
       </div>
 
       {/* Hero + Stats section */}

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
+import { MdRefresh } from "react-icons/md";
 import ProductsHero from "@/components/admin/products/ProductsHero";
 import ProductsTopSellers from "@/components/admin/products/ProductsTopSellers";
 import ProductsGrid from "@/components/admin/products/ProductsGrid";
@@ -32,7 +33,6 @@ export default function ProductsClient() {
 
   return (
     <div ref={ref} className="space-y-5">
-      {/* Page title */}
       <div className="ac flex items-end justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-[#1A1A2E] font-black text-2xl leading-tight">
@@ -42,12 +42,15 @@ export default function ProductsClient() {
             Quản lý danh mục và kho hàng · Tháng 3 / 2026
           </p>
         </div>
-        <button 
-          onClick={() => router.push("/admin/products/add")}
-          className="flex items-center gap-2 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors"
-        >
-          + Thêm sản phẩm mới
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-2 bg-white text-[#17409A] text-[13px] font-black px-6 py-3 rounded-2xl border border-[#F4F7FF] shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+          >
+            <MdRefresh className="text-xl" />
+            Làm mới dữ liệu
+          </button>
+        </div>
       </div>
 
       {/* Hero (left 2/5) + Top sellers (right 3/5) */}

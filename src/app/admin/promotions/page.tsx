@@ -1,11 +1,7 @@
 "use client";
 
-import PromotionList from "@/components/admin/promotions/PromotionList";
+import PromotionsClient from "@/components/admin/promotions/PromotionsClient";
 
 export default function AdminPromotionsPage() {
-  return (
-    <div className="space-y-6">
-      <PromotionList />
-    </div>
-  );
+  return <PromotionsClient />;
 }

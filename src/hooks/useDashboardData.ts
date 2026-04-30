@@ -13,7 +13,7 @@ export interface DashboardStats {
   totalCustomers: number;
   totalStaff: number;
   avgOrderValue: number;
-  recentOrders: (OrderListItem & { customerName?: string })[];
+  recentOrders: (OrderListItem & { customerName?: string; customerAvatarUrl?: string | null })[];
   dailyRevenue: { date: string; revenue: number }[];
   topProducts: ProductListItem[];
   orderStatusDistribution: Record<string, number>;
@@ -88,7 +88,8 @@ export function useDashboardData() {
         const user = users.find(u => u.userId === order.userId);
         return {
           ...order,
-          customerName: user ? user.fullName : "Khách vãng lai"
+          customerName: user ? user.fullName : "Khách vãng lai",
+          customerAvatarUrl: user?.avatarUrl
         };
       });
 

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { MdClose, MdCloudUpload, MdDelete, MdInfoOutline } from "react-icons/md";
-import { GiHammerBreak } from "react-icons/gi";
-import { mediaService } from "@/services/media.service";
-import Image from "next/image";
+import React, { useState, useRef } from "react";
+import { MdClose, MdCloudUpload, MdImage, MdSend } from "react-icons/md";
+import { useToast } from "@/contexts/ToastContext";
+import { mediaService } from "@/services";
+import { compressImage } from "@/utils/image";
 
 interface HandoverModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (photoUrls: string[], note: string) => Promise<void>;
+  onSubmit: (photoUrls: string[], note: string) => void;
   partType: string;
   productName: string;
 }
@@ -19,177 +19,150 @@ export default function HandoverModal({
   onClose,
   onSubmit,
   partType,
-  productName,
+  productName
 }: HandoverModalProps) {
-  const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [note, setNote] = useState("");
-  const [loading, setLoading] = useState(false);
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [note, setNote] = useState("");
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFiles((prev) => [...prev, ...newFiles]);
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const file = files[0];
+      const compressed = await compressImage(file);
+      const res = await mediaService.uploadMedia(compressed);
       
-      const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
-      setPreviews((prev) => [...prev, ...newPreviews]);
+      if (res.isSuccess) {
+        setPhotoUrls(prev => [...prev, res.value.publicUrl]);
+        toast.success("Tải ảnh lên thành công!");
+      } else {
+        toast.error("Tải ảnh thất bại");
+      }
+    } catch (err) {
+      toast.error("Lỗi khi tải ảnh");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => {
-      URL.revokeObjectURL(prev[index]);
-      return prev.filter((_, i) => i !== index);
-    });
+  const removePhoto = (index: number) => {
+    setPhotoUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
-    if (files.length === 0) {
-      alert("Vui lòng tải lên ít nhất một ảnh minh chứng!");
+    if (photoUrls.length === 0) {
+      toast.error("Vui lòng cung cấp ít nhất 1 ảnh bằng chứng");
       return;
     }
-
-    setLoading(true);
+    setIsSubmitting(true);
     try {
-      // 1. Upload images
-      const uploadPromises = files.map((file) => mediaService.uploadMedia(file, "handover"));
-      const uploadResults = await Promise.all(uploadPromises);
-      
-      const photoUrls = uploadResults
-        .filter((r) => r.isSuccess && r.value)
-        .map((r) => r.value!.publicUrl);
-
-      if (photoUrls.length === 0) {
-        throw new Error("Không thể tải ảnh lên máy chủ");
-      }
-
-      // 2. Submit handover
       await onSubmit(photoUrls, note);
-      
-      // Reset & Close
-      setFiles([]);
-      setPreviews([]);
-      setNote("");
       onClose();
-    } catch (error) {
-      console.error("Handover failed", error);
-      alert("Có lỗi xảy ra khi bàn giao. Vui lòng thử lại.");
+    } catch (err) {
+      // Error handled by parent
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 bg-[#1A1A2E]/60 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         {/* Header */}
-        <div className="bg-[#17409A] px-8 py-6 text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
-              <GiHammerBreak className="text-xl" />
-            </div>
-            <div>
-              <h3 className="text-lg font-black uppercase tracking-wider">Bàn giao sản phẩm</h3>
-              <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest leading-none mt-1">
-                {partType} — {productName}
-              </p>
-            </div>
+        <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-[#17409A]">Bàn giao công việc</h2>
+            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">
+              Phần: <span className="text-[#17409A]">{partType}</span> - {productName}
+            </p>
           </div>
-          <button
+          <button 
             onClick={onClose}
-            className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all"
+            className="w-12 h-12 rounded-2xl hover:bg-slate-50 flex items-center justify-center text-slate-300 hover:text-slate-600 transition-all"
           >
-            <MdClose className="text-xl" />
+            <MdClose className="text-2xl" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-8 flex-1 overflow-y-auto space-y-6">
-          {/* Photo Upload */}
+        <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+          {/* Note */}
           <div className="space-y-3">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              Ảnh minh chứng <span className="text-red-500">*</span>
-            </label>
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Ghi chú bàn giao</label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Nhập thông tin chi tiết về việc bàn giao..."
+              className="w-full bg-slate-50 rounded-[24px] px-6 py-4 min-h-[120px] outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all text-slate-700 font-medium placeholder:text-slate-300 shadow-inner"
+            />
+          </div>
+
+          {/* Photos */}
+          <div className="space-y-4">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Ảnh bằng chứng ({photoUrls.length})</label>
             
-            <div className="grid grid-cols-3 gap-4">
-              {previews.map((url, i) => (
-                <div key={i} className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 group">
-                  <Image src={url} alt="preview" fill className="object-cover" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {photoUrls.map((url, idx) => (
+                <div key={idx} className="group relative aspect-square rounded-[24px] bg-slate-50 border border-slate-100 overflow-hidden">
+                  <img src={url} className="w-full h-full object-cover" />
                   <button
-                    onClick={() => removeFile(i)}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removePhoto(idx)}
+                    className="absolute top-2 right-2 w-8 h-8 rounded-xl bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100"
                   >
-                    <MdDelete />
+                    <MdClose />
                   </button>
                 </div>
               ))}
               
               <button
+                disabled={isUploading}
                 onClick={() => fileInputRef.current?.click()}
-                className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-400 hover:border-[#17409A] hover:text-[#17409A] transition-all bg-slate-50/50 hover:bg-blue-50"
+                className="aspect-square rounded-[24px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-300 hover:border-[#17409A]/30 hover:text-[#17409A] transition-all bg-slate-50/50"
               >
-                <MdCloudUpload className="text-3xl" />
-                <span className="text-[10px] font-black uppercase">Thêm ảnh</span>
+                {isUploading ? (
+                  <div className="w-8 h-8 border-3 border-[#17409A]/20 border-t-[#17409A] rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <MdCloudUpload className="text-3xl" />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Tải ảnh lên</span>
+                  </>
+                )}
               </button>
             </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              multiple
-              accept="image/*"
-              className="hidden"
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleUpload} 
+              className="hidden" 
+              accept="image/*" 
             />
-          </div>
-
-          {/* Note */}
-          <div className="space-y-3">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-widest">
-              Ghi chú thêm
-            </label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Nhập thông tin bàn giao, lưu ý về chất lượng..."
-              className="w-full h-32 px-5 py-4 rounded-3xl border border-slate-200 focus:border-[#17409A] focus:ring-4 focus:ring-[#17409A]/5 outline-none transition-all resize-none text-sm font-medium"
-            />
-          </div>
-
-          {/* Info */}
-          <div className="flex items-start gap-3 p-4 rounded-2xl bg-blue-50/50 border border-blue-100/50">
-            <MdInfoOutline className="text-lg text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-              Thông tin bàn giao sẽ được gửi tới bộ phận <b>Kiểm định chất lượng (QC)</b>. 
-              Vui lòng chụp ảnh rõ nét các góc cạnh của sản phẩm.
-            </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-8 pt-0 flex gap-4">
+        <div className="p-8 bg-slate-50/50 flex justify-end gap-4">
           <button
             onClick={onClose}
-            className="flex-1 py-4 rounded-2xl border-2 border-slate-200 text-slate-500 font-black uppercase tracking-widest text-xs hover:bg-slate-50 transition-all"
+            className="px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all"
           >
             Hủy bỏ
           </button>
           <button
+            disabled={isSubmitting || isUploading || photoUrls.length === 0}
             onClick={handleSubmit}
-            disabled={loading}
-            className="flex-[2] py-4 rounded-2xl bg-[#17409A] text-white font-black uppercase tracking-widest text-xs hover:bg-[#0E2A66] shadow-xl shadow-blue-900/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="px-10 py-4 rounded-2xl bg-[#17409A] text-white font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-[#17409A]/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
           >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                Đang xử lý...
-              </>
-            ) : (
-              "Gửi bàn giao"
-            )}
+            {isSubmitting ? "Đang gửi..." : "Hoàn tất bàn giao"}
+            <MdSend />
           </button>
         </div>
       </div>

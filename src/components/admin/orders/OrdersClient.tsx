@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import gsap from "gsap";
+import { MdRefresh } from "react-icons/md";
 import OrdersHero from "@/components/admin/orders/OrdersHero";
 import OrdersPipeline from "@/components/admin/orders/OrdersPipeline";
 import OrdersTable from "@/components/admin/orders/OrdersTable";
@@ -64,10 +65,11 @@ export default function OrdersClient() {
         </div>
         <button
           onClick={handleRefresh}
-          className="flex items-center gap-2 bg-[#17409A] text-white text-xs font-black px-4 py-2.5 rounded-xl hover:bg-[#0f2d70] transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 bg-white text-[#17409A] text-[11px] font-black px-6 py-3.5 rounded-2xl hover:bg-[#F4F7FF] transition-all border border-[#F4F7FF] shadow-sm active:scale-95 disabled:opacity-50 uppercase tracking-widest"
           disabled={loading || refreshing}
         >
-          {loading || refreshing ? "Đang đồng bộ..." : "Làm mới dữ liệu"}
+          <MdRefresh className={`text-lg ${loading || refreshing ? "animate-spin" : ""}`} />
+          Làm mới dữ liệu
         </button>
       </div>
 

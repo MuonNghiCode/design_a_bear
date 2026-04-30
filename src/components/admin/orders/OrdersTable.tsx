@@ -10,6 +10,8 @@ import {
   MdFileDownload,
   MdClose,
   MdAutorenew,
+  MdLocalShipping,
+  MdPrint
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { orderService } from "@/services/order.service";
@@ -21,7 +23,7 @@ import CustomDropdown from "@/components/shared/CustomDropdown";
 import type { OrderListItem, AddressDetail, Order } from "@/types";
 import type { FulfillmentResponse } from "@/types/responses";
 import { formatShortOrderCode } from "@/utils/order";
-import { MdLocalShipping, MdPrint } from "react-icons/md";
+import { useRouter } from "next/navigation";
 
 export type OrderStatus =
   | "pending"
@@ -35,11 +37,11 @@ export type OrderStatus =
   | "refunded";
 
 const BACKEND_STATUSES: { value: string; label: string }[] = [
-  { value: "PENDING", label: "Chờ xử lý" },
+  { value: "PENDING", label: "Chờ duyệt" },
   { value: "PAID", label: "Đã thanh toán" },
-  { value: "PROCESSING", label: "Đang xử lý" },
+  { value: "PROCESSING", label: "Chế tác" },
   { value: "PRINTING", label: "Đang in" },
-  { value: "READY_FOR_PICKUP", label: "Sẵn sàng lấy hàng" },
+  { value: "READY_FOR_PICKUP", label: "Kiểm định" },
   { value: "SHIPPING", label: "Đang giao" },
   { value: "COMPLETED", label: "Hoàn thành" },
   { value: "CANCELLED", label: "Đã hủy" },
@@ -50,12 +52,12 @@ const STATUS_CFG: Record<
   OrderStatus,
   { label: string; color: string; bg: string }
 > = {
-  pending: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
+  pending: { label: "Chờ duyệt", color: "#FF8C42", bg: "#FF8C4218" },
   paid: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
-  processing: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
+  processing: { label: "Chế tác", color: "#7C5CFC", bg: "#7C5CFC18" },
   printing: { label: "Đang in", color: "#06B6D4", bg: "#06B6D418" },
   ready_for_pickup: {
-    label: "Sẵn sàng lấy hàng",
+    label: "Kiểm định",
     color: "#4ECDC4",
     bg: "#4ECDC418",
   },
@@ -67,11 +69,11 @@ const STATUS_CFG: Record<
 
 const TABS: { key: OrderStatus | "all"; label: string }[] = [
   { key: "all", label: "Tất cả" },
-  { key: "pending", label: "Chờ xử lý" },
+  { key: "pending", label: "Chờ duyệt" },
   { key: "paid", label: "Đã thanh toán" },
-  { key: "processing", label: "Đang xử lý" },
+  { key: "processing", label: "Chế tác" },
   { key: "printing", label: "Đang in" },
-  { key: "ready_for_pickup", label: "Sẵn sàng lấy" },
+  { key: "ready_for_pickup", label: "Kiểm định" },
   { key: "shipping", label: "Đang giao" },
   { key: "completed", label: "Hoàn thành" },
   { key: "cancelled", label: "Đã hủy" },
@@ -116,6 +118,30 @@ interface OrdersTableProps {
   onRefresh: () => void;
 }
 
+const UserAvatar = ({ url, name, char, color }: { url?: string | null, name: string, char: string, color: string }) => {
+  const [error, setError] = useState(false);
+  
+  if (url && !error) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        className="w-full h-full object-cover"
+        onError={() => setError(true)}
+      />
+    );
+  }
+  
+  return (
+    <div
+      className="w-full h-full flex items-center justify-center text-white font-black text-sm"
+      style={{ backgroundColor: color }}
+    >
+      {char}
+    </div>
+  );
+};
+
 export default function OrdersTable({
   orders,
   loading,
@@ -126,232 +152,15 @@ export default function OrdersTable({
   const [tab, setTab] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
-  const [selected, setSelected] = useState<OrderListItem | null>(null);
-  const [selectedAddress, setSelectedAddress] = useState<AddressDetail | null>(
-    null,
-  );
-  const [fulfillment, setFulfillment] = useState<FulfillmentResponse | null>(
-    null,
-  );
-  const [pushingGhtk, setPushingGhtk] = useState(false);
-  const [trackingData, setTrackingData] = useState<any>(null);
-  const [loadingTracking, setLoadingTracking] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
+  const router = useRouter();
   const pageSize = 10;
 
-  const handleViewDetails = async (
-    orderId: string,
-    shippingAddressId?: string | null,
-  ) => {
-    try {
-      setLoadingDetails(orderId);
-      setTrackingData(null);
-      setFulfillment(null);
-
-      const orderAction = orderService.getOrderById(orderId);
-      const addressAction = shippingAddressId
-        ? addressService.getAddressById(shippingAddressId)
-        : Promise.resolve(null);
-      const fulfillmentAction = fulfillmentService.getByOrderId(orderId);
-
-      const [res, addressRes, fulfillmentRes] = await Promise.all([
-        orderAction,
-        addressAction,
-        fulfillmentAction,
-      ]);
-
-      if (res.isSuccess && res.value) {
-        setSelected(res.value);
-      } else {
-        console.error("Failed to fetch order details", res.error);
-        toastError(res.error?.description || "Không thể tải chi tiết đơn hàng");
-        const localData = orders.find((o) => o.orderId === orderId);
-        if (localData) setSelected(localData);
-      }
-
-      if (addressRes?.isSuccess && addressRes.value) {
-        setSelectedAddress(addressRes.value);
-      }
-
-      if (
-        fulfillmentRes?.isSuccess &&
-        fulfillmentRes.value &&
-        fulfillmentRes.value.length > 0
-      ) {
-        setFulfillment(fulfillmentRes.value[0]);
-      }
-    } catch (e: any) {
-      console.error(e);
-      toastError(e.message || "Đã có lỗi xảy ra khi tải dữ liệu");
-      // Fallback
-      const localData = orders.find((o) => o.orderId === orderId);
-      if (localData) setSelected(localData);
-    } finally {
-      setLoadingDetails(null);
-    }
+  const handleViewDetails = (orderId: string) => {
+    router.push(`/admin/orders/${orderId}`);
   };
 
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-  const { success, error: toastError } = useToast();
-
-  const handleSubmitToGhtk = async () => {
-    if (!selected || !selectedAddress) return;
-    setPushingGhtk(true);
-    try {
-      const orderRes = await orderService.getOrderById(selected.orderId);
-      if (!orderRes.isSuccess || !orderRes.value)
-        throw new Error("Không thể tải thông tin đơn hàng");
-      const fullOrder = orderRes.value;
-
-      const products = fullOrder.orderItems.map((item) => {
-        let weight = item.weightSnapshot || 500;
-        if (weight === 0) weight = 500;
-        return {
-          name:
-            item.buildDetails?.buildName ||
-            item.buildDetails?.baseProductName ||
-            item.productNameSnapshot ||
-            item.productName ||
-            "Sản phẩm đồ chơi",
-          weight: weight,
-          quantity: item.quantity,
-          productCode: item.sku || undefined,
-        };
-      });
-
-      let province = selectedAddress.state?.trim();
-      let district = selectedAddress.city?.trim();
-
-
-      const cityIsMajorProvince =
-        district?.includes("Thành phố Hồ Chí Minh") ||
-        district?.includes("Thành phố Hà Nội") ||
-        district?.includes("Tỉnh");
-      const stateIsMajorProvince =
-        province?.includes("Thành phố Hồ Chí Minh") ||
-        province?.includes("Thành phố Hà Nội") ||
-        province?.includes("Tỉnh");
-
- 
-      if (cityIsMajorProvince && !stateIsMajorProvince) {
-        [province, district] = [district, province];
-      }
-
-      const ward = selectedAddress.line2?.trim();
-      const address = selectedAddress.line1?.trim();
-
-      // Validation before sending to GHTK
-      if (!province || !district || !ward || !address) {
-        const missingFields = [];
-        if (!address) missingFields.push("Số nhà/Đường (Địa chỉ dòng 1)");
-        if (!ward) missingFields.push("Phường/Xã (Địa chỉ dòng 2)");
-        if (!district) missingFields.push("Quận/Huyện");
-        if (!province) missingFields.push("Tỉnh/Thành phố");
-
-        toastError(
-          `Thiếu thông tin địa chỉ: ${missingFields.join(", ")}. Vui lòng cập nhật địa chỉ khách hàng trước khi đẩy đơn.`,
-        );
-        return;
-      }
-
-      const payload: any = {
-        orderId: selected.orderId,
-        customerName: selectedAddress.fullName,
-        customerPhone: selectedAddress.phoneNumber,
-        customerAddress: address,
-        customerProvince: province,
-        customerDistrict: district,
-        customerWard: ward,
-        hamlet: ward,
-        pickMoney: fullOrder.isPaid ? 0 : fullOrder.grandTotal,
-        value: fullOrder.subtotal,
-        products: products,
-      };
-
-      console.log("Submitting to GHTK with payload:", payload);
-
-      const res = await shippingService.submitExpressOrder(payload);
-
-      if (res.isSuccess && res.value?.order?.label) {
-        success("Đẩy đơn sang GHTK thành công!");
-        const label = res.value.order.label;
-        const fulfillRes = await fulfillmentService.create({
-          orderId: selected.orderId,
-          trackingNumber: label,
-          carrier: "GHTK",
-        });
-        if (fulfillRes.isSuccess && fulfillRes.value) {
-          setFulfillment(fulfillRes.value);
-          // Auto transition to SHIPPING status
-          await orderService.updateOrderStatus(selected.orderId, {
-            status: "SHIPPING",
-          });
-          handleRefresh();
-        }
-      } else {
-        toastError(res.error?.description || "GHTK từ chối đẩy đơn");
-      }
-    } catch (e: any) {
-      console.error(e);
-      toastError("Lỗi khi đẩy đơn: " + (e.message || "Unknown"));
-    } finally {
-      setPushingGhtk(false);
-    }
-  };
-
-  const handleTrackGhtk = async () => {
-    if (!fulfillment?.trackingNumber) return;
-    setLoadingTracking(true);
-    try {
-      const res = await shippingService.getTrackingStatus(
-        fulfillment.trackingNumber,
-      );
-      if (res.isSuccess && res.value) {
-        setTrackingData(res.value);
-      } else {
-        toastError(
-          res.error?.description || "Không thể lấy thông tin tracking",
-        );
-      }
-    } catch (e: any) {
-      console.error(e);
-      toastError("Lỗi mạng khi lấy tracking");
-    } finally {
-      setLoadingTracking(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await onRefresh();
-    setRefreshing(false);
-  };
-
-  const handleStatusUpdate = async (newStatus: string) => {
-    if (!selected) return;
-    try {
-      setUpdatingStatus(newStatus);
-      const res = await orderService.updateOrderStatus(selected.orderId, {
-        status: newStatus,
-        notes: `Cập nhật trạng thái thủ công thành ${newStatus}`,
-      });
-      if (res.isSuccess || res.value === null) {
-        success("Thay đổi trạng thái thành công!");
-        setSelected({ ...selected, status: newStatus });
-        onRefresh();
-        setPageIndex(1);
-      } else {
-        toastError("Không thể thay đổi trạng thái!");
-      }
-    } catch (e) {
-      console.error(e);
-      toastError("Lỗi mạng khi đổi trạng thái!");
-    } finally {
-      setUpdatingStatus(null);
-    }
-  };
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: orders.length };
@@ -405,7 +214,7 @@ export default function OrdersTable({
             <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
               Danh sách
             </p>
-            <p className="text-[#1A1A2E] font-black text-xl">Tất cả đơn hàng</p>
+            <p className="text-[#17409A] font-black text-xl">Tất cả đơn hàng</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Search */}
@@ -415,7 +224,7 @@ export default function OrdersTable({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Tìm đơn, khách hàng..."
-                className="bg-[#F4F7FF] text-[#1A1A2E] text-sm font-semibold placeholder:text-[#9CA3AF] rounded-xl pl-9 pr-4 py-2.5 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-colors w-52"
+                className="bg-[#F4F7FF] text-[#17409A] text-sm font-semibold placeholder:text-[#9CA3AF] rounded-xl pl-9 pr-4 py-2.5 outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-colors w-52"
               />
             </div>
             {/* Export */}
@@ -425,7 +234,7 @@ export default function OrdersTable({
             </button>
             {/* Refresh */}
             <button
-              onClick={handleRefresh}
+              onClick={() => onRefresh()}
               disabled={refreshing || loading}
               className="bg-[#17409A] hover:bg-[#17409A]/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm rounded-xl px-4 py-2.5 flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow-md"
               title="Làm mới dữ liệu"
@@ -520,6 +329,8 @@ export default function OrdersTable({
                     ];
                   const avatarChar = customerName.charAt(0).toUpperCase();
 
+                  const firstItem = order.orderItems?.[0];
+
                   const dateObj = new Date(order.createdAt);
                   const dateStr = dateObj.toLocaleDateString("vi-VN");
                   const timeStr = dateObj.toLocaleTimeString("vi-VN", {
@@ -533,8 +344,8 @@ export default function OrdersTable({
                       className="group border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors duration-150 cursor-pointer"
                     >
                       {/* Order ID */}
-                      <td className="py-3 pr-4">
-                        <span className="text-[11px] font-black text-[#17409A] bg-[#17409A]/8 px-2.5 py-1 rounded-lg tracking-wide font-mono">
+                      <td className="py-7 pr-6">
+                        <span className="text-[14px] font-black text-[#17409A] bg-[#17409A]/8 px-4 py-2.5 rounded-xl tracking-wide font-mono">
                           {formatShortOrderCode(
                             order.orderNumber || order.orderId,
                           )}
@@ -542,50 +353,65 @@ export default function OrdersTable({
                       </td>
 
                       {/* Customer */}
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white font-black text-xs group-hover:scale-105 transition-transform duration-200"
-                            style={{ backgroundColor: avatarColor }}
-                          >
-                            {avatarChar}
+                      <td className="py-7 pr-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200 shadow-sm overflow-hidden">
+                            <UserAvatar 
+                              url={userDetail?.avatarUrl} 
+                              name={customerName} 
+                              char={avatarChar} 
+                              color={avatarColor} 
+                            />
                           </div>
                           <div>
-                            <p className="text-[#1A1A2E] font-bold text-sm leading-tight">
+                            <p className="text-[#1A1A2E] font-black text-[16px] leading-tight">
                               {customerName}
                             </p>
-                            <p className="text-[#9CA3AF] text-[10px] font-semibold leading-tight">
-                              {order.userId ? "Đã đăng ký" : "Khách mới"}
+                            <p className="text-[#9CA3AF] text-[12px] font-black uppercase tracking-wider mt-1 opacity-60">
+                              {order.userId ? "Thành viên" : "Khách mới"}
                             </p>
                           </div>
                         </div>
                       </td>
 
                       {/* Product */}
-                      <td className="py-3 pr-4">
-                        <p className="text-[#1A1A2E] font-semibold text-sm leading-tight">
-                          {order.orderItems && order.orderItems.length > 0
-                            ? `${order.orderItems.length} sản phẩm`
-                            : "Không có SP"}
-                        </p>
-                      </td>
-
-                      {/* Amount */}
-                      <td className="py-3 pr-4 whitespace-nowrap">
-                        <div className="text-[#17409A] font-black text-sm">
-                          {formatPrice(order.grandTotal)}
+                      <td className="py-7 pr-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-[#F8F9FF] flex items-center justify-center border border-[#E5E7EB] shrink-0">
+                            <img
+                              src={
+                                firstItem?.productImageUrl ||
+                                "/images/placeholder.png"
+                              }
+                              alt={firstItem?.productName || "Sản phẩm"}
+                              className="w-8 h-8 object-cover"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-[#1A1A2E] font-bold text-[14px] leading-snug max-w-[200px] truncate">
+                              {firstItem?.productName || "Sản phẩm"}
+                            </p>
+                            {order.orderItems.length > 1 && (
+                              <p className="text-[#17409A] text-[11px] font-black uppercase tracking-widest mt-0.5">
+                                + {order.orderItems.length - 1} sản phẩm khác
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </td>
 
+                      {/* Amount */}
+                      <td className="py-7 pr-6">
+                        <p className="text-[#17409A] font-black text-[16px] tracking-tight">
+                          {formatPrice(order.grandTotal)}
+                        </p>
+                      </td>
+
                       {/* Status */}
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center gap-1.5">
+                      <td className="py-7 pr-6">
+                        <div className="flex">
                           <span
-                            className="w-1.5 h-1.5 rounded-full shrink-0"
-                            style={{ backgroundColor: st.color }}
-                          />
-                          <span
-                            className="text-[10px] font-black px-2.5 py-1 rounded-full whitespace-nowrap"
+                            className="px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider"
                             style={{ color: st.color, backgroundColor: st.bg }}
                           >
                             {st.label}
@@ -594,33 +420,23 @@ export default function OrdersTable({
                       </td>
 
                       {/* Date */}
-                      <td className="py-3 pr-4">
-                        <p className="text-[#4B5563] font-semibold text-[11px] leading-tight">
+                      <td className="py-7 pr-6">
+                        <p className="text-[#4B5563] font-black text-[13px] leading-tight uppercase tracking-tight">
                           {dateStr}
                         </p>
-                        <p className="text-[#9CA3AF] text-[10px] font-semibold leading-tight">
+                        <p className="text-[#9CA3AF] text-[11px] font-bold leading-tight mt-1">
                           {timeStr}
                         </p>
                       </td>
 
                       {/* Action */}
-                      <td className="py-3">
+                      <td className="py-6">
                         <button
-                          onClick={() =>
-                            handleViewDetails(
-                              order.orderId,
-                              order.shippingAddressId,
-                            )
-                          }
-                          disabled={loadingDetails === order.orderId}
-                          className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all duration-150 disabled:opacity-50"
+                          onClick={() => handleViewDetails(order.orderId)}
+                          className="w-10 h-10 rounded-2xl flex items-center justify-center text-[#9CA3AF] hover:text-[#17409A] hover:bg-[#17409A]/10 transition-all duration-150 border border-transparent hover:border-[#17409A]/10"
                           title="Xem chi tiết"
                         >
-                          {loadingDetails === order.orderId ? (
-                            <MdAutorenew className="text-base animate-spin" />
-                          ) : (
-                            <MdRemoveRedEye className="text-base" />
-                          )}
+                          <MdRemoveRedEye className="text-xl" />
                         </button>
                       </td>
                     </tr>
@@ -652,7 +468,7 @@ export default function OrdersTable({
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#F4F7FF]">
             <p className="text-[#9CA3AF] text-[11px] font-semibold">
               Hiển thị{" "}
-              <span className="text-[#1A1A2E] font-black">
+              <span className="text-[#17409A] font-black">
                 {pagedOrders.length}
               </span>{" "}
               / {localTotalCount} đơn hàng
@@ -677,365 +493,6 @@ export default function OrdersTable({
           </div>
         )}
       </div>
-
-      {/* Order detail modal */}
-      {selected &&
-        (() => {
-          const uiStatus = API_STATUS_TO_UI[selected.status] || "pending";
-          const userDetail = selected.userId ? usersMap[selected.userId] : null;
-          const customerName = userDetail
-            ? userDetail.fullName
-            : selected.userId
-              ? "Thành viên (Id đang tải)"
-              : "Khách vãng lai";
-          const dateObj = new Date(selected.createdAt);
-          const dateStr = dateObj.toLocaleDateString("vi-VN");
-          const timeStr = dateObj.toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-
-          return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div
-                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                onClick={() => setSelected(null)}
-              />
-              <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                {/* Coloured status header */}
-                <div
-                  className="px-6 pt-5 pb-4"
-                  style={{ backgroundColor: STATUS_CFG[uiStatus].bg }}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span
-                      className="text-[10px] font-black tracking-[0.2em] uppercase"
-                      style={{ color: STATUS_CFG[uiStatus].color }}
-                    >
-                      Chi tiết đơn hàng
-                    </span>
-                    <button
-                      onClick={() => setSelected(null)}
-                      className="w-8 h-8 rounded-xl flex items-center justify-center text-[#9CA3AF] hover:text-[#1A1A2E] hover:bg-white/60 transition-all"
-                    >
-                      <MdClose className="text-lg" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[#1A1A2E] font-black text-lg font-mono">
-                      {formatShortOrderCode(
-                        selected.orderNumber || selected.orderId,
-                      )}
-                    </span>
-                    <span
-                      className="text-[10px] font-black px-2.5 py-1 rounded-full"
-                      style={{
-                        color: STATUS_CFG[uiStatus].color,
-                        backgroundColor: STATUS_CFG[uiStatus].color + "28",
-                      }}
-                    >
-                      {STATUS_CFG[uiStatus].label}
-                    </span>
-                  </div>
-                  <p className="text-[#1A1A2E] font-black text-3xl leading-none">
-                    {formatPrice(selected.grandTotal)}
-                  </p>
-
-                  {/* Status Dropdown Update */}
-                  <div className="mt-5 pt-4 border-t border-black/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[9px] font-black text-[#1A1A2E]/50 tracking-[0.15em] mb-0.5 uppercase">
-                        Trạng thái Đơn hàng
-                      </p>
-                      <p className="text-[#1A1A2E]/70 text-[10px] font-bold">
-                        Lưu thay đổi tự động
-                      </p>
-                    </div>
-
-                    <div className="relative w-full sm:w-37.5">
-                      <CustomDropdown
-                        options={BACKEND_STATUSES.filter((sts) => {
-                          if (user?.role === "staff") {
-                            // Staff only allowed to switch to SHIPPING or keep current
-                            return (
-                              sts.value === "SHIPPING" ||
-                              sts.value === selected.status
-                            );
-                          }
-                          return true;
-                        }).map((sts) => ({
-                          label: sts.label,
-                          value: sts.value,
-                        }))}
-                        value={selected.status}
-                        onChange={handleStatusUpdate}
-                        disabled={
-                          updatingStatus !== null ||
-                          (user?.role === "staff" &&
-                            selected.status === "SHIPPING")
-                        }
-                        buttonClassName="w-full bg-white/60 backdrop-blur-sm border border-white hover:bg-white text-[11px] font-black tracking-wide text-[#1A1A2E] py-2.5 px-3 rounded-2xl cursor-pointer shadow-sm transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
-                        chevronClassName="text-[#1A1A2E] text-sm opacity-60 transition-transform"
-                        menuClassName="absolute z-30 mt-2 w-full rounded-2xl border border-white bg-white shadow-xl py-1 overflow-hidden"
-                        optionClassName="w-full text-left px-3 py-2 text-[11px] font-bold text-[#1A1A2E] hover:bg-[#F4F7FF] transition-colors"
-                        activeOptionClassName="w-full text-left px-3 py-2 text-[11px] font-black text-[#17409A] bg-[#17409A]/10"
-                        ariaLabel="Cập nhật trạng thái đơn hàng"
-                      />
-                      {updatingStatus ? (
-                        <div className="pointer-events-none absolute inset-y-0 right-8 flex items-center text-[#1A1A2E]">
-                          <MdAutorenew className="animate-spin text-sm" />
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Body */}
-                <div className="p-6 flex flex-col gap-4">
-                  {/* Customer */}
-                  <div>
-                    <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
-                      Khách hàng
-                    </p>
-                    <div className="flex items-center gap-3 bg-[#F8F9FF] rounded-2xl p-3">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm shrink-0"
-                        style={{
-                          backgroundColor:
-                            AVATAR_COLORS[
-                              customerName.charCodeAt(0) % AVATAR_COLORS.length
-                            ],
-                        }}
-                      >
-                        {customerName.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-[#1A1A2E] font-bold text-sm">
-                          {customerName}
-                        </p>
-                        <p className="text-[#9CA3AF] text-[11px] font-semibold">
-                          {selected.userId ? "Đã đăng ký" : "Guest"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Product */}
-                  <div>
-                    <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
-                      Sản phẩm
-                    </p>
-                    <div className="bg-[#F8F9FF] rounded-2xl p-3 space-y-2 max-h-48 overflow-y-auto">
-                      {selected.orderItems && selected.orderItems.length > 0 ? (
-                        selected.orderItems.map((item, idx) => {
-                          const itemName =
-                            item.buildDetails?.buildName ||
-                            item.buildDetails?.baseProductName ||
-                            item.productionJobs?.[0]?.productName ||
-                            item.productNameSnapshot ||
-                            item.productName ||
-                            "Sản phẩm";
-                          const variantLabel = item.variantName?.trim();
-                          const lineTotal =
-                            item.lineTotal ?? item.unitPrice * item.quantity;
-
-                          return (
-                            <div
-                              key={
-                                item.orderItemId || `${item.variantId}-${idx}`
-                              }
-                              className="bg-white rounded-xl p-2.5 border border-[#E5E7EB] flex items-start gap-2.5"
-                            >
-                              <img
-                                src={
-                                  item.buildDetails?.baseProductImageUrl ||
-                                  item.productionJobs?.[0]?.imageUrl ||
-                                  item.productImageUrl ||
-                                  "/teddy_bear.png"
-                                }
-                                alt={itemName}
-                                className="w-12 h-12 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-[#1A1A2E] font-bold text-sm leading-tight">
-                                  {variantLabel
-                                    ? `${itemName} (${variantLabel})`
-                                    : itemName}
-                                </p>
-                                <p className="text-[#6B7280] text-[11px] font-semibold mt-1">
-                                  SL: {item.quantity} x{" "}
-                                  {formatPrice(item.unitPrice)}
-                                </p>
-                                <p className="text-[#17409A] text-[11px] font-black mt-0.5">
-                                  Thành tiền: {formatPrice(lineTotal)}
-                                </p>
-
-                                {item.buildDetails?.personalizationNote && (
-                                  <p className="mt-1 text-[10px] text-[#FF8C42] font-semibold italic">
-                                    Ghi chú:{" "}
-                                    {item.buildDetails.personalizationNote}
-                                  </p>
-                                )}
-
-                                {item.buildDetails?.buildComponents &&
-                                  item.buildDetails.buildComponents.length >
-                                    0 && (
-                                    <div className="mt-1.5 flex flex-wrap gap-1">
-                                      {item.buildDetails.buildComponents.map(
-                                        (comp: any, cIdx: number) => (
-                                          <span
-                                            key={cIdx}
-                                            className="px-1.5 py-0.5 rounded bg-white border border-[#E5E7EB] text-[9px] font-bold text-[#4B5563]"
-                                          >
-                                            {comp.productName ||
-                                              comp.variantName ||
-                                              "Phụ kiện"}
-                                          </span>
-                                        ),
-                                      )}
-                                    </div>
-                                  )}
-                              </div>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <p className="text-[#6B7280] font-semibold text-sm">
-                          Không có thông tin chi tiết sản phẩm
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Address Section */}
-                  {selectedAddress && (
-                    <div>
-                      <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
-                        Giao hàng tới
-                      </p>
-                      <div className="bg-[#F8F9FF] rounded-2xl p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="text-[#1A1A2E] font-bold text-sm">
-                              {selectedAddress.fullName}
-                            </p>
-                            <p className="text-[#9CA3AF] text-xs font-semibold mt-0.5">
-                              {selectedAddress.phoneNumber}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="w-full h-px bg-[#E5E7EB] my-3" />
-                        <p className="text-[#4B5563] text-xs leading-relaxed font-medium">
-                          {selectedAddress.state}, {selectedAddress.city}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* GHTK Shipping Section */}
-                  {(selected.status === "READY_FOR_PICKUP" || fulfillment) && (
-                    <div>
-                      <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF] mb-2">
-                        Giao hàng (GHTK)
-                      </p>
-                      <div className="bg-[#F8F9FF] rounded-2xl p-4">
-                        {fulfillment ? (
-                          <>
-                            <div className="flex items-center justify-between mb-3">
-                              <div>
-                                <p className="text-[#1A1A2E] font-bold text-sm">
-                                  Mã vận đơn: {fulfillment.trackingNumber}
-                                </p>
-                                <p className="text-[#9CA3AF] text-[11px] font-semibold mt-0.5">
-                                  Đơn vị: {fulfillment.carrier || "GHTK"}
-                                </p>
-                              </div>
-                              <a
-                                href={shippingService.getPrintLabelUrl(
-                                  fulfillment.trackingNumber || "",
-                                )}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1.5 bg-white border border-[#E5E7EB] text-[#17409A] px-3 py-1.5 rounded-lg text-[11px] font-black hover:bg-[#F4F7FF] transition-colors"
-                              >
-                                <MdPrint className="text-sm" />
-                                In phiếu gửi
-                              </a>
-                            </div>
-
-                            {/* Tracking button and data */}
-                            {!trackingData ? (
-                              <button
-                                onClick={handleTrackGhtk}
-                                disabled={loadingTracking}
-                                className="w-full flex items-center justify-center gap-2 bg-[#17409A] text-white py-2 rounded-xl text-xs font-black hover:bg-[#0f2d70] transition-colors disabled:opacity-50"
-                              >
-                                <MdLocalShipping className="text-base" />
-                                {loadingTracking
-                                  ? "Đang lấy thông tin..."
-                                  : "Theo dõi hành trình"}
-                              </button>
-                            ) : (
-                              <div className="mt-3 p-3 bg-white rounded-xl border border-[#E5E7EB]">
-                                <p className="text-[#1A1A2E] font-bold text-xs mb-1">
-                                  Trạng thái:{" "}
-                                  <span className="text-[#17409A]">
-                                    {trackingData.status_text}
-                                  </span>
-                                </p>
-                                <p className="text-[#6B7280] text-[10px] font-semibold">
-                                  Cập nhật lúc: {trackingData.action_time}
-                                </p>
-                                {trackingData.reason && (
-                                  <p className="text-[#FF8C42] text-[10px] italic mt-1">
-                                    Lý do: {trackingData.reason}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <button
-                            onClick={handleSubmitToGhtk}
-                            disabled={pushingGhtk}
-                            className="w-full flex items-center justify-center gap-2 bg-[#17409A] text-white py-2.5 rounded-xl text-xs font-black hover:bg-[#0f2d70] transition-colors disabled:opacity-50"
-                          >
-                            {pushingGhtk ? (
-                              <MdAutorenew className="animate-spin text-base" />
-                            ) : (
-                              <MdLocalShipping className="text-base" />
-                            )}
-                            Đẩy đơn sang GHTK
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Date / Time */}
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#F8F9FF] rounded-xl px-4 py-2.5">
-                      <p className="text-[9px] font-black tracking-wide text-[#9CA3AF] mb-0.5">
-                        NGÀY
-                      </p>
-                      <p className="text-[#1A1A2E] text-[11px] font-bold">
-                        {dateStr}
-                      </p>
-                    </div>
-                    <div className="bg-[#F8F9FF] rounded-xl px-4 py-2.5">
-                      <p className="text-[9px] font-black tracking-wide text-[#9CA3AF] mb-0.5">
-                        GIỜ
-                      </p>
-                      <p className="text-[#1A1A2E] text-[11px] font-bold">
-                        {timeStr}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
     </>
   );
 }

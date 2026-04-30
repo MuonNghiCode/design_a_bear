@@ -1,5 +1,13 @@
-import { MdCategory, MdStar } from "react-icons/md";
-import { GiPawPrint } from "react-icons/gi";
+"use client";
+
+import { 
+  MdCategory, 
+  MdStars, 
+  MdLayers, 
+  MdCheckCircleOutline,
+  MdAutoGraph,
+  MdMoving
+} from "react-icons/md";
 
 interface AttributeStats {
   totalCategories: number;
@@ -12,92 +20,149 @@ interface AttributesHeroProps {
   stats: AttributeStats;
 }
 
-const CATEGORY_DISTRIBUTION = [
-  {
-    label: "Gấu hoàn chỉnh",
-    value: 4,
-    color: "#17409A",
-  },
-  { label: "Tính cách", value: 6, color: "#7C5CFC" },
-  { label: "Phụ kiện", value: 3, color: "#FF8C42" },
-];
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  trend,
+  color,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  trend?: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-[32px] p-7 border border-[#F4F7FF] relative overflow-hidden group shadow-sm hover:shadow-md transition-all duration-300">
+      <div
+        className="absolute top-0 right-0 w-32 h-32 translate-x-8 -translate-y-8 rounded-full opacity-[0.03] group-hover:scale-125 transition-transform duration-500"
+        style={{ backgroundColor: color }}
+      />
+      <div className="flex items-start justify-between mb-5">
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner"
+          style={{ backgroundColor: color + "15", color }}
+        >
+          <Icon className="text-2xl" />
+        </div>
+        {trend && (
+          <div className="flex items-center gap-1.5 text-[11px] font-black text-[#4ECDC4] bg-[#4ECDC415] px-3 py-1.5 rounded-full border border-[#4ECDC4]/10">
+            <MdMoving className="text-base" /> {trend}
+          </div>
+        )}
+      </div>
+      <div>
+        <p className="text-[#9CA3AF] text-[11px] font-black tracking-[0.1em] uppercase mb-2">
+          {label}
+        </p>
+        <p className="text-[#1A1A2E] text-3xl font-black leading-none font-fredoka">
+          {value}
+        </p>
+      </div>
+    </div>
+  );
+}
 
-const MAX_VALUE = Math.max(...CATEGORY_DISTRIBUTION.map((c) => c.value));
+function CategoryProgress({
+  label,
+  value,
+  total,
+  color,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  color: string;
+}) {
+  const percent = total > 0 ? (value / total) * 100 : 0;
+  return (
+    <div>
+      <div className="flex justify-between items-end mb-2.5">
+        <p className="text-[#1A1A2E] text-[11px] font-black">{label}</p>
+        <p className="text-[#9CA3AF] text-[10px] font-bold">
+          <span className="text-[#1A1A2E] font-black text-xs">{value}</span> / {total}
+        </p>
+      </div>
+      <div className="h-2 bg-[#F4F7FF] rounded-full overflow-hidden shadow-inner">
+        <div
+          className="h-full rounded-full transition-all duration-1000"
+          style={{ width: `${percent}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default function AttributesHero({ stats }: AttributesHeroProps) {
+  const totalAttributes = stats.totalCategories + stats.totalCharacters;
+  const activeCount = stats.activeCategories + stats.activeCharacters;
+
   return (
-    <div className="relative bg-[#17409A] rounded-3xl overflow-hidden p-6 sm:p-8 h-full flex flex-col justify-between min-h-64">
-      {/* Paw watermarks */}
-      <GiPawPrint
-        className="absolute -top-12 -right-10 text-white/4 pointer-events-none"
-        style={{ fontSize: 300 }}
-      />
-      <GiPawPrint
-        className="absolute bottom-6 left-52 text-white/5 pointer-events-none rotate-12"
-        style={{ fontSize: 80 }}
-      />
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Metrics */}
+      <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <StatCard
+          icon={MdLayers}
+          label="Tổng Thuộc tính"
+          value={totalAttributes.toString()}
+          trend="+4 mục"
+          color="#17409A"
+        />
+        <StatCard
+          icon={MdCheckCircleOutline}
+          label="Đang hoạt động"
+          value={activeCount.toString()}
+          trend="92%"
+          color="#4ECDC4"
+        />
+        <StatCard
+          icon={MdCategory}
+          label="Danh mục"
+          value={stats.totalCategories.toString()}
+          color="#7C5CFC"
+        />
+        <StatCard
+          icon={MdStars}
+          label="Tính cách"
+          value={stats.totalCharacters.toString()}
+          color="#FF8C42"
+        />
+      </div>
 
-      <div className="relative">
-        {/* Label */}
-        <p className="text-white/50 text-[10px] font-black tracking-[0.28em] uppercase mb-2">
-          Bộ sưu tập thuộc tính
-        </p>
+      {/* Distribution */}
+      <div className="bg-white rounded-[32px] p-8 border border-[#F4F7FF] shadow-sm flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between mb-10">
+            <p className="text-[#1A1A2E] font-black text-base font-fredoka uppercase tracking-wider">Phân bổ</p>
+            <div className="w-10 h-10 rounded-2xl bg-[#F4F7FF] flex items-center justify-center text-[#9CA3AF]">
+              <MdAutoGraph className="text-xl" />
+            </div>
+          </div>
 
-        {/* Giant number */}
-        <div className="flex items-end gap-4 flex-wrap mb-6">
-          <span
-            className="text-white font-black leading-none"
-            style={{
-              fontSize: "clamp(3.5rem, 6.5vw, 6rem)",
-              lineHeight: 1,
-            }}
-          >
-            {stats.totalCategories + stats.totalCharacters}
-          </span>
-          <div className="flex flex-col mb-1.5">
-            <span className="text-white/50 text-xs font-semibold leading-tight">
-              thuộc tính
-            </span>
-            <span className="text-[#4ECDC4] font-black text-xs leading-tight">
-              {stats.activeCategories + stats.activeCharacters} đang hoạt động
-            </span>
+          <div className="space-y-7">
+            <CategoryProgress
+              label="Danh mục sản phẩm"
+              value={stats.totalCategories}
+              total={totalAttributes}
+              color="#17409A"
+            />
+            <CategoryProgress
+              label="Tuyến tính cách"
+              value={stats.totalCharacters}
+              total={totalAttributes}
+              color="#FF8C42"
+            />
           </div>
         </div>
 
-        {/* Category bars */}
-        <div className="flex flex-col gap-2.5 mb-6">
-          {CATEGORY_DISTRIBUTION.map((dist) => {
-            const pct = Math.round((dist.value / MAX_VALUE) * 100);
-            const barColor = dist.color === "#17409A" ? "#FFFFFF" : dist.color;
-            return (
-              <div key={dist.label} className="flex items-center gap-3">
-                <span className="text-white/50 text-[9px] font-black tracking-wider uppercase w-28 shrink-0 leading-tight">
-                  {dist.label}
-                </span>
-                <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${pct}%`, backgroundColor: barColor }}
-                  />
-                </div>
-                <span className="text-[10px] font-black shrink-0 text-white/80">
-                  {dist.value}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* CTAs */}
-        <div className="flex gap-2 flex-wrap">
-          <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-black transition-all">
-            <MdCategory className="text-sm" />
-            Danh mục
-          </button>
-          <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-black transition-all">
-            <MdStar className="text-sm" />
-            Tính cách
-          </button>
+        <div className="pt-8 border-t border-[#F4F7FF] mt-8">
+          <div className="flex items-center gap-3 text-[#17409A] bg-[#17409A]/5 px-4 py-3 rounded-2xl border border-[#17409A]/5">
+            <MdLayers className="text-xl" />
+            <p className="text-[11px] font-black uppercase tracking-widest leading-none">
+              Hệ thống phân loại v1.0.4
+            </p>
+          </div>
         </div>
       </div>
     </div>

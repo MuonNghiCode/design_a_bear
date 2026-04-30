@@ -81,6 +81,7 @@ export interface CreateCategoryRequest {
   parentId?: string | null;
   name: string;
   slug: string;
+  isActive?: boolean;
 }
 export type UpdateCategoryRequest = CreateCategoryRequest;
 
@@ -88,6 +89,7 @@ export interface CreateCharacterRequest {
   name: string;
   slug: string;
   licenseBrand?: string | null;
+  isActive?: boolean;
 }
 export type UpdateCharacterRequest = CreateCharacterRequest;
 

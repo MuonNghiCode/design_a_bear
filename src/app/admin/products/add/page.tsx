@@ -152,8 +152,8 @@ export default function AddProductPage() {
         characterService.getCharacters(),
         accessoryService.getAll()
       ]);
-      if (catRes.isSuccess) setCategories(catRes.value || []);
-      if (charRes.isSuccess) setCharacters(charRes.value || []);
+      if (catRes.isSuccess) setCategories((catRes.value || []).filter(c => c.isActive !== false));
+      if (charRes.isSuccess) setCharacters((charRes.value || []).filter(c => c.isActive !== false));
       if (accRes.isSuccess) setAccessoriesList(accRes.value || []);
     };
     fetchData();

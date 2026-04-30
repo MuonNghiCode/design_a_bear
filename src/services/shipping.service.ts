@@ -48,7 +48,9 @@ class ShippingService extends BaseApiService {
   }
 
   getPrintLabelUrl(label: string): string {
-    return `${API_BASE_URL}${API_ENDPOINTS.SHIPPING.BASE}/ghtk/orders/${label}/print-label`;
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+    const endpoint = API_ENDPOINTS.SHIPPING.BASE.startsWith('/') ? API_ENDPOINTS.SHIPPING.BASE : `/${API_ENDPOINTS.SHIPPING.BASE}`;
+    return `${baseUrl}${endpoint}/ghtk/orders/${label}/print-label`;
   }
 }
 

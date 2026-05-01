@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const SITE_NAME = "Design a Bear";
 
 export const SITE_DESCRIPTION =
-  "Design a Bear la thuong hieu gau bong ca nhan hoa ket hop giao duc ky nang cho be, giup bo me tao nguoi ban dong hanh doc dao cho con.";
+  "Design a Bear là thương hiệu gấu bông cá nhân hóa kết hợp giáo dục kỹ năng cho bé, giúp bố mẹ tạo người bạn đồng hành độc đáo cho con.";
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "http://localhost:3000";

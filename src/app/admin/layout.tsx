@@ -5,7 +5,7 @@ import { Metadata } from "next";
 import { PRIVATE_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Quan tri",
+  title: "Quản trị | Design A Bear",
   robots: PRIVATE_ROBOTS,
 };
 

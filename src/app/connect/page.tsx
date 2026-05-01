@@ -3,17 +3,17 @@ import ConnectClient from "@/components/connect/ConnectClient";
 import { DEFAULT_OG_IMAGE, PUBLIC_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Ket noi va dong hanh cung gia dinh",
+  title: "Kết nối và đồng hành cùng gia đình",
   description:
-    "Ket noi voi doi ngu Design a Bear de duoc tu van san pham, ho tro ky thuat va dong hanh cung hanh trinh hoc tap cua be.",
+    "Kết nối với đội ngũ Design a Bear để được tư vấn sản phẩm, hỗ trợ kỹ thuật và đồng hành cùng hành trình học tập của bé.",
   alternates: {
     canonical: "/connect",
   },
   robots: PUBLIC_ROBOTS,
   openGraph: {
-    title: "Ket noi va dong hanh cung gia dinh",
+    title: "Kết nối và đồng hành cùng gia đình",
     description:
-      "Lien he Design a Bear de nhan tu van nhanh va phuong an phu hop cho be.",
+      "Liên hệ Design a Bear để nhận tư vấn nhanh và phương án phù hợp cho bé.",
     url: "/connect",
     images: [DEFAULT_OG_IMAGE],
   },

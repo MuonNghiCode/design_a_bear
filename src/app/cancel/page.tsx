@@ -6,8 +6,8 @@ import type { Metadata } from "next";
 import { PRIVATE_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Thanh toan bi huy",
-  description: "Trang thong bao khi nguoi dung huy thanh toan don hang.",
+  title: "Thanh toán bị hủy",
+  description: "Trang thông báo khi người dùng hủy thanh toán đơn hàng.",
   robots: PRIVATE_ROBOTS,
   alternates: {
     canonical: "/cancel",

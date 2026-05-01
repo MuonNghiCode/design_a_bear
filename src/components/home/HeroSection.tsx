@@ -1,681 +1,208 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(ScrollTrigger);
-
-/* ────────────────────────────────────────────
-   Text phases — mapped to video time (8 s)
-   Mỗi phase có heading + sub được chia thành
-   các từ riêng lẻ để tạo hiệu ứng text-reveal
-   ──────────────────────────────────────────── */
-interface TextPhase {
-  start: number;
-  end: number;
-  heading: string;
-  sub?: string;
-  cta?: { label: string; href: string };
-  annotationLayout?: boolean;
-  heroTitle?: boolean;
-  annotations?: {
-    label: string;
-    detail: string;
-    x: number;
-    y: number;
-    anchorX: number;
-    anchorY: number;
-  }[];
-}
-
-const PHASES: TextPhase[] = [
+const STORY_PHASES = [
   {
-    start: 0,
-    end: 1.4,
-    heading: "DESIGN A BEAR",
-    heroTitle: true,
+    label: "CÂU CHUYỆN KHỞI ĐẦU",
+    heading: "Mỗi Chú Gấu Bông Mang Một Sứ Mệnh Yêu Thương",
+    subtext: "Không chỉ là một món đồ chơi thông thường, đó là người bạn đầu đời tuyệt vời nhất của bé.",
   },
   {
-    start: 1.4,
-    end: 2.8,
-    heading:
-      "Nơi sáng tạo gặp gỡ công nghệ hiện đại, hơn cả một món đồ chơi thông thường",
+    label: "HÀNH TRÌNH GẮN KẾT",
+    heading: "Sự Kết Hợp Hoàn Hảo Giữa Công Nghệ & Trái Tim",
+    subtext: "Trí tuệ nhân tạo hiện đại hòa quyện cùng sự mềm mại ấm áp, biết lắng nghe và sẻ chia.",
   },
   {
-    start: 3,
-    end: 4.2,
-    heading:
-      "Tạo ra từ trái tim, tích hợp hàng trăm linh kiện công nghệ bên trong mỗi chú gấu",
-  },
-  {
-    start: 4.4,
-    end: 5.6,
-    heading: "",
-    annotationLayout: true,
-    annotations: [
-      {
-        label: "Vi xử lý AI",
-        detail:
-          "Chip xử lý ngôn ngữ tự nhiên, nhận diện giọng nói và phản hồi thông minh",
-        x: 8,
-        y: 15,
-        anchorX: 42,
-        anchorY: 35,
-      },
-      {
-        label: "Loa HD",
-        detail: "Âm thanh trong trẻo, kể chuyện và phát nhạc ru êm dịu",
-        x: 75,
-        y: 12,
-        anchorX: 58,
-        anchorY: 32,
-      },
-      {
-        label: "Cảm biến cảm ứng",
-        detail: "Nhận biết cử chỉ ôm, vỗ, nắm tay để phản hồi tương tác",
-        x: 5,
-        y: 55,
-        anchorX: 40,
-        anchorY: 50,
-      },
-      {
-        label: "Module WiFi",
-        detail:
-          "Kết nối không dây, cập nhật nội dung và điều khiển từ xa qua app",
-        x: 72,
-        y: 52,
-        anchorX: 60,
-        anchorY: 48,
-      },
-      {
-        label: "Pin lithium",
-        detail: "Dung lượng cao, 12 giờ hoạt động liên tục, sạc nhanh USB-C",
-        x: 10,
-        y: 82,
-        anchorX: 44,
-        anchorY: 68,
-      },
-      {
-        label: "Bộ nhớ 8GB",
-        detail: "Lưu trữ hàng nghìn câu chuyện, bài hát và bài học tương tác",
-        x: 70,
-        y: 80,
-        anchorX: 56,
-        anchorY: 70,
-      },
-    ],
-  },
-  {
-    start: 5.8,
-    end: 7.0,
-    heading:
-      "Trí tuệ nhân tạo biết học, biết hiểu, biết yêu thương và an toàn tuyệt đối",
-    sub: "Nhận diện giọng nói tiếng Việt chính xác · Trả lời hàng nghìn câu hỏi của trẻ · Kể chuyện tương tác theo cảm xúc ",
-  },
-  {
-    start: 7.4,
-    end: 8,
-    heading: "Thiết kế chú gấu bông thông minh của riêng bạn ngay hôm nay",
-    sub: "Chọn màu sắc, giọng nói, tính cách và nội dung học tập phù hợp với con bạn",
-    cta: { label: "Khám phá ngay", href: "/products" },
+    label: "TẠO NÊN KỶ NIỆM",
+    heading: "Thiết Kế Người Bạn Tri Kỷ Cho Bé Ngay Hôm Nay",
+    subtext: "Cá nhân hóa từ màu sắc, giọng nói đến những bài học kỳ diệu để bé lớn khôn mỗi ngày.",
+    cta: { label: "Tạo Gấu Ngay", href: "/products" },
   },
 ];
 
-const VIDEO_DURATION = 8;
-const HERO_WORDS = ["DESIGN", "A", "BEAR"];
-const ENABLE_HERO_TEXT_EFFECTS = true;
-
-/* ────────────────────────────────────────────
-   Utility: split text into words for reveal
-   ──────────────────────────────────────────── */
-function splitIntoWords(text: string): string[] {
-  return text.split(/\s+/).filter(Boolean);
-}
-
-/* ────────────────────────────────────────────
-   Smooth cubic ease-in-out
-   ──────────────────────────────────────────── */
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-/* ────────────────────────────────────────────
-   Apply text-reveal glow to word elements
-   ──────────────────────────────────────────── */
-function applyWordReveal(
-  wordEls: (HTMLSpanElement | null)[],
-  phaseT: number,
-  isHeroTitle: boolean,
-  glowQuality: number,
-) {
-  const wordCount = wordEls.filter(Boolean).length;
-  if (wordCount === 0) return;
-
-  // Glow timing within the phase
-  const glowStart = 0.1;
-  const glowEnd = 0.78;
-  const glowRange = glowEnd - glowStart;
-
-  wordEls.forEach((wordEl, wi) => {
-    if (!wordEl) return;
-
-    const wordGlowStart = glowStart + (wi / wordCount) * glowRange;
-    const wordGlowEnd = glowStart + ((wi + 1) / wordCount) * glowRange;
-    const wordGlowDuration = wordGlowEnd - wordGlowStart;
-
-    const wordProgress = Math.max(
-      0,
-      Math.min(1, (phaseT - wordGlowStart) / wordGlowDuration),
-    );
-
-    const eased = easeInOutCubic(wordProgress);
-
-    // Alpha: dim → bright
-    const alpha = 0.15 + eased * 0.85;
-    wordEl.style.color = `rgba(244, 247, 255, ${alpha})`;
-
-    // glowQuality: 0 = no glow, 1 = full glow
-    const gq = Math.max(0, Math.min(1, glowQuality));
-
-    // Glow effect
-    if (gq <= 0.08) {
-      // Ultra-fast scroll: keep only cheap, static shadow.
-      wordEl.style.textShadow = "0 2px 14px rgba(0,0,0,0.42)";
-      return;
-    }
-
-    const glowIntensity = eased * (isHeroTitle ? 50 : 30) * gq;
-    const glowSpread = eased * (isHeroTitle ? 70 : 45) * gq;
-
-    // Mid speed: reduce shadow layers to cut paint cost.
-    if (gq < 0.55) {
-      wordEl.style.textShadow =
-        eased > 0.03
-          ? `0 0 ${glowIntensity}px rgba(244, 247, 255, ${eased * 0.5 * gq}), 0 2px 16px rgba(0,0,0,0.45)`
-          : "0 2px 16px rgba(0,0,0,0.42)";
-      return;
-    }
-
-    wordEl.style.textShadow =
-      eased > 0.03
-        ? `0 0 ${glowIntensity}px rgba(244, 247, 255, ${eased * 0.7}), 0 0 ${glowSpread}px rgba(74, 144, 226, ${eased * 0.35 * gq}), 0 2px 20px rgba(0,0,0,0.5)`
-        : "0 2px 20px rgba(0,0,0,0.4)";
-  });
-}
-
-/* ────────────────────────────────────────────
-   Component
-   ──────────────────────────────────────────── */
 export default function HeroSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const phaseRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
 
-  // Word refs for each phase: phaseWordRefs[phaseIndex] = [span, span, ...]
-  // Heading words
-  const headingWordRefs = useRef<(HTMLSpanElement | null)[][]>([]);
-  // Sub words
-  const subWordRefs = useRef<(HTMLSpanElement | null)[][]>([]);
-
-  const annotationRefs = useRef<(HTMLDivElement | null)[][]>([]);
-  const lineRefs = useRef<(SVGLineElement | null)[][]>([]);
-
-  const CTA_PHASE_INDEX = PHASES.length - 1;
+  const current = STORY_PHASES[phaseIndex];
+  const headingWords = current.heading.split(/\s+/).filter(Boolean);
+  const subWords = current.subtext.split(/\s+/).filter(Boolean);
 
   useEffect(() => {
-    const video = videoRef.current;
-    const section = sectionRef.current;
-    if (!video || !section) return;
+    // Clean up previous tweens before animating to avoid conflicts
+    gsap.killTweensOf(".reveal-word");
 
-    const ACTIVE_PHASE_PADDING = 0.9;
-    const VIDEO_EPSILON = 1 / 90;
-    const BASE_MIN_SEEK_STEP = 0.06;
-    const BASE_MAX_SEEK_STEP = 0.34;
-    const TEXT_FPS = 30;
-    const SEEK_FPS = 60;
-    const FRAME_INTERVAL = 1 / 60;
+    // Phase entrance animation - Smooth and elegant, NO BOUNCE
+    if (textRef.current) {
+      gsap.fromTo(
+        textRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 1, ease: "power3.out" }
+      );
+    }
 
-    let renderRafId: number | null = null;
-    let targetTime = 0;
-    let runtimeDuration = VIDEO_DURATION;
-    let lastTextPaintAt = 0;
-    let lastVelocityAbs = 0;
-    let lastSeekAt = 0;
-    let lastAppliedSeek = -1;
+    // Elegant word-by-word reveal sequence, NO BLUR, NO GLOW
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".reveal-word",
+        {
+          opacity: 0,
+          y: 15,
+        },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.05,
+          ease: "power2.out",
+        }
+      );
+    }, textRef);
 
-    const getGlowQualityFromVelocity = (velocityAbs: number): number => {
-      // 0..800 -> full glow, 800..3200 -> degrade, >=3200 -> near off
-      if (velocityAbs <= 800) return 1;
-      if (velocityAbs >= 3200) return 0.06;
-      const t = (velocityAbs - 800) / (3200 - 800);
-      return 1 - t * 0.94;
-    };
+    // Auto-advance timeline timer
+    const nextInterval = phaseIndex === STORY_PHASES.length - 1 ? 10000 : 7500;
 
-    const handleLoadedMetadata = () => {
-      if (Number.isFinite(video.duration) && video.duration > 0) {
-        runtimeDuration = video.duration;
+    const timer = setTimeout(() => {
+      if (textRef.current) {
+        gsap.to(textRef.current, {
+          opacity: 0,
+          y: -15,
+          duration: 0.6,
+          ease: "power2.in",
+          onComplete: () => {
+            setPhaseIndex((prev) => (prev + 1) % STORY_PHASES.length);
+          },
+        });
       }
-    };
-
-    video.addEventListener("loadedmetadata", handleLoadedMetadata);
-    handleLoadedMetadata();
-
-    const seekTo = (nextTime: number) => {
-      const clamped = Math.max(0, Math.min(runtimeDuration, nextTime));
-      const snapped = Math.round(clamped / FRAME_INTERVAL) * FRAME_INTERVAL;
-      const normalized = Math.max(0, Math.min(runtimeDuration, snapped));
-
-      // Avoid writing the same time slot repeatedly.
-      if (Math.abs(normalized - lastAppliedSeek) < 1e-4) return;
-
-      const diff = Math.abs(video.currentTime - normalized);
-
-      // Ignore tiny differences to avoid unnecessary decoder work.
-      if (diff < 1 / 120) return;
-
-      video.currentTime = normalized;
-      lastAppliedSeek = normalized;
-    };
-
-    const renderPhases = (currentTime: number, glowQuality: number) => {
-      PHASES.forEach((phase, pi) => {
-        const el = phaseRefs.current[pi];
-        if (!el) return;
-
-        // Skip expensive text-shadow and annotation writes for off-screen phases.
-        const isNearActive =
-          currentTime >= phase.start - ACTIVE_PHASE_PADDING &&
-          currentTime <= phase.end + ACTIVE_PHASE_PADDING;
-
-        const isCTA = pi === CTA_PHASE_INDEX;
-        if (!isNearActive && !isCTA) {
-          el.style.opacity = "0";
-          el.style.transform = "translateY(0px)";
-          return;
-        }
-
-        const phaseCenter = (phase.start + phase.end) / 2;
-        const phaseDuration = phase.end - phase.start;
-        const slideDuration = phaseDuration * 1.8;
-
-        const phaseT = (currentTime - phaseCenter) / slideDuration + 0.5;
-
-        /* ── CTA phase: stay visible once reached, never exit ── */
-        if (isCTA) {
-          // enterT: 0 = just started entering, 1+ = fully entered
-          const enterT = Math.max(
-            0,
-            (currentTime - phase.start) / (phaseDuration * 0.5),
-          );
-          // Clamp opacity at 1 — never fade out
-          const ctaOpacity = Math.min(1, enterT);
-          // Y slides up and stops at 0 — never moves past
-          const ctaY = Math.max(0, 1 - Math.min(1, enterT)) * 50;
-
-          el.style.transform = `translateY(${ctaY}px)`;
-          el.style.opacity = String(ctaOpacity);
-
-          // Text reveal for CTA, clamped at fully lit
-          const hWords = headingWordRefs.current[pi] || [];
-          const sWords = subWordRefs.current[pi] || [];
-          const ctaRevealT = Math.max(0, Math.min(1, enterT));
-          applyWordReveal(hWords, ctaRevealT, false, glowQuality);
-          applyWordReveal(sWords, ctaRevealT, false, glowQuality);
-          return;
-        }
-
-        // Gentle Y movement
-        const yPx = (phaseT - 0.5) * -1.0 * window.innerHeight;
-
-        // Opacity
-        const distFromCenter = Math.abs(phaseT - 0.5);
-        let opacity: number;
-        if (distFromCenter < 0.18) {
-          opacity = 1;
-        } else if (phaseT < 0.5) {
-          opacity = Math.max(0, 1 - (distFromCenter - 0.18) / 0.28);
-        } else {
-          opacity = Math.max(0, 1 - (distFromCenter - 0.18) / 0.22);
-        }
-
-        el.style.transform = `translateY(${yPx}px)`;
-        el.style.opacity = String(opacity);
-
-        /* ── Text reveal for heading words ── */
-        if (!phase.annotationLayout) {
-          const hWords = headingWordRefs.current[pi] || [];
-          const sWords = subWordRefs.current[pi] || [];
-
-          applyWordReveal(hWords, phaseT, !!phase.heroTitle, glowQuality);
-
-          // Sub words reveal starts slightly after heading
-          const subPhaseT = Math.max(0, (phaseT - 0.08) / 0.92);
-          applyWordReveal(sWords, subPhaseT, false, glowQuality);
-        }
-
-        /* ── Annotation lines ── */
-        if (phase.annotationLayout && phase.annotations) {
-          const annots = annotationRefs.current[pi] || [];
-          const lines = lineRefs.current[pi] || [];
-
-          phase.annotations.forEach((_, ai) => {
-            const annotEl = annots[ai];
-            const lineEl = lines[ai];
-            if (!annotEl || !lineEl) return;
-
-            const staggerDelay = ai * 0.06;
-            const annotProgress = (phaseT - 0.1 - staggerDelay) / 0.55;
-            const annotOpacity = Math.max(0, Math.min(1, annotProgress * 2));
-
-            const lineLength = lineEl.getTotalLength?.() || 200;
-            const drawProgress = Math.max(0, Math.min(1, annotProgress * 1.5));
-
-            annotEl.style.opacity = String(annotOpacity);
-            lineEl.style.strokeDasharray = `${lineLength}`;
-            lineEl.style.strokeDashoffset = `${lineLength * (1 - drawProgress)}`;
-            lineEl.style.opacity = String(annotOpacity);
-          });
-        }
-      });
-    };
-
-    const scheduleRender = () => {
-      if (renderRafId !== null) return;
-      renderRafId = requestAnimationFrame((now) => {
-        renderRafId = null;
-        if (video.readyState < 1) return;
-
-        const diff = targetTime - video.currentTime;
-        const absDiff = Math.abs(diff);
-        const glowQuality = getGlowQualityFromVelocity(lastVelocityAbs);
-
-        if (absDiff > VIDEO_EPSILON) {
-          const canSeekNow = now - lastSeekAt >= 1000 / SEEK_FPS;
-          const isLargeJump = absDiff > 0.45;
-
-          if (isLargeJump || canSeekNow) {
-            if (isLargeJump) {
-              // Fast wheel/touch spikes: jump directly to target to avoid decoding many intermediates.
-              seekTo(targetTime);
-            } else {
-              // Adaptive follow speed: high scroll velocity => catch up faster.
-              const velocityBoost = Math.min(1, lastVelocityAbs / 3200);
-              const maxSeekStep =
-                BASE_MIN_SEEK_STEP +
-                (BASE_MAX_SEEK_STEP - BASE_MIN_SEEK_STEP) * velocityBoost;
-
-              const nextTime =
-                video.currentTime +
-                Math.sign(diff) * Math.min(absDiff, maxSeekStep);
-              seekTo(nextTime);
-            }
-
-            lastSeekAt = now;
-          }
-        }
-
-        if (
-          ENABLE_HERO_TEXT_EFFECTS &&
-          (now - lastTextPaintAt >= 1000 / TEXT_FPS || absDiff <= 0.03)
-        ) {
-          renderPhases(video.currentTime, glowQuality);
-          lastTextPaintAt = now;
-        }
-
-        // Keep smoothing until target is reached.
-        if (absDiff > VIDEO_EPSILON) {
-          scheduleRender();
-        }
-      });
-    };
-
-    const st = ScrollTrigger.create({
-      trigger: section,
-      start: "top top",
-      end: "bottom bottom",
-      scrub: 0.2,
-      anticipatePin: 1,
-      onUpdate: (self) => {
-        // Scroll down = forward, scroll up = backward.
-        targetTime = self.progress * runtimeDuration;
-        lastVelocityAbs = Math.abs(self.getVelocity());
-        scheduleRender();
-      },
-    });
-
-    // Refresh after layout settles (important when overflow was locked by intro)
-    requestAnimationFrame(() => {
-      ScrollTrigger.refresh();
-    });
+    }, nextInterval);
 
     return () => {
-      st.kill();
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      if (renderRafId !== null) {
-        cancelAnimationFrame(renderRafId);
-      }
+      ctx.revert();
+      clearTimeout(timer);
     };
-  }, []);
+  }, [phaseIndex]);
 
   return (
     <section
       id="hero-section"
-      ref={sectionRef}
-      className="relative -mt-20"
-      style={{ height: "1000vh" }}
+      ref={containerRef}
+      className="relative w-full h-screen min-h-[700px] flex items-center justify-center overflow-hidden bg-[#1A1A2E] select-none"
     >
-      {/* Sticky viewport */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden">
-        {/* Video */}
-        <video
-          ref={videoRef}
-          src="/hero-section-30fps-scrub.mp4"
-          muted
-          playsInline
-          preload="auto"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ pointerEvents: "none" }}
-        />
+      {/* Autoplaying Video Background */}
+      <video
+        src="/SEP.mp4"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ pointerEvents: "none" }}
+      />
 
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/40" />
+      {/* Solid Color Overlay for Readability (NO GRADIENTS) */}
+      <div className="absolute inset-0 bg-[#1A1A2E]/40 z-10" />
 
-        {/* Text phases */}
-        {ENABLE_HERO_TEXT_EFFECTS &&
-          PHASES.map((phase, pi) => {
-            // Init ref arrays
-            if (!headingWordRefs.current[pi]) headingWordRefs.current[pi] = [];
-            if (!subWordRefs.current[pi]) subWordRefs.current[pi] = [];
-            if (phase.annotationLayout && phase.annotations) {
-              if (!annotationRefs.current[pi]) annotationRefs.current[pi] = [];
-              if (!lineRefs.current[pi]) lineRefs.current[pi] = [];
-            }
+      {/* Main Foreground Story Canvas */}
+      <div className="relative z-20 w-full max-w-screen-2xl mx-auto px-8 md:px-16 flex flex-col items-center justify-center text-center mt-12">
+        <div ref={textRef} className="max-w-4xl mx-auto flex flex-col items-center">
+          
+          {/* Label: Solid Warm Orange */}
+          <div className="mb-8">
+            <span className="inline-block px-6 py-2.5 text-sm font-black text-white tracking-widest bg-[#FF8C42] rounded-full uppercase shadow-lg">
+              {current.label}
+            </span>
+          </div>
 
-            const headingWords = phase.heroTitle
-              ? HERO_WORDS
-              : splitIntoWords(phase.heading);
-            const subWords = phase.sub ? splitIntoWords(phase.sub) : [];
-
-            return (
-              <div
-                key={pi}
-                ref={(el) => {
-                  phaseRefs.current[pi] = el;
-                }}
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ opacity: 0, willChange: "transform, opacity" }}
+          {/* Story Title: Crisp, sharp typography */}
+          <h1
+            className="font-black tracking-tight leading-[1.2] mb-8 text-white text-4xl sm:text-5xl md:text-6xl lg:text-7xl max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-2"
+            style={{ 
+              fontFamily: "'Nunito', sans-serif",
+              // Sharp drop shadow for readability, NO blur/glow
+              textShadow: "0 4px 12px rgba(0,0,0,0.5)"
+            }}
+          >
+            {headingWords.map((word, wi) => (
+              <span
+                key={wi}
+                className="reveal-word inline-block"
               >
-                {/* ── Hero title: large word-by-word ── */}
-                {phase.heroTitle && (
-                  <div className="text-center w-full px-4">
-                    <h1 className="flex items-center justify-center gap-4 sm:gap-6 md:gap-8 whitespace-nowrap">
-                      {HERO_WORDS.map((word, wi) => (
-                        <span
-                          key={wi}
-                          ref={(el) => {
-                            headingWordRefs.current[pi][wi] = el;
-                          }}
-                          className="font-black tracking-tight leading-none"
-                          style={{
-                            fontFamily: "'Nunito', sans-serif",
-                            fontSize: "clamp(3rem, 10vw, 9rem)",
-                            color: "rgba(244, 247, 255, 0.15)",
-                            textShadow: "0 2px 20px rgba(0,0,0,0.4)",
-                            lineHeight: 1,
-                          }}
-                        >
-                          {word}
-                        </span>
-                      ))}
-                    </h1>
-                  </div>
-                )}
+                {word}
+              </span>
+            ))}
+          </h1>
 
-                {/* ── Standard text layout with word-by-word reveal ── */}
-                {!phase.annotationLayout && !phase.heroTitle && (
-                  <div className="text-center max-w-5xl mx-auto px-6 md:px-16">
-                    {/* Heading — each word is a span */}
-                    <h2 className="font-black tracking-tight leading-tight text-3xl sm:text-4xl md:text-5xl lg:text-6xl flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:gap-x-4 md:gap-x-5">
-                      {headingWords.map((word, wi) => (
-                        <span
-                          key={wi}
-                          ref={(el) => {
-                            headingWordRefs.current[pi][wi] = el;
-                          }}
-                          className="inline-block"
-                          style={{
-                            fontFamily: "'Nunito', sans-serif",
-                            color: "rgba(244, 247, 255, 0.15)",
-                            textShadow: "0 2px 20px rgba(0,0,0,0.4)",
-                            lineHeight: 1.15,
-                          }}
-                        >
-                          {word}
-                        </span>
-                      ))}
-                    </h2>
+          {/* Subtext */}
+          <p
+            className="text-lg sm:text-xl md:text-2xl text-[#F4F7FF] font-bold leading-relaxed max-w-3xl mx-auto mb-12 flex flex-wrap items-center justify-center gap-x-2 gap-y-1"
+            style={{ 
+              fontFamily: "'Nunito', sans-serif",
+              textShadow: "0 2px 8px rgba(0,0,0,0.6)"
+            }}
+          >
+            {subWords.map((word, wi) => (
+              <span
+                key={wi}
+                className="reveal-word inline-block"
+              >
+                {word}
+              </span>
+            ))}
+          </p>
 
-                    {/* Sub — each word is a span */}
-                    {subWords.length > 0 && (
-                      <p className="mt-6 md:mt-8 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 sm:gap-x-2 max-w-3xl mx-auto">
-                        {subWords.map((word, wi) => (
-                          <span
-                            key={wi}
-                            ref={(el) => {
-                              subWordRefs.current[pi][wi] = el;
-                            }}
-                            className="inline-block text-base sm:text-lg md:text-xl lg:text-2xl leading-relaxed font-medium"
-                            style={{
-                              fontFamily: "'Nunito', sans-serif",
-                              color: "rgba(244, 247, 255, 0.15)",
-                              textShadow: "0 1px 12px rgba(0,0,0,0.3)",
-                            }}
-                          >
-                            {word}
-                          </span>
-                        ))}
-                      </p>
-                    )}
+          {/* CTA Button: Primary Navy */}
+          {current.cta && (
+            <div className="mt-4">
+              <Link
+                href={current.cta.href}
+                className="inline-flex items-center justify-center gap-3 bg-[#17409A] hover:bg-[#4A90E2] text-white font-black px-10 py-5 rounded-2xl text-lg tracking-wide shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                style={{ fontFamily: "'Nunito', sans-serif" }}
+              >
+                {current.cta.label}
+              </Link>
+            </div>
+          )}
 
-                    {/* CTA Button */}
-                    {phase.cta && (
-                      <div className="mt-10 md:mt-12">
-                        <Link
-                          href={phase.cta.href}
-                          className="inline-block bg-[#17409A] text-[#F4F7FF] font-bold px-10 py-5 rounded-2xl text-lg shadow-xl hover:bg-[#0E2A66] transition-colors duration-200"
-                          style={{ fontFamily: "'Nunito', sans-serif" }}
-                        >
-                          {phase.cta.label}
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Annotation layout ── */}
-                {phase.annotationLayout && phase.annotations && (
-                  <div className="absolute inset-0">
-                    <svg
-                      className="absolute inset-0 w-full h-full"
-                      style={{ pointerEvents: "none" }}
-                    >
-                      {phase.annotations.map((ann, ai) => (
-                        <line
-                          key={ai}
-                          ref={(el) => {
-                            if (!lineRefs.current[pi])
-                              lineRefs.current[pi] = [];
-                            lineRefs.current[pi][ai] = el;
-                          }}
-                          x1={`${ann.x + (ann.x < 50 ? 18 : -1)}%`}
-                          y1={`${ann.y + 2}%`}
-                          x2={`${ann.anchorX}%`}
-                          y2={`${ann.anchorY}%`}
-                          stroke="rgba(244, 247, 255, 0.6)"
-                          strokeWidth="1.5"
-                          style={{ opacity: 0 }}
-                        />
-                      ))}
-                      {phase.annotations.map((ann, ai) => (
-                        <circle
-                          key={`dot-${ai}`}
-                          cx={`${ann.anchorX}%`}
-                          cy={`${ann.anchorY}%`}
-                          r="4"
-                          fill="#F4F7FF"
-                          style={{ opacity: 0 }}
-                          className="annotation-dot"
-                        />
-                      ))}
-                    </svg>
-
-                    {phase.annotations.map((ann, ai) => (
-                      <div
-                        key={ai}
-                        ref={(el) => {
-                          if (!annotationRefs.current[pi])
-                            annotationRefs.current[pi] = [];
-                          annotationRefs.current[pi][ai] = el;
-                        }}
-                        className={`absolute max-w-62.5 ${ann.x < 50 ? "text-left" : "text-right"}`}
-                        style={{
-                          left: `${ann.x}%`,
-                          top: `${ann.y}%`,
-                          opacity: 0,
-                          fontFamily: "'Nunito', sans-serif",
-                        }}
-                      >
-                        <div
-                          className="font-black text-lg md:text-xl"
-                          style={{
-                            color: "#F4F7FF",
-                            textShadow: "0 2px 15px rgba(0,0,0,0.6)",
-                          }}
-                        >
-                          {ann.label}
-                        </div>
-                        <div
-                          className="font-medium text-xs md:text-sm mt-1 leading-snug"
-                          style={{
-                            color: "rgba(244, 247, 255, 0.7)",
-                            textShadow: "0 1px 8px rgba(0,0,0,0.5)",
-                          }}
-                        >
-                          {ann.detail}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {/* Solid Progression Dots */}
+          <div className="flex items-center justify-center gap-4 mt-16">
+            {STORY_PHASES.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  if (textRef.current) {
+                    gsap.to(textRef.current, {
+                      opacity: 0,
+                      y: -15,
+                      duration: 0.4,
+                      ease: "power2.inOut",
+                      onComplete: () => setPhaseIndex(idx),
+                    });
+                  } else {
+                    setPhaseIndex(idx);
+                  }
+                }}
+                className="relative flex items-center justify-center p-2 cursor-pointer group"
+                aria-label={`Chuyển tới phần ${idx + 1}`}
+              >
+                <span 
+                  className={`block h-3 rounded-full transition-all duration-300 ${
+                    phaseIndex === idx 
+                      ? "w-10 bg-[#FF8C42]" 
+                      : "w-3 bg-white/40 group-hover:bg-white/60"
+                  }`} 
+                />
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Nunito font */}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&subset=vietnamese&display=swap');`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&subset=vietnamese&display=swap');`}</style>
     </section>
   );
 }

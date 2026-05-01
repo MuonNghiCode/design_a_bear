@@ -12,10 +12,15 @@ import { useAuth } from "./AuthContext";
 import { useToast } from "./ToastContext";
 import { favoriteService } from "@/services/favorite.service";
 import { useRouter } from "next/navigation";
+import type { FavoriteResponse } from "@/types/responses";
 
 interface FavoriteContextType {
   favorites: Set<string>;
+  items: FavoriteResponse[];
   loading: boolean;
+  isOpen: boolean;
+  openFavorites: () => void;
+  closeFavorites: () => void;
   toggleFavorite: (productId: string) => Promise<void>;
   isFavorited: (productId: string) => boolean;
   refreshFavorites: () => Promise<void>;
@@ -27,7 +32,9 @@ const FavoriteContext = createContext<FavoriteContextType | undefined>(
 
 export function FavoriteProvider({ children }: { children: ReactNode }) {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [items, setItems] = useState<FavoriteResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const { isAuthenticated } = useAuth();
   const { error, success, warning } = useToast();
   const router = useRouter();
@@ -35,6 +42,7 @@ export function FavoriteProvider({ children }: { children: ReactNode }) {
   const fetchFavorites = useCallback(async () => {
     if (!isAuthenticated) {
       setFavorites(new Set());
+      setItems([]);
       return;
     }
 
@@ -43,6 +51,7 @@ export function FavoriteProvider({ children }: { children: ReactNode }) {
       const res = await favoriteService.getMyFavorites(1, 100);
       if (res.isSuccess && res.value?.items) {
         setFavorites(new Set(res.value.items.map((item) => item.productId)));
+        setItems(res.value.items);
       }
     } catch (err) {
       console.error("Failed to fetch favorites:", err);
@@ -69,9 +78,7 @@ export function FavoriteProvider({ children }: { children: ReactNode }) {
     try {
       const res = await favoriteService.toggleFavorite(productId);
       if (res.isSuccess) {
-        const isAdded =
-          res.value?.message?.toLowerCase().includes("thêm") ||
-          !favorites.has(productId); // Dynamic check if API doesn't return state
+        const isCurrentlyFav = favorites.has(productId);
 
         setFavorites((prev) => {
           const next = new Set(prev);
@@ -83,9 +90,12 @@ export function FavoriteProvider({ children }: { children: ReactNode }) {
           return next;
         });
 
-        if (favorites.has(productId)) {
+        if (isCurrentlyFav) {
+          setItems((prev) => prev.filter((i) => i.productId !== productId));
           success("Đã xóa khỏi danh sách yêu thích");
         } else {
+          // Refresh from backend to get freshly added object details
+          await fetchFavorites();
           success("Đã thêm vào danh sách yêu thích");
         }
       }
@@ -100,7 +110,11 @@ export function FavoriteProvider({ children }: { children: ReactNode }) {
     <FavoriteContext.Provider
       value={{
         favorites,
+        items,
         loading,
+        isOpen,
+        openFavorites: () => setIsOpen(true),
+        closeFavorites: () => setIsOpen(false),
         toggleFavorite,
         isFavorited,
         refreshFavorites: fetchFavorites,

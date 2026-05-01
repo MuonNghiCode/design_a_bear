@@ -6,7 +6,7 @@ import ProfileClient from "@/components/profile/ProfileClient";
 import { PRIVATE_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Ho so ca nhan",
+  title: "Hồ sơ cá nhân",
   robots: PRIVATE_ROBOTS,
   alternates: {
     canonical: "/profile",

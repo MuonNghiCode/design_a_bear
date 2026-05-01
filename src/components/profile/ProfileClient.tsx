@@ -310,6 +310,7 @@ export default function ProfileClient() {
       <div ref={heroRef}>
         <ProfileHero
           user={user}
+          avatarUrl={avatarUrl}
           initials={initials}
           roleCfg={roleCfg}
           editMode={editMode}

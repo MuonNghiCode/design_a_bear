@@ -12,6 +12,7 @@ import { type SortOption, type ProductsClientProps } from "@/types/products";
 import { useProductApi } from "@/hooks/useProductApi";
 import type { ProductListItem } from "@/types";
 import type { ProductCardProps } from "@/components/shared/ProductCard";
+import { useFavorite } from "@/contexts/FavoriteContext";
 
 const PAGE_SIZE = 12;
 
@@ -44,9 +45,11 @@ export default function ProductsClient({
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState(initialSearch || "");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   /* ── API state ── */
   const { getProducts, loading } = useProductApi();
+  const { favorites } = useFavorite();
   const [allItems, setAllItems] = useState<UserVisibleProduct[]>([]);
   const [pageIndex, setPageIndex] = useState(1);
 
@@ -101,6 +104,10 @@ export default function ProductsClient({
       list = list.filter((p) => p.normalizedType === "COMPLETE_BEAR");
     }
 
+    if (showFavoritesOnly) {
+      list = list.filter((p) => favorites.has(p.productId));
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -126,7 +133,7 @@ export default function ProductsClient({
       default:
         return list;
     }
-  }, [allItems, activeCategory, searchQuery, sortBy]);
+  }, [allItems, activeCategory, showFavoritesOnly, favorites, searchQuery, sortBy]);
 
   const totalPages = Math.max(
     1,
@@ -143,7 +150,6 @@ export default function ProductsClient({
       .slice(start, start + PAGE_SIZE)
       .map((item) => mapToCard(item));
   }, [filteredProducts, pageIndex]);
-
 
   const pageNumbers = useMemo(() => {
     const pages: number[] = [];
@@ -165,6 +171,8 @@ export default function ProductsClient({
         sortBy={sortBy}
         onSortChange={(s) => setSortBy(s as SortOption)}
         productCount={filteredProducts.length}
+        showFavoritesOnly={showFavoritesOnly}
+        onShowFavoritesChange={setShowFavoritesOnly}
       />
 
       {/* Loading skeleton */}

@@ -4,7 +4,7 @@ import StaffLayout from "@/components/staff/StaffLayout";
 import { PRIVATE_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Staff portal",
+  title: "Cổng thông tin nhân viên | Design A Bear",
   robots: PRIVATE_ROBOTS,
 };
 

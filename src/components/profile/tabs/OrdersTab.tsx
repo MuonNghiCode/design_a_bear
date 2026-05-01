@@ -19,15 +19,15 @@ const STATUS_STYLE: Record<
   string,
   { label: string; color: string; bg: string }
 > = {
-  PENDING: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4218" },
-  PAID: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
-  CANCELLED: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
-  PROCESSING: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC18" },
-  PRINTING: { label: "Đang in", color: "#06B6D4", bg: "#06B6D418" },
-  READY_FOR_PICKUP: { label: "Sẵn sàng lấy", color: "#4ECDC4", bg: "#4ECDC418" },
-  SHIPPING: { label: "Đang giao", color: "#14B8A6", bg: "#14B8A618" },
-  COMPLETED: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
-  REFUNDED: { label: "Đã hoàn tiền", color: "#6B7280", bg: "#6B728018" },
+  PENDING: { label: "Chờ xử lý", color: "#FF8C42", bg: "#FF8C4215" },
+  PAID: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED815" },
+  CANCELLED: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D15" },
+  PROCESSING: { label: "Đang xử lý", color: "#7C5CFC", bg: "#7C5CFC15" },
+  PRINTING: { label: "Đang in", color: "#06B6D4", bg: "#06B6D415" },
+  READY_FOR_PICKUP: { label: "Sẵn sàng lấy", color: "#4ECDC4", bg: "#4ECDC415" },
+  SHIPPING: { label: "Đang giao", color: "#14B8A6", bg: "#14B8A615" },
+  COMPLETED: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC415" },
+  REFUNDED: { label: "Đã hoàn tiền", color: "#6B7280", bg: "#6B728015" },
 };
 
 const BILLABLE_STATUSES = new Set(["PAID", "PROCESSING", "PRINTING", "READY_FOR_PICKUP", "SHIPPING", "COMPLETED"]);
@@ -214,16 +214,22 @@ export default function OrdersTab() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
-        <p className="text-[#1A1A2E] font-black text-xl">Lịch sử đơn hàng</p>
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="text-sm font-black" style={{ color: "#4ECDC4" }}>
-            Tổng đã chi: {formatMoney(totalSpent, "VND")}
-          </span>
+    <div className="flex flex-col gap-6" style={{ fontFamily: "'Nunito', sans-serif" }}>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+        <div>
+          <p className="text-[#1A1A2E] font-black text-2xl tracking-tight">Lịch sử đơn hàng</p>
+          <p className="text-slate-400 font-medium text-xs mt-0.5">Theo dõi chi tiết các đơn hàng của bạn</p>
+        </div>
+        <div className="flex items-center gap-6 flex-wrap">
+          <div className="bg-[#17409A]/5 border border-[#17409A]/10 px-5 py-2.5 rounded-2xl">
+            <span className="text-xs font-black text-[#1A1A2E]/50 uppercase tracking-wider block mb-0.5">Tổng đã chi</span>
+            <span className="text-lg font-black text-[#17409A]">
+              {formatMoney(totalSpent, "VND")}
+            </span>
+          </div>
           <Link
             href="/products"
-            className="text-[#17409A] text-sm font-black hover:underline underline-offset-2"
+            className="text-[#17409A] bg-[#F4F7FF] px-5 py-3 rounded-2xl text-xs font-black hover:bg-[#17409A] hover:text-white transition-all tracking-wider uppercase shadow-sm"
           >
             Mua thêm →
           </Link>
@@ -231,443 +237,453 @@ export default function OrdersTab() {
       </div>
 
       {loading && orders.length === 0 && (
-        <div className="bg-[#F8F9FF] rounded-2xl p-6 text-center text-sm text-[#6B7280]">
+        <div className="bg-[#F8F9FF] rounded-3xl p-12 text-center text-sm font-semibold text-[#6B7280]">
           Đang tải lịch sử mua hàng...
         </div>
       )}
 
       {error && orders.length === 0 && (
-        <div className="bg-[#FFF1F5] border border-[#FF6B9D33] rounded-2xl p-6 text-sm text-[#C43D6B]">
+        <div className="bg-[#FFF1F5] border border-[#FF6B9D33] rounded-3xl p-8 text-sm font-semibold text-[#C43D6B]">
           Không thể tải lịch sử đơn hàng: {error}
         </div>
       )}
 
       {!loading && orders.length === 0 && !error && (
-        <div className="bg-[#F8F9FF] rounded-2xl p-6 text-center text-sm text-[#6B7280]">
+        <div className="bg-[#F8F9FF] rounded-3xl p-12 text-center text-sm font-semibold text-[#6B7280]">
           Bạn chưa có đơn hàng nào.
         </div>
       )}
 
-      {pagedOrders.map((order) => {
-        const normalizedStatus = order.status?.toUpperCase() || "";
-        const st = STATUS_STYLE[normalizedStatus] ?? {
-          label: "Trạng thái không xác định",
-          color: "#17409A",
-          bg: "#17409A18",
-        };
-        const firstItem = order.orderItems[0];
+      <div className="flex flex-col gap-5">
+        {pagedOrders.map((order) => {
+          const normalizedStatus = order.status?.toUpperCase() || "";
+          const st = STATUS_STYLE[normalizedStatus] ?? {
+            label: "Trạng thái không xác định",
+            color: "#17409A",
+            bg: "#17409A15",
+          };
+          const firstItem = order.orderItems[0];
 
-        // Logic lấy tên hiển thị: Ưu tiên buildName > baseProductName > productNameSnapshot > productName
-        const firstItemName =
-          firstItem?.buildDetails?.buildName ||
-          firstItem?.buildDetails?.baseProductName ||
-          firstItem?.productionJobs?.[0]?.productName ||
-          firstItem?.productNameSnapshot ||
-          firstItem?.productName ||
-          "Sản phẩm không có tên";
+          const firstItemName =
+            firstItem?.buildDetails?.buildName ||
+            firstItem?.buildDetails?.baseProductName ||
+            firstItem?.productionJobs?.[0]?.productName ||
+            firstItem?.productNameSnapshot ||
+            firstItem?.productName ||
+            "Sản phẩm không có tên";
 
-        // Logic lấy hình ảnh: Ưu tiên buildDetails.baseProductImageUrl > productionJobs[0].imageUrl > productImageUrl
-        const firstItemImage =
-          firstItem?.buildDetails?.baseProductImageUrl ||
-          firstItem?.productionJobs?.[0]?.imageUrl ||
-          firstItem?.productImageUrl ||
-          null;
+          const firstItemImage =
+            firstItem?.buildDetails?.baseProductImageUrl ||
+            firstItem?.productionJobs?.[0]?.imageUrl ||
+            firstItem?.productImageUrl ||
+            null;
 
-        const detail = orderDetailsMap[order.orderId];
-        const isExpanded = expandedOrderId === order.orderId;
+          const detail = orderDetailsMap[order.orderId];
+          const isExpanded = expandedOrderId === order.orderId;
 
-        return (
-          <div
-            key={order.orderId}
-            className="bg-[#F8F9FF] rounded-2xl p-5 hover:shadow-md hover:shadow-[#17409A]/5 transition-shadow"
-          >
+          return (
             <div
-              className="flex items-center gap-4 cursor-pointer"
-              onClick={() => handleToggleDetail(order)}
+              key={order.orderId}
+              className={`bg-white rounded-3xl p-6 md:p-7 border border-slate-100 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 ${isExpanded ? "ring-2 ring-[#17409A]/15 shadow-xl bg-slate-50/20" : ""}`}
             >
-              <div className="w-16 h-16 rounded-xl bg-[#17409A]/8 flex items-center justify-center shrink-0 overflow-hidden">
-                {firstItemImage ? (
-                  <img
-                    src={firstItemImage}
-                    alt={firstItemName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span
-                    className="text-sm font-black"
-                    style={{ color: "#17409A" }}
-                  >
-                    #{orders.findIndex((o) => o.orderId === order.orderId) + 1}
-                  </span>
-                )}
-              </div>
+              <div
+                className="flex flex-col md:flex-row md:items-center justify-between gap-6 cursor-pointer"
+                onClick={() => handleToggleDetail(order)}
+              >
+                <div className="flex items-center gap-5 flex-1 min-w-0">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-[#F4F7FF] flex items-center justify-center shrink-0 overflow-hidden border border-slate-50 relative group shadow-inner">
+                    {firstItemImage ? (
+                      <img
+                        src={firstItemImage}
+                        alt={firstItemName}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <span className="text-lg font-black text-[#17409A]">
+                        #{orders.findIndex((o) => o.orderId === order.orderId) + 1}
+                      </span>
+                    )}
+                  </div>
 
-              <div className="flex-1 min-w-0">
-                <p className="text-[#1A1A2E] font-bold text-base truncate">
-                  {formatShortOrderCode(order.orderNumber)}
-                </p>
-                <p className="text-[#4B5563] text-xs font-semibold mt-0.5 truncate">
-                  {firstItemName}
-                  {order.orderItems.length > 1
-                    ? ` +${order.orderItems.length - 1} sản phẩm khác`
-                    : ""}
-                </p>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-[#9CA3AF] text-xs font-semibold">
-                    {formatDateTime(order.createdAt)}
-                  </span>
-                  <span
-                    className="text-[10px] font-black px-2.5 py-1 rounded-full"
-                    style={{ color: st.color, backgroundColor: st.bg }}
-                  >
-                    {st.label}
-                  </span>
-                  <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[#17409A18] text-[#17409A]">
-                    {order.orderItems.length} sản phẩm
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[#1A1A2E] font-black text-lg md:text-xl leading-snug tracking-tight hover:text-[#17409A] transition-colors">
+                      {formatShortOrderCode(order.orderNumber)}
+                    </p>
+                    <p className="text-slate-500 text-xs md:text-sm font-bold mt-1 max-w-md truncate">
+                      {firstItemName}
+                      {order.orderItems.length > 1
+                        ? ` +${order.orderItems.length - 1} sản phẩm khác`
+                        : ""}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                      <span className="text-[#9CA3AF] text-xs font-bold">
+                        {formatDateTime(order.createdAt)}
+                      </span>
+                      <span
+                        className="text-[10px] font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider shadow-sm"
+                        style={{ color: st.color, backgroundColor: st.bg }}
+                      >
+                        {st.label}
+                      </span>
+                      <span className="text-[10px] font-black px-3.5 py-1.5 rounded-full bg-[#17409A10] text-[#17409A] uppercase tracking-wider">
+                        {order.orderItems.length} sản phẩm
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-left md:text-right shrink-0 flex flex-col justify-between h-full md:items-end">
+                  <p className="text-[#17409A] font-black text-xl md:text-2xl tracking-tight">
+                    {formatMoney(order.grandTotal, order.currency)}
+                  </p>
+                  <span className="text-slate-400 font-bold text-xs mt-1 md:mt-0 flex items-center gap-1 group">
+                    Xem chi tiết đơn hàng
+                    <span className="group-hover:translate-x-0.5 transition-transform">→</span>
                   </span>
                 </div>
               </div>
 
-              <div className="text-right shrink-0">
-                <p className="text-[#17409A] font-black text-base">
-                  {formatMoney(order.grandTotal, order.currency)}
-                </p>
-                <span className="text-[#9CA3AF] font-semibold text-xs">
-                  Nhấn để xem chi tiết
-                </span>
-              </div>
-            </div>
+              {isExpanded && (
+                <div className="mt-6 pt-6 border-t border-slate-100 space-y-6 animate-in slide-in-from-top-2 duration-300">
+                  {detailLoadingId === order.orderId && (
+                    <p className="text-xs text-[#9CA3AF] font-bold">
+                      Đang tải chi tiết đơn hàng...
+                    </p>
+                  )}
 
-            {isExpanded && (
-              <div className="mt-4 pt-4 border-t border-[#E5E7EB] space-y-2">
-                {detailLoadingId === order.orderId && (
-                  <p className="text-xs text-[#9CA3AF]">
-                    Đang tải chi tiết đơn hàng...
-                  </p>
-                )}
-
-                {!detailLoadingId && detail && (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">
-                          Mã đơn:
-                        </span>{" "}
-                        {formatShortOrderCode(
-                          detail.orderNumber || detail.orderId,
-                        )}
-                      </p>
-                      <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">
-                          Ghi chú:
-                        </span>{" "}
-                        {detail.notes || "-"}
-                      </p>
-                      <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">
-                          Tạm tính:
-                        </span>{" "}
-                        {formatMoney(detail.subtotal, detail.currency)}
-                      </p>
-                      <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">
-                          Phí ship:
-                        </span>{" "}
-                        {formatMoney(detail.shippingTotal, detail.currency)}
-                      </p>
-                      <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">
-                          Giảm giá:
-                        </span>{" "}
-                        {formatMoney(detail.discountTotal, detail.currency)}
-                      </p>
-                      <p className="text-[#6B7280]">
-                        <span className="font-bold text-[#1A1A2E]">
-                          Thành tiền:
-                        </span>{" "}
-                        {formatMoney(detail.grandTotal, detail.currency)}
-                      </p>
-                    </div>
-
-                    {/* Timeline */}
-                    <div className="mt-4 bg-white rounded-2xl p-4 border border-[#E5E7EB]">
-                      <div className="flex items-center justify-between relative">
-                        {getPipelineSteps(detail).map((step, idx, arr) => (
-                          <div key={idx} className="flex flex-col items-center relative z-10 flex-1">
-                            <div
-                              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
-                                step.completed ? "bg-[#4ECDC4] text-white" : step.active ? "bg-[#17409A] text-white animate-pulse" : "bg-[#E5E7EB] text-[#9CA3AF]"
-                              }`}
-                            >
-                              {step.completed ? "✓" : idx + 1}
-                            </div>
-                            <span className={`text-[9px] font-bold mt-1.5 whitespace-nowrap ${step.active ? "text-[#17409A]" : "text-[#6B7280]"}`}>
-                              {step.label}
+                  {!detailLoadingId && detail && (
+                    <>
+                      {/* Financial info card */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#F8F9FF] p-6 rounded-3xl border border-slate-100 text-xs">
+                        <div className="space-y-2.5">
+                          <p className="text-[#6B7280]">
+                            <span className="font-black text-[#1A1A2E] text-xs block mb-0.5">
+                              Mã đơn hàng
                             </span>
-                            {idx < arr.length - 1 && (
-                              <div className="absolute left-1/2 top-2.5 w-full h-[2px] bg-[#E5E7EB] -z-10">
-                                <div
-                                  className="h-full bg-[#4ECDC4] transition-all duration-500"
-                                  style={{ width: step.completed ? "100%" : "0%" }}
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                            <span className="text-sm font-bold text-slate-700">
+                              {formatShortOrderCode(detail.orderNumber || detail.orderId)}
+                            </span>
+                          </p>
+                          <p className="text-[#6B7280]">
+                            <span className="font-black text-[#1A1A2E] text-xs block mb-0.5">
+                              Ghi chú đơn hàng
+                            </span>
+                            <span className="text-slate-600 font-semibold italic text-sm">
+                              {detail.notes || "Không có ghi chú"}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 border-t md:border-t-0 md:border-l border-slate-200/50 pt-2.5 md:pt-0 md:pl-4">
+                          <p className="text-[#6B7280] flex justify-between">
+                            <span className="font-bold text-[#1A1A2E]">Tạm tính:</span>
+                            <span className="font-semibold text-slate-600">
+                              {formatMoney(detail.subtotal, detail.currency)}
+                            </span>
+                          </p>
+                          <p className="text-[#6B7280] flex justify-between">
+                            <span className="font-bold text-[#1A1A2E]">Phí ship:</span>
+                            <span className="font-semibold text-slate-600">
+                              {formatMoney(detail.shippingTotal, detail.currency)}
+                            </span>
+                          </p>
+                          <p className="text-[#6B7280] flex justify-between">
+                            <span className="font-bold text-[#1A1A2E]">Giảm giá:</span>
+                            <span className="font-semibold text-slate-600">
+                              {formatMoney(detail.discountTotal, detail.currency)}
+                            </span>
+                          </p>
+                          <p className="text-[#17409A] flex justify-between font-black text-sm border-t border-slate-200/60 pt-1 mt-1 col-span-2">
+                            <span>Thành tiền:</span>
+                            <span>
+                              {formatMoney(detail.grandTotal, detail.currency)}
+                            </span>
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="mt-3">
-                      <p className="text-xs font-black text-[#17409A] mb-2">
-                        Danh sách sản phẩm
-                      </p>
-                      {detail.orderItems.length === 0 ? (
-                        <p className="text-xs text-[#9CA3AF]">
-                          Đơn hàng hiện chưa có item snapshot.
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {detail.orderItems.map((item) => (
-                            <div
-                              key={item.orderItemId}
-                              className="rounded-xl bg-white p-3 border border-[#E5E7EB] flex items-start gap-3"
-                            >
-                              {item.buildDetails?.baseProductImageUrl ||
-                              item.productionJobs?.[0]?.imageUrl ||
-                              item.productImageUrl ? (
-                                <img
-                                  src={
-                                    item.buildDetails?.baseProductImageUrl ||
-                                    item.productionJobs?.[0]?.imageUrl ||
-                                    item.productImageUrl ||
-                                    ""
-                                  }
-                                  alt={
-                                    item.buildDetails?.buildName ||
-                                    item.buildDetails?.baseProductName ||
-                                    item.productName ||
-                                    item.productNameSnapshot ||
-                                    "Sản phẩm"
-                                  }
-                                  className="h-14 w-14 rounded-lg object-cover border border-[#E5E7EB] shrink-0"
-                                />
-                              ) : (
-                                <div className="h-14 w-14 rounded-lg bg-[#F3F4F6] border border-[#E5E7EB] shrink-0" />
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-bold text-[#1A1A2E] truncate">
-                                  {item.buildDetails?.buildName ||
-                                    item.buildDetails?.baseProductName ||
-                                    item.productionJobs?.[0]?.productName ||
-                                    item.productNameSnapshot ||
-                                    item.productName ||
-                                    "Sản phẩm không có tên"}
-                                </p>
-                                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#6B7280]">
-                                  <span>SL: {item.quantity}</span>
-                                  <span>
-                                    Đơn giá:{" "}
-                                    {formatMoney(
-                                      item.unitPrice,
-                                      detail.currency,
-                                    )}
-                                  </span>
-                                  <span>
-                                    Line total:{" "}
-                                    {formatMoney(
-                                      item.lineTotal ??
-                                        item.totalPrice ??
-                                        item.unitPrice * item.quantity,
-                                      detail.currency,
-                                    )}
-                                  </span>
-                                </div>
-
-                                {item.buildDetails?.personalizationNote && (
-                                  <p className="mt-1 text-[10px] text-[#FF8C42] font-semibold italic">
-                                    Ghi chú:{" "}
-                                    {item.buildDetails.personalizationNote}
-                                  </p>
-                                )}
-
-                                {item.buildDetails?.buildComponents &&
-                                  item.buildDetails.buildComponents.length >
-                                    0 && (
-                                    <div className="mt-2 flex flex-wrap gap-1">
-                                      {item.buildDetails.buildComponents.map(
-                                        (comp: any, cIdx: number) => (
-                                          <span
-                                            key={cIdx}
-                                            className="px-1.5 py-0.5 rounded bg-[#F3F4F6] text-[9px] font-bold text-[#4B5563]"
-                                          >
-                                            {comp.productName ||
-                                              comp.variantName ||
-                                              "Phụ kiện"}
-                                          </span>
-                                        ),
-                                      )}
-                                    </div>
-                                  )}
-
-                                {order.status === "COMPLETED" &&
-                                  (reportedItemMap[item.orderItemId] ? (
-                                    <div className="mt-2 flex items-center gap-2 text-xs font-black">
-                                      <span className="text-[#9CA3AF]">
-                                        Bảo hành:
-                                      </span>
-                                      {(() => {
-                                        const status =
-                                          reportedItemMap[item.orderItemId]
-                                            .status;
-                                        let style =
-                                          "bg-[#FF8C42]/20 text-[#FF8C42]";
-                                        let label = "Chờ tiếp nhận";
-
-                                        if (status === "CLOSED") {
-                                          style =
-                                            "bg-[#4ECDC4]/20 text-[#4ECDC4]";
-                                          label = "Đã đóng";
-                                        } else if (status === "RESOLVED") {
-                                          style =
-                                            "bg-[#1D4ED8]/20 text-[#1D4ED8]";
-                                          label = "Đã có hướng xử lý";
-                                        } else if (status === "REJECTED") {
-                                          style = "bg-red-100 text-red-600";
-                                          label = "Từ chối";
-                                        } else if (status === "PROCESSING") {
-                                          style =
-                                            "bg-[#7C5CFC]/20 text-[#7C5CFC]";
-                                          label = "Đang xử lý";
-                                        }
-
-                                        return (
-                                          <span
-                                            className={`px-2 py-1 rounded-md text-[10px] ${style}`}
-                                          >
-                                            {label}
-                                          </span>
-                                        );
-                                      })()}
-                                    </div>
-                                  ) : (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedItemId(item.orderItemId);
-                                        setSelectedItemName(
-                                          item.productName ||
-                                            item.productNameSnapshot ||
-                                            "Sản phẩm",
-                                        );
-                                        setIssueModalOpen(true);
-                                      }}
-                                      className="mt-2 text-[#FF8C42] text-[10px] font-black underline hover:text-[#e07530] transition-colors"
-                                    >
-                                      Yêu cầu bảo hành / Báo lỗi
-                                    </button>
-                                  ))}
+                      {/* Timeline */}
+                      <div className="bg-white rounded-3xl p-6 border border-slate-50 shadow-sm">
+                        <div className="flex items-center justify-between relative">
+                          {getPipelineSteps(detail).map((step, idx, arr) => (
+                            <div key={idx} className="flex flex-col items-center relative z-10 flex-1">
+                              <div
+                                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300 shadow-sm ${
+                                  step.completed ? "bg-[#4ECDC4] text-white" : step.active ? "bg-[#17409A] text-white animate-pulse" : "bg-slate-100 text-slate-400"
+                                }`}
+                              >
+                                {step.completed ? "✓" : idx + 1}
                               </div>
+                              <span className={`text-[10px] md:text-xs font-black mt-2 whitespace-nowrap tracking-wide ${step.active ? "text-[#17409A]" : "text-slate-500"}`}>
+                                {step.label}
+                              </span>
+                              {idx < arr.length - 1 && (
+                                <div className="absolute left-1/2 top-3.5 w-full h-[2.5px] bg-slate-100 -z-10">
+                                  <div
+                                    className="h-full bg-[#4ECDC4] transition-all duration-500"
+                                    style={{ width: step.completed ? "100%" : "0%" }}
+                                  />
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Fulfillment Section for User */}
-                    {fulfillmentMap[order.orderId] && (
-                      <div className="mt-4 pt-4 border-t border-[#E5E7EB]">
-                        <p className="text-xs font-black text-[#17409A] mb-2">
-                          Thông tin giao hàng
+                      {/* Item Details */}
+                      <div>
+                        <p className="text-sm font-black text-[#17409A] uppercase tracking-wider mb-3">
+                          Danh sách sản phẩm
                         </p>
-                        <div className="bg-[#F8F9FF] rounded-xl p-3 border border-[#E5E7EB]">
-                          <p className="text-[#1A1A2E] text-xs font-bold mb-1">
-                            Mã vận đơn: {fulfillmentMap[order.orderId]?.trackingNumber}
+                        {detail.orderItems.length === 0 ? (
+                          <p className="text-xs text-[#9CA3AF]">
+                            Đơn hàng hiện chưa có item snapshot.
                           </p>
-                          <p className="text-[#6B7280] text-[11px] font-semibold mb-3">
-                            Đơn vị vận chuyển: {fulfillmentMap[order.orderId]?.carrier || "GHTK"}
-                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {detail.orderItems.map((item) => (
+                              <div
+                                key={item.orderItemId}
+                                className="rounded-3xl bg-[#F8F9FF] p-4 md:p-5 border border-slate-50 flex items-start gap-4 hover:shadow-md transition-all duration-200"
+                              >
+                                {item.buildDetails?.baseProductImageUrl ||
+                                item.productionJobs?.[0]?.imageUrl ||
+                                item.productImageUrl ? (
+                                  <img
+                                    src={
+                                      item.buildDetails?.baseProductImageUrl ||
+                                      item.productionJobs?.[0]?.imageUrl ||
+                                      item.productImageUrl ||
+                                      ""
+                                    }
+                                    alt={
+                                      item.buildDetails?.buildName ||
+                                      item.buildDetails?.baseProductName ||
+                                      item.productName ||
+                                      item.productNameSnapshot ||
+                                      "Sản phẩm"
+                                    }
+                                    className="h-16 w-16 md:h-20 md:w-20 rounded-2xl object-cover border border-slate-100 shrink-0 shadow-sm"
+                                  />
+                                ) : (
+                                  <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-[#F3F4F6] border border-slate-100 shrink-0 shadow-sm" />
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm md:text-base font-black text-[#1A1A2E] leading-snug">
+                                    {item.buildDetails?.buildName ||
+                                      item.buildDetails?.baseProductName ||
+                                      item.productionJobs?.[0]?.productName ||
+                                      item.productNameSnapshot ||
+                                      item.productName ||
+                                      "Sản phẩm không có tên"}
+                                  </p>
+                                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 font-bold">
+                                    <span>SL: <span className="text-[#1A1A2E]">{item.quantity}</span></span>
+                                    <span>
+                                      Đơn giá:{" "}
+                                      <span className="text-[#1A1A2E]">
+                                        {formatMoney(item.unitPrice, detail.currency)}
+                                      </span>
+                                    </span>
+                                    <span>
+                                      Thành tiền:{" "}
+                                      <span className="text-[#17409A]">
+                                        {formatMoney(
+                                          item.lineTotal ??
+                                            item.totalPrice ??
+                                            item.unitPrice * item.quantity,
+                                          detail.currency,
+                                        )}
+                                      </span>
+                                    </span>
+                                  </div>
 
-                          {!trackingDataMap[order.orderId] ? (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTrackGhtk(order.orderId, fulfillmentMap[order.orderId]?.trackingNumber || "");
-                              }}
-                              disabled={trackingLoadingMap[order.orderId]}
-                              className="flex items-center gap-2 bg-white border border-[#17409A] text-[#17409A] px-3 py-1.5 rounded-lg text-[11px] font-black hover:bg-[#17409A] hover:text-white transition-colors disabled:opacity-50"
-                            >
-                              {trackingLoadingMap[order.orderId] ? (
-                                <MdAutorenew className="animate-spin text-sm" />
-                              ) : (
-                                <MdLocalShipping className="text-sm" />
-                              )}
-                              Theo dõi đơn hàng
-                            </button>
-                          ) : (
-                            <div className="mt-2 p-2 bg-white rounded-lg border border-[#E5E7EB]">
-                              <p className="text-[#1A1A2E] font-bold text-[11px] mb-1">
-                                Trạng thái: <span className="text-[#17409A]">{trackingDataMap[order.orderId].order?.status_text || trackingDataMap[order.orderId].message}</span>
-                              </p>
-                              <p className="text-[#6B7280] text-[10px] font-semibold">
-                                Cập nhật lúc: {trackingDataMap[order.orderId].order?.action_time || "N/A"}
-                              </p>
-                              {trackingDataMap[order.orderId].order?.reason && (
-                                <p className="text-[#FF8C42] text-[10px] italic mt-1">
-                                  Ghi chú: {trackingDataMap[order.orderId].order.reason}
+                                  {item.buildDetails?.personalizationNote && (
+                                    <p className="mt-2 text-xs text-[#FF8C42] font-bold italic leading-relaxed">
+                                      Ghi chú cá nhân hóa:{" "}
+                                      {item.buildDetails.personalizationNote}
+                                    </p>
+                                  )}
+
+                                  {item.buildDetails?.buildComponents &&
+                                    item.buildDetails.buildComponents.length >
+                                      0 && (
+                                      <div className="mt-3 flex flex-wrap gap-1.5">
+                                        {item.buildDetails.buildComponents.map(
+                                          (comp: any, cIdx: number) => (
+                                            <span
+                                              key={cIdx}
+                                              className="px-2.5 py-1 rounded-xl bg-white text-[10px] font-bold text-slate-600 border border-slate-200/60 shadow-sm"
+                                            >
+                                              {comp.productName ||
+                                                comp.variantName ||
+                                                "Phụ kiện"}
+                                            </span>
+                                          ),
+                                        )}
+                                      </div>
+                                    )}
+
+                                  {order.status === "COMPLETED" &&
+                                    (reportedItemMap[item.orderItemId] ? (
+                                      <div className="mt-3 flex items-center gap-2 text-xs font-black">
+                                        <span className="text-[#9CA3AF]">
+                                          Bảo hành:
+                                        </span>
+                                        {(() => {
+                                          const status =
+                                            reportedItemMap[item.orderItemId]
+                                              .status;
+                                          let style =
+                                            "bg-[#FF8C42]/20 text-[#FF8C42]";
+                                          let label = "Chờ tiếp nhận";
+
+                                          if (status === "CLOSED") {
+                                            style =
+                                              "bg-[#4ECDC4]/20 text-[#4ECDC4]";
+                                            label = "Đã đóng";
+                                          } else if (status === "RESOLVED") {
+                                            style =
+                                              "bg-[#1D4ED8]/20 text-[#1D4ED8]";
+                                            label = "Đã có hướng xử lý";
+                                          } else if (status === "REJECTED") {
+                                            style = "bg-red-100 text-red-600";
+                                            label = "Từ chối";
+                                          } else if (status === "PROCESSING") {
+                                            style =
+                                              "bg-[#7C5CFC]/20 text-[#7C5CFC]";
+                                            label = "Đang xử lý";
+                                          }
+
+                                          return (
+                                            <span
+                                              className={`px-3 py-1 rounded-xl text-[10px] ${style}`}
+                                            >
+                                              {label}
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedItemId(item.orderItemId);
+                                          setSelectedItemName(
+                                            item.productName ||
+                                              item.productNameSnapshot ||
+                                              "Sản phẩm",
+                                          );
+                                          setIssueModalOpen(true);
+                                        }}
+                                        className="mt-3 text-[#FF8C42] text-[11px] font-black underline hover:text-[#e07530] transition-colors"
+                                      >
+                                        Yêu cầu bảo hành / Báo lỗi
+                                      </button>
+                                    ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Fulfillment Section for User */}
+                      {fulfillmentMap[order.orderId] && (
+                        <div className="mt-4 pt-4 border-t border-slate-100">
+                          <p className="text-sm font-black text-[#17409A] uppercase tracking-wider mb-3">
+                            Thông tin giao hàng
+                          </p>
+                          <div className="bg-[#F8F9FF] rounded-3xl p-5 border border-slate-100">
+                            <p className="text-[#1A1A2E] text-sm font-black mb-1">
+                              Mã vận đơn: {fulfillmentMap[order.orderId]?.trackingNumber}
+                            </p>
+                            <p className="text-[#6B7280] text-xs font-bold mb-4">
+                              Đơn vị vận chuyển: {fulfillmentMap[order.orderId]?.carrier || "GHTK"}
+                            </p>
+
+                            {!trackingDataMap[order.orderId] ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTrackGhtk(order.orderId, fulfillmentMap[order.orderId]?.trackingNumber || "");
+                                }}
+                                disabled={trackingLoadingMap[order.orderId]}
+                                className="flex items-center gap-2 bg-white border border-[#17409A] text-[#17409A] px-4 py-2.5 rounded-2xl text-xs font-black hover:bg-[#17409A] hover:text-white transition-all disabled:opacity-50 hover:-translate-y-0.5 shadow-sm"
+                              >
+                                {trackingLoadingMap[order.orderId] ? (
+                                  <MdAutorenew className="animate-spin text-base" />
+                                ) : (
+                                  <MdLocalShipping className="text-base" />
+                                )}
+                                Theo dõi đơn hàng
+                              </button>
+                            ) : (
+                              <div className="mt-3 p-3 bg-white rounded-2xl border border-slate-100">
+                                <p className="text-[#1A1A2E] font-black text-xs mb-1">
+                                  Trạng thái: <span className="text-[#17409A]">{trackingDataMap[order.orderId].order?.status_text || trackingDataMap[order.orderId].message}</span>
                                 </p>
-                              )}
-                            </div>
-                          )}
+                                <p className="text-[#6B7280] text-[11px] font-bold">
+                                  Cập nhật lúc: {trackingDataMap[order.orderId].order?.action_time || "N/A"}
+                                </p>
+                                {trackingDataMap[order.orderId].order?.reason && (
+                                  <p className="text-[#FF8C42] text-[11px] font-bold italic mt-1.5">
+                                    Ghi chú: {trackingDataMap[order.orderId].order.reason}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Confirmation Button for User */}
-                    {order.status === "SHIPPING" && (
-                      <div className="mt-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleConfirmReceived(order.orderId);
-                          }}
-                          disabled={confirmingId === order.orderId}
-                          className="w-full bg-[#4ECDC4] hover:bg-[#3db8af] text-white font-black py-3 rounded-xl text-sm shadow-lg shadow-[#4ECDC4]/20 transition-all active:scale-[0.98] disabled:opacity-50"
-                        >
-                          {confirmingId === order.orderId ? (
-                            <MdAutorenew className="animate-spin inline mr-2 text-lg" />
-                          ) : null}
-                          Đã nhận được hàng
-                        </button>
-                        <p className="text-center text-[10px] text-[#9CA3AF] font-bold mt-2">
-                          * Vui lòng chỉ xác nhận sau khi đã kiểm tra kỹ sản phẩm
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                      {/* Confirmation Button for User */}
+                      {order.status === "SHIPPING" && (
+                        <div className="mt-6">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleConfirmReceived(order.orderId);
+                            }}
+                            disabled={confirmingId === order.orderId}
+                            className="w-full bg-[#4ECDC4] hover:bg-[#3db8af] text-white font-black py-4 rounded-2xl text-sm shadow-xl shadow-[#4ECDC4]/20 transition-all active:scale-[0.98] disabled:opacity-50 hover:-translate-y-0.5"
+                          >
+                            {confirmingId === order.orderId ? (
+                              <MdAutorenew className="animate-spin inline mr-2 text-lg" />
+                            ) : null}
+                            Đã nhận được hàng
+                          </button>
+                          <p className="text-center text-[11px] text-[#9CA3AF] font-bold mt-2.5 tracking-wide">
+                            * Vui lòng chỉ xác nhận sau khi đã kiểm tra kỹ sản phẩm
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {orders.length > PAGE_SIZE && (
-        <div className="mt-2 flex items-center justify-between rounded-2xl bg-[#F8F9FF] p-4 border border-[#E5E7EB]">
-          <p className="text-sm font-semibold text-[#6B7280]">
+        <div className="mt-4 flex items-center justify-between rounded-3xl bg-[#F8F9FF] p-5 border border-slate-100">
+          <p className="text-xs md:text-sm font-bold text-[#6B7280]">
             Trang {currentPage}/{totalPages} • Tổng {orders.length} đơn
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={goPrevPage}
               disabled={currentPage === 1}
-              className="px-4 py-2 rounded-xl text-sm font-black border border-[#D7DEEF] text-[#17409A] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 rounded-2xl text-xs font-black border border-[#D7DEEF] text-[#17409A] disabled:opacity-40 disabled:cursor-not-allowed bg-white hover:bg-slate-50 transition-all shadow-sm"
             >
               Trước
             </button>
             <button
               onClick={goNextPage}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 rounded-xl text-sm font-black bg-[#17409A] text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 rounded-2xl text-xs font-black bg-[#17409A] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#12317A] transition-all shadow-md"
             >
               Sau
             </button>

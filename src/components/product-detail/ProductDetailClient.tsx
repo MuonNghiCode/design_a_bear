@@ -126,6 +126,15 @@ export default function ProductDetailClient({
     );
   }, [product.comboImages, combinationKey]);
 
+  const isAIProcessorSelected = useMemo(() => {
+    return selectedAccessories.some((acc) => {
+      const type = (acc.addonProduct.productType || "").toUpperCase();
+      const name = (acc.addonProduct.name || "").toUpperCase();
+      const sku = (acc.addonProduct.sku || "").toUpperCase();
+      return type === "AI_PROCESSOR" || name.includes("AI PROCESSOR") || sku.includes("AI");
+    });
+  }, [selectedAccessories]);
+
   useEffect(() => {
     if (!heroRef.current) return;
     const ctx = gsap.context(() => {
@@ -151,13 +160,14 @@ export default function ProductDetailClient({
         className="max-w-screen-2xl mx-auto px-8 md:px-16 pt-12 pb-24"
       >
         <div className="flex flex-col lg:flex-row gap-14 lg:gap-20 items-start">
-          <div className="pd-img-enter w-full lg:w-[55%]">
+          <div className="pd-img-enter w-full lg:w-[55%] relative z-10">
             <ProductImageSection
               product={productItem}
               overrideMainImage={activeComboImage}
+              isAIProcessorSelected={isAIProcessorSelected}
             />
           </div>
-          <div className="pd-info-enter w-full lg:w-[45%] lg:sticky lg:top-28">
+          <div className="pd-info-enter w-full lg:w-[45%] lg:sticky lg:top-28 z-20">
             <ProductInfoPanel
               product={productItem}
               personalizationRules={effectiveRules}

@@ -46,15 +46,15 @@ function CompactSelect({
   const selected = options.find((o) => o.value === value);
 
   return (
-    <div className="relative">
-      <label className="text-[9px] font-black tracking-widest text-[#9CA3AF] uppercase mb-1 block">
+    <div className="relative" style={{ fontFamily: "'Nunito', sans-serif" }}>
+      <label className="text-[9px] font-black tracking-[0.2em] text-[#9CA3AF] uppercase mb-1.5 block">
         {label}
       </label>
       <button
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        className="w-full flex items-center justify-between gap-2 bg-[#F4F7FF] rounded-2xl px-3 py-2 text-left border-2 border-transparent focus:border-[#17409A]/30 transition-all duration-200 disabled:opacity-40 hover:border-[#17409A]/20"
+        className="w-full flex items-center justify-between gap-2 bg-[#F4F7FF] rounded-2xl px-4 py-3 text-left border-2 border-transparent focus:border-[#17409A]/30 transition-all duration-200 disabled:opacity-40 hover:border-[#17409A]/20 shadow-sm"
       >
         <span
           className={`text-xs font-bold truncate ${selected ? "text-[#1A1A2E]" : "text-[#9CA3AF]"}`}
@@ -67,19 +67,19 @@ function CompactSelect({
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-white rounded-2xl shadow-xl border border-[#E5E7EB] overflow-hidden">
-          <div className="p-2 border-b border-[#F3F4F6]">
+        <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-white rounded-2xl shadow-xl border border-[#E5E7EB] overflow-hidden">
+          <div className="p-3 border-b border-[#F3F4F6]">
             <input
               autoFocus
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm..."
-              className="w-full bg-[#F4F7FF] rounded-xl px-3 py-1.5 text-xs font-semibold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/30 transition-all duration-200"
+              className="w-full bg-[#F4F7FF] rounded-xl px-3.5 py-2 text-xs font-semibold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/30 transition-all duration-200"
             />
           </div>
-          <div className="max-h-40 overflow-y-auto">
+          <div className="max-h-48 overflow-y-auto">
             {filtered.length === 0 ? (
-              <p className="text-center text-xs text-[#9CA3AF] py-3">
+              <p className="text-center text-xs text-[#9CA3AF] py-3 font-medium">
                 Không tìm thấy
               </p>
             ) : (
@@ -92,7 +92,7 @@ function CompactSelect({
                     setOpen(false);
                     setSearch("");
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-[#F4F7FF] transition-all duration-150 ${
+                  className={`w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-[#F4F7FF] transition-all duration-150 ${
                     o.value === value
                       ? "text-[#17409A] bg-[#17409A]/5 font-black"
                       : "text-[#1A1A2E]"
@@ -281,19 +281,21 @@ export default function ProfileInfoCard({
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-5">
-        <p className="text-[9px] font-black tracking-[0.22em] uppercase text-[#9CA3AF]">
+    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-50 relative overflow-hidden h-fit" style={{ fontFamily: "'Nunito', sans-serif" }}>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-[#F4F7FF] rounded-full opacity-30 translate-x-12 -translate-y-12 z-0 pointer-events-none" />
+
+      <div className="flex items-center justify-between mb-6 relative z-10">
+        <p className="text-[9px] font-black tracking-[0.2em] uppercase text-[#9CA3AF]">
           Thông tin cá nhân
         </p>
         {editMode && (
-          <span className="text-[9px] font-black text-[#17409A] bg-[#17409A]/8 px-2 py-0.5 rounded-full">
+          <span className="text-[9px] font-black text-[#17409A] bg-[#17409A]/8 px-2.5 py-1 rounded-full shadow-sm">
             Đang chỉnh sửa
           </span>
         )}
       </div>
 
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-5 relative z-10">
         <div>
           <label className="text-[9px] font-black tracking-widest text-[#9CA3AF] uppercase mb-1.5 block">
             Họ và tên
@@ -302,11 +304,13 @@ export default function ProfileInfoCard({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[#F4F7FF] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/30 transition-colors"
+              className="w-full bg-[#F4F7FF] rounded-2xl px-4 py-3 text-sm font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/30 transition-colors shadow-sm"
             />
           ) : (
-            <div className="flex items-center gap-2.5">
-              <IoPersonOutline className="text-[#9CA3AF] text-base shrink-0" />
+            <div className="flex items-center gap-3 bg-[#F4F7FF]/30 p-3 rounded-2xl border border-[#F4F7FF]">
+              <div className="w-9 h-9 rounded-xl bg-[#17409A]/5 text-[#17409A] flex items-center justify-center shrink-0">
+                <IoPersonOutline className="text-base" />
+              </div>
               <span className="text-[#1A1A2E] font-bold text-sm">{name}</span>
             </div>
           )}
@@ -316,13 +320,15 @@ export default function ProfileInfoCard({
           <label className="text-[9px] font-black tracking-widest text-[#9CA3AF] uppercase mb-1.5 block">
             Email
           </label>
-          <div className="flex items-center gap-2.5">
-            <IoMailOutline className="text-[#9CA3AF] text-base shrink-0" />
-            <span className="text-[#1A1A2E] font-bold text-sm break-all">
+          <div className="flex items-center gap-3 bg-[#F4F7FF]/30 p-3 rounded-2xl border border-[#F4F7FF]">
+            <div className="w-9 h-9 rounded-xl bg-[#17409A]/5 text-[#17409A] flex items-center justify-center shrink-0">
+              <IoMailOutline className="text-base" />
+            </div>
+            <span className="text-[#1A1A2E] font-bold text-sm break-all flex-1">
               {user.email}
             </span>
             <IoCheckmarkCircle
-              className="text-[#4ECDC4] text-base shrink-0 ml-auto"
+              className="text-[#4ECDC4] text-xl shrink-0"
               title="Đã xác thực"
             />
           </div>
@@ -336,11 +342,13 @@ export default function ProfileInfoCard({
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full bg-[#F4F7FF] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/30 transition-colors"
+              className="w-full bg-[#F4F7FF] rounded-2xl px-4 py-3 text-sm font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/30 transition-colors shadow-sm"
             />
           ) : (
-            <div className="flex items-center gap-2.5">
-              <IoCallOutline className="text-[#9CA3AF] text-base shrink-0" />
+            <div className="flex items-center gap-3 bg-[#F4F7FF]/30 p-3 rounded-2xl border border-[#F4F7FF]">
+              <div className="w-9 h-9 rounded-xl bg-[#17409A]/5 text-[#17409A] flex items-center justify-center shrink-0">
+                <IoCallOutline className="text-base" />
+              </div>
               <span className="text-[#1A1A2E] font-bold text-sm">{phone}</span>
             </div>
           )}
@@ -351,7 +359,7 @@ export default function ProfileInfoCard({
             Địa chỉ
           </label>
           {editMode ? (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <CompactSelect
                 label="Tỉnh / Thành phố"
                 value={addressForm.province}
@@ -366,7 +374,7 @@ export default function ProfileInfoCard({
                 }
               />
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <CompactSelect
                   label="Quận / Huyện"
                   value={addressForm.district}
@@ -392,11 +400,11 @@ export default function ProfileInfoCard({
               </div>
 
               <div>
-                <label className="text-[9px] font-black tracking-widest text-[#9CA3AF] uppercase mb-1 block">
+                <label className="text-[9px] font-black tracking-widest text-[#9CA3AF] uppercase mb-1.5 block">
                   Địa chỉ cụ thể
                 </label>
-                <div className="flex items-center gap-2 bg-[#F4F7FF] rounded-2xl px-3 py-2 border-2 border-transparent focus-within:border-[#17409A]/30 transition-all duration-200">
-                  <IoLocationOutline className="text-[#9CA3AF] text-xs shrink-0" />
+                <div className="flex items-center gap-3 bg-[#F4F7FF] rounded-2xl px-4 py-3 border-2 border-transparent focus-within:border-[#17409A]/30 transition-all duration-200 shadow-sm">
+                  <IoLocationOutline className="text-[#9CA3AF] text-lg shrink-0" />
                   <input
                     value={addressForm.streetAddress}
                     onChange={(e) =>
@@ -412,9 +420,11 @@ export default function ProfileInfoCard({
               </div>
             </div>
           ) : (
-            <div className="flex items-start gap-2.5">
-              <IoLocationOutline className="text-[#9CA3AF] text-base shrink-0 mt-0.5" />
-              <span className="text-[#1A1A2E] font-bold text-sm leading-snug">
+            <div className="flex items-start gap-3 bg-[#F4F7FF]/30 p-3.5 rounded-2xl border border-[#F4F7FF]">
+              <div className="w-9 h-9 rounded-xl bg-[#17409A]/5 text-[#17409A] flex items-center justify-center shrink-0 mt-0.5">
+                <IoLocationOutline className="text-base" />
+              </div>
+              <span className="text-[#1A1A2E] font-bold text-sm leading-snug flex-1">
                 {addressDisplay}
               </span>
             </div>
@@ -425,20 +435,20 @@ export default function ProfileInfoCard({
           <button
             onClick={onSave}
             disabled={saving || !name.trim() || !phone.trim()}
-            className="w-full bg-[#17409A] text-white font-black text-sm py-3 rounded-2xl hover:bg-[#0E2A66] transition-colors mt-1 disabled:opacity-50"
+            className="w-full bg-[#17409A] text-white font-black text-sm py-3.5 rounded-2xl hover:bg-[#0E2A66] transition-all duration-300 shadow-xl shadow-[#17409A]/20 mt-2 disabled:opacity-50 hover:-translate-y-0.5"
           >
             {saving ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
         )}
 
         {saveMessage && (
-          <p className="text-xs font-semibold text-[#0F766E] bg-[#ECFDF5] border border-[#A7F3D0] rounded-xl px-3 py-2">
+          <p className="text-xs font-semibold text-[#0F766E] bg-[#ECFDF5] border border-[#A7F3D0] rounded-2xl px-4 py-3 shadow-sm">
             {saveMessage}
           </p>
         )}
 
         {saveError && (
-          <p className="text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] border border-[#FECDD3] rounded-xl px-3 py-2">
+          <p className="text-xs font-semibold text-[#BE123C] bg-[#FFF1F2] border border-[#FECDD3] rounded-2xl px-4 py-3 shadow-sm">
             {saveError}
           </p>
         )}

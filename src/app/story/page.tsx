@@ -3,17 +3,17 @@ import StoryClient from "@/components/story/StoryClient";
 import { DEFAULT_OG_IMAGE, PUBLIC_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Cau chuyen thuong hieu",
+  title: "Câu chuyện thương hiệu",
   description:
-    "Kham pha hanh trinh hinh thanh Design a Bear va triet ly ket hop sang tao, cong nghe va ky nang cho tre em.",
+    "Khám phá hành trình hình thành Design a Bear và triết lý kết hợp sáng tạo, công nghệ và kỹ năng cho trẻ em.",
   alternates: {
     canonical: "/story",
   },
   robots: PUBLIC_ROBOTS,
   openGraph: {
-    title: "Cau chuyen thuong hieu Design a Bear",
+    title: "Câu chuyện thương hiệu Design a Bear",
     description:
-      "Storytelling ve hanh trinh tao nen nhung nguoi ban gau bong mang gia tri giao duc cho be.",
+      "Câu chuyện về hành trình tạo nên những người bạn gấu bông mang giá trị giáo dục cho bé.",
     url: "/story",
     images: [DEFAULT_OG_IMAGE],
   },

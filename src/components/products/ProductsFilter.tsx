@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { IoSearchOutline, IoHeartOutline } from "react-icons/io5";
+import { IoSearchOutline, IoHeartOutline, IoHeart } from "react-icons/io5";
 import gsap from "gsap";
 import CustomDropdown from "@/components/shared/CustomDropdown";
 
@@ -26,6 +26,8 @@ interface ProductsFilterProps {
   sortBy: string;
   onSortChange: (s: string) => void;
   productCount: number;
+  showFavoritesOnly: boolean;
+  onShowFavoritesChange: (val: boolean) => void;
 }
 
 export default function ProductsFilter({
@@ -36,6 +38,8 @@ export default function ProductsFilter({
   sortBy,
   onSortChange,
   productCount,
+  showFavoritesOnly,
+  onShowFavoritesChange,
 }: ProductsFilterProps) {
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -107,12 +111,22 @@ export default function ProductsFilter({
               />
             </div>
 
-            {/* Wishlist icon */}
+            {/* Wishlist icon - click to filter favorites */}
             <button
-              className="w-10 h-10 rounded-2xl bg-white border border-[#E5E7EB] text-[#6B7280] hover:border-[#FF6B9D] hover:text-[#FF6B9D] flex items-center justify-center transition-all duration-200 shrink-0"
-              aria-label="Yêu thích"
+              onClick={() => onShowFavoritesChange(!showFavoritesOnly)}
+              className={`w-10 h-10 rounded-2xl border text-sm font-bold flex items-center justify-center transition-all duration-200 shrink-0 cursor-pointer ${
+                showFavoritesOnly
+                  ? "bg-[#FF6B9D] border-[#FF6B9D] text-white shadow-md hover:scale-105"
+                  : "bg-white border-[#E5E7EB] text-[#6B7280] hover:border-[#FF6B9D] hover:text-[#FF6B9D] hover:scale-105"
+              }`}
+              aria-label="Chỉ xem yêu thích"
+              title="Chỉ xem yêu thích"
             >
-              <IoHeartOutline className="w-5 h-5" />
+              {showFavoritesOnly ? (
+                <IoHeart className="w-5 h-5" />
+              ) : (
+                <IoHeartOutline className="w-5 h-5" />
+              )}
             </button>
           </div>
         </div>

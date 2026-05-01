@@ -6,8 +6,8 @@ import type { Metadata } from "next";
 import { PRIVATE_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
-  title: "Thanh toan thanh cong",
-  description: "Trang ket qua sau khi thanh toan don hang.",
+  title: "Thanh toán thành công",
+  description: "Trang kết quả sau khi thanh toán đơn hàng.",
   robots: PRIVATE_ROBOTS,
   alternates: {
     canonical: "/success",

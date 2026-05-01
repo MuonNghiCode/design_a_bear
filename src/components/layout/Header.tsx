@@ -33,7 +33,7 @@ interface HeaderProps {
 export default function Header({ hideOnHero = false }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const { totalItems, openCart } = useCart();
-  const { favorites } = useFavorite();
+  const { favorites, openFavorites } = useFavorite();
   const favoriteCount = favorites.size;
   const router = useRouter();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -558,8 +558,8 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
               </div>
 
               {/* Wishlist - Hidden on small mobile */}
-              <Link
-                href="/favorites"
+              <button
+                onClick={openFavorites}
                 className="hidden sm:block text-gray-800 hover:text-blue-600 transition-all duration-300 hover:scale-110 relative"
                 aria-label="Yêu thích"
               >
@@ -572,7 +572,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                     {favoriteCount}
                   </span>
                 )}
-              </Link>
+              </button>
 
               {/* Cart - Always visible */}
               <button
@@ -655,14 +655,16 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                           <IoBagOutline className="text-base text-[#17409A]" />
                           Đơn hàng
                         </Link>
-                        <Link
-                          href="/favorites"
-                          onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors"
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            openFavorites();
+                          }}
+                          className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-[#F4F7FF] text-sm font-bold text-[#1A1A2E] hover:text-[#17409A] transition-colors text-left"
                         >
                           <IoHeartOutline className="text-base text-[#FF6B9D]" />
                           Yêu thích
-                        </Link>
+                        </button>
                         <Link
                           href="/profile?tab=reviews"
                           onClick={() => setShowUserMenu(false)}
@@ -884,10 +886,12 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                 </button>
               </Link>
             )}
-            <Link
-              href="/favorites"
-              onClick={() => setShowMobileMenu(false)}
-              className="flex items-center gap-3 text-gray-800 hover:text-blue-600 transition-colors relative w-fit"
+            <button
+              onClick={() => {
+                setShowMobileMenu(false);
+                openFavorites();
+              }}
+              className="flex items-center gap-3 text-gray-800 hover:text-blue-600 transition-colors relative w-fit text-left"
             >
               <div className="relative">
                 <IoHeartOutline className="text-2xl" />
@@ -901,7 +905,7 @@ export default function Header({ hideOnHero = false }: HeaderProps) {
                 )}
               </div>
               <span className="font-medium">Yêu thích</span>
-            </Link>
+            </button>
           </div>
         </nav>
       </div>

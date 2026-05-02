@@ -11,6 +11,7 @@ import {
   MdAccessTime,
   MdTrendingUp,
   MdWarning,
+  MdDashboard,
 } from "react-icons/md";
 import {
   STAFF_TASKS,
@@ -54,7 +55,7 @@ export default function StaffDashboardClient() {
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.fromTo(
-        ".ac",
+        ".dc-reveal",
         { opacity: 0, y: 18 },
         {
           opacity: 1,
@@ -97,273 +98,186 @@ export default function StaffDashboardClient() {
 
   return (
     <div ref={ref} className="space-y-5">
-      {/* ── Title row ── */}
-      <div className="ac flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <GiPawPrint className="text-[#17409A]" style={{ fontSize: 22 }} />
-            <h1 className="font-black text-[#1A1A2E] text-2xl tracking-tight">
-              Tổng quan ca làm
-            </h1>
-          </div>
-          <p className="text-[#9CA3AF] text-sm">
-            Chào {user?.name ?? "nhân viên"} · {shift.label} {shift.time}
-          </p>
-        </div>
-        <Link
-          href="/staff/reports"
-          className="flex items-center gap-2 bg-[#17409A] hover:bg-[#1a3a8a] text-white text-sm font-bold px-4 py-2.5 rounded-2xl transition-colors cursor-pointer whitespace-nowrap"
-        >
-          <MdAssignment className="text-base" />
-          Tạo báo cáo
-        </Link>
-      </div>
-
-      {/* ── Hero banner + quick stats ── */}
-      <div className="ac grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* Hero */}
-        <div className="lg:col-span-3 relative bg-[#17409A] rounded-3xl overflow-hidden p-6 sm:p-8 flex flex-col gap-5 min-h-56">
-          <GiPawPrint
-            className="absolute -top-12 -right-10 text-white/4 pointer-events-none select-none"
-            style={{ fontSize: 300 }}
-          />
-          <GiPawPrint
-            className="absolute -bottom-14 -left-12 text-white/3 pointer-events-none select-none"
-            style={{ fontSize: 260 }}
-          />
-
-          <div className="relative flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-white/55 text-[10px] font-black tracking-[0.25em] uppercase mb-2">
-                Tiến độ ca hôm nay
-              </p>
-              <div className="flex items-end gap-3">
-                <span
-                  className="text-white font-black leading-none"
-                  style={{ fontSize: "clamp(3.5rem, 6.5vw, 6rem)" }}
-                >
-                  {pct}%
-                </span>
-                <div className="pb-1.5 flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-2xl px-3 py-1.5 self-start">
-                    <MdTrendingUp className="text-[#4ECDC4] text-sm" />
-                    <span className="text-white text-xs font-bold">
-                      {done}/{total} nhiệm vụ
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Shift badge */}
-            <div
-              className="flex flex-col items-center justify-center w-20 h-20 rounded-2xl border backdrop-blur-sm shrink-0"
-              style={{
-                backgroundColor: `${shift.color}25`,
-                borderColor: `${shift.color}40`,
-              }}
-            >
-              <MdAccessTime style={{ color: shift.color, fontSize: 26 }} />
-              <span className="text-white font-black text-xs leading-tight mt-1 text-center px-1">
-                {shift.label}
+      {/* ── Dynamic Hero Header ── */}
+      <div className="dc-reveal relative bg-[#17409A] rounded-[40px] p-10 overflow-hidden shadow-2xl shadow-blue-900/20 border border-white/10 min-h-[220px] flex flex-col justify-center">
+        {/* Paw Watermark */}
+        <GiPawPrint className="absolute -bottom-10 -right-10 text-white/5 text-[300px] rotate-12 pointer-events-none" />
+        <GiPawPrint className="absolute top-4 left-1/3 text-white/4 text-[80px] -rotate-12 pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="bg-white/10 text-white/70 text-[9px] font-black uppercase tracking-[0.25em] px-3 py-1 rounded-full border border-white/10 backdrop-blur-md">
+                Staff Dashboard
+              </span>
+              <span className="text-white/40 text-[9px] font-black uppercase tracking-widest">•</span>
+              <span className="text-white/60 text-[9px] font-bold uppercase tracking-widest">
+                {shift.label} {shift.time}
               </span>
             </div>
+            <h1 className="text-white font-black text-4xl lg:text-5xl tracking-tight leading-tight mb-2">
+              Chào ca làm, <span className="text-blue-200">{user?.name?.split(" ")[0] || "nhân viên"}</span>
+            </h1>
+            <p className="text-white/60 text-base font-bold max-w-lg leading-relaxed">
+              Bạn đã hoàn thành {pct}% tiến độ ca hôm nay ({done}/{total} nhiệm vụ).
+            </p>
           </div>
-
-          {/* Progress bar */}
-          <div className="relative flex flex-col gap-1.5">
-            <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full bg-linear-to-r from-[#4ECDC4] to-[#17409A] transition-all duration-700"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-white/50 text-xs font-semibold">
-              <span>{done} hoàn thành</span>
-              <span>{pending + inProg} còn lại</span>
-            </div>
-          </div>
-
-          {/* Pills */}
-          <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              {
-                icon: MdShoppingBag,
-                label: "Đóng gói",
-                value: tasks.filter(
-                  (t) => t.type === "pack" && t.status !== "done",
-                ).length,
-                color: "bg-white/15",
-              },
-              {
-                icon: MdCheckCircle,
-                label: "Kiểm tra",
-                value: tasks.filter(
-                  (t) => t.type === "verify" && t.status !== "done",
-                ).length,
-                color: "bg-[#4ECDC4]/20",
-              },
-              {
-                icon: MdStar,
-                label: "Phản hồi",
-                value: tasks.filter(
-                  (t) => t.type === "review_reply" && t.status !== "done",
-                ).length,
-                color: "bg-[#FFD93D]/20",
-              },
-              {
-                icon: MdWarning,
-                label: "Khẩn cấp",
-                value: urgent,
-                color: "bg-[#FF6B9D]/20",
-              },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <div
-                key={label}
-                className={`${color} backdrop-blur-sm rounded-2xl px-3 py-2.5 flex flex-col gap-1`}
-              >
-                <Icon className="text-white/70 text-base" />
-                <span className="text-white font-black text-lg leading-none">
-                  {value}
-                </span>
-                <span className="text-white/60 text-[11px] font-semibold">
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick nav cards */}
-        <div className="lg:col-span-2 grid grid-cols-2 gap-3 content-start">
-          {[
-            {
-              href: "/staff/orders",
-              icon: MdShoppingBag,
-              label: "Đơn hàng",
-              sub: `${tasks.filter((t) => t.type === "pack").length} việc chờ`,
-              color: "#17409A",
-            },
-            {
-              href: "/staff/reviews",
-              icon: MdStar,
-              label: "Đánh giá",
-              sub: `${tasks.filter((t) => t.type === "review_reply").length} chưa trả lời`,
-              color: "#FFD93D",
-            },
-            {
-              href: "/staff/reports",
-              icon: MdAssignment,
-              label: "Báo cáo",
-              sub: "Tạo báo cáo ca",
-              color: "#4ECDC4",
-            },
-            {
-              href: "/staff",
-              icon: MdAccessTime,
-              label: "Ca tiếp",
-              sub: shift.time,
-              color: "#7C5CFC",
-            },
-          ].map(({ href, icon: Icon, label, sub, color }) => (
-            <Link
-              key={href + label}
-              href={href}
-              className="bg-white rounded-2xl p-4 flex flex-col gap-2 hover:shadow-md transition-shadow cursor-pointer group"
+          <div className="flex gap-3">
+            <Link 
+              href="/staff/reports"
+              className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white hover:text-[#17409A] transition-all group"
             >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: `${color}15` }}
-              >
-                <Icon style={{ color, fontSize: 20 }} />
-              </div>
-              <p className="font-black text-[#1A1A2E] text-sm">{label}</p>
-              <p className="text-[#9CA3AF] text-xs">{sub}</p>
+              <MdAssignment className="text-xl" />
+              Tạo báo cáo
             </Link>
-          ))}
+            <Link href="/staff/orders" className="bg-[#4ECDC4] text-[#17409A] px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-white transition-all shadow-lg shadow-[#4ECDC4]/20 flex items-center gap-2">
+              <MdShoppingBag className="text-xl" /> Đơn chờ
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* ── Task list ── */}
-      <div className="ac bg-white rounded-3xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#F4F7FF] flex items-center justify-between">
-          <div>
-            <p className="font-black text-[#1A1A2E] text-base">
-              Danh sách nhiệm vụ
-            </p>
-            <p className="text-[#9CA3AF] text-xs mt-0.5">
-              Nhấn để chuyển trạng thái
-            </p>
+      {/* ── Key Metrics Grid ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
+        {[
+          {
+            href: "/staff/orders",
+            icon: MdShoppingBag,
+            label: "Đóng gói",
+            value: tasks.filter((t) => t.type === "pack" && t.status !== "done").length.toString(),
+            unit: "việc",
+            color: "#17409A",
+          },
+          {
+            href: "/staff/orders",
+            icon: MdCheckCircle,
+            label: "Kiểm tra",
+            value: tasks.filter((t) => t.type === "verify" && t.status !== "done").length.toString(),
+            unit: "việc",
+            color: "#4ECDC4",
+          },
+          {
+            href: "/staff/reviews",
+            icon: MdStar,
+            label: "Phản hồi",
+            value: tasks.filter((t) => t.type === "review_reply" && t.status !== "done").length.toString(),
+            unit: "chưa xử lý",
+            color: "#FFD93D",
+          },
+          {
+            href: "/staff",
+            icon: MdWarning,
+            label: "Khẩn cấp",
+            value: urgent.toString(),
+            unit: "yêu cầu",
+            color: "#FF6B9D",
+          },
+        ].map((k) => (
+          <Link
+            key={k.label}
+            href={k.href}
+            className="dc-reveal group rounded-[40px] p-8 flex flex-col justify-between relative overflow-hidden transition-all duration-500 border border-white hover:border-[#17409A]/10 hover:shadow-2xl hover:-translate-y-1 bg-white shadow-sm shadow-gray-100 cursor-pointer"
+          >
+            <div className="flex items-center justify-between z-10">
+              <p className="text-[#9CA3AF] text-[10px] font-black uppercase tracking-[0.25em]">
+                {k.label}
+              </p>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#F4F7FF] group-hover:scale-110 transition-transform">
+                <k.icon className="text-xl" style={{ color: k.color }} />
+              </div>
+            </div>
+            <div className="mt-6 z-10 flex flex-col">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[#1A1A2E] font-black tracking-tighter text-3xl">
+                  {k.value}
+                </span>
+                <span className="text-[11px] font-black text-[#9CA3AF] uppercase tracking-widest">{k.unit}</span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* ── Main Dashboard Content ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start px-1">
+        <div className="dc-reveal lg:col-span-8 space-y-8">
+          {/* Task list container */}
+          <div className="bg-white rounded-[48px] p-10 shadow-sm border border-white flex flex-col max-h-[700px] group">
+            <div className="flex items-center justify-between mb-10">
+              <div className="flex items-center gap-3">
+                <MdDashboard className="text-[#17409A] text-xl" />
+                <h3 className="text-[#1A1A2E] font-black text-xl tracking-tight">Danh sách nhiệm vụ</h3>
+              </div>
+              <span className="bg-[#17409A]/10 text-[#17409A] text-sm font-black px-4 py-2 rounded-xl">
+                {done}/{total}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-5 overflow-y-auto pr-3 custom-scrollbar">
+              {tasks.map((task) => {
+                const typeCfg = TASK_TYPE_CFG[task.type];
+                const statusCfg = STATUS_CFG[task.status];
+                return (
+                  <div key={task.id} className="flex items-center gap-5 p-5 rounded-[32px] border border-gray-50 hover:border-[#17409A15] hover:bg-[#F8FAFF] hover:shadow-xl hover:-translate-x-1 transition-all duration-300 shrink-0 group/order">
+                    <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center font-black text-base shrink-0 shadow-sm border border-gray-100 transition-colors overflow-hidden relative" style={{ color: typeCfg.color }}>
+                      <div className="absolute inset-0 opacity-10" style={{ backgroundColor: typeCfg.color }} />
+                      {task.product.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[#1A1A2E] font-black text-sm truncate tracking-tight ${task.status === "done" ? "line-through opacity-50" : ""}`}>{task.product}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[7px] font-black px-2 py-0.5 rounded-full uppercase border" style={{ color: statusCfg.color, borderColor: statusCfg.color }}>
+                          {statusCfg.label}
+                        </span>
+                        <span className="text-gray-300 text-[8px] font-black uppercase tracking-widest">• {task.customer || "Chung"}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                       <button
+                         onClick={() => cycleStatus(task.id)}
+                         className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-xl transition-all cursor-pointer hover:scale-105"
+                         style={{ color: statusCfg.color, backgroundColor: statusCfg.bg }}
+                       >
+                         {task.status === "pending" ? "Nhận làm" : task.status === "in_progress" ? "Hoàn thành" : "Hoàn tác"}
+                       </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <span className="bg-[#17409A]/10 text-[#17409A] text-xs font-black px-3 py-1 rounded-xl">
-            {done}/{total}
-          </span>
         </div>
 
-        <div className="divide-y divide-[#F4F7FF]">
-          {tasks.map((task) => {
-            const typeCfg = TASK_TYPE_CFG[task.type];
-            const statusCfg = STATUS_CFG[task.status];
-            return (
-              <div
-                key={task.id}
-                className={`flex items-center gap-4 px-6 py-3.5 hover:bg-[#F4F7FF]/70 transition-colors ${
-                  task.status === "done" ? "opacity-50" : ""
-                }`}
-              >
-                {/* Priority dot */}
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: PRIORITY_DOT[task.priority] }}
-                />
-
-                {/* Type badge */}
-                <span
-                  className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-lg"
-                  style={{ color: typeCfg.color, backgroundColor: typeCfg.bg }}
-                >
-                  {typeCfg.label}
-                </span>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={`text-sm font-bold text-[#1A1A2E] truncate ${task.status === "done" ? "line-through" : ""}`}
-                  >
-                    {task.product}
-                    {task.customer && (
-                      <span className="text-[#9CA3AF] font-normal">
-                        {" "}
-                        · {task.customer}
-                      </span>
-                    )}
-                  </p>
-                  {task.note && (
-                    <p className="text-[#9CA3AF] text-xs truncate">
-                      {task.note}
-                    </p>
-                  )}
-                </div>
-
-                {/* Due time */}
-                <span className="text-[#9CA3AF] text-xs font-semibold shrink-0">
-                  {task.dueBy}
-                </span>
-
-                {/* Status toggle */}
-                <button
-                  onClick={() => cycleStatus(task.id)}
-                  className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-xl transition-all cursor-pointer hover:scale-105"
-                  style={{
-                    color: statusCfg.color,
-                    backgroundColor: statusCfg.bg,
-                  }}
-                >
-                  {statusCfg.label}
-                </button>
-              </div>
-            );
-          })}
+        {/* Actionable Side Panel */}
+        <div className="dc-reveal lg:col-span-4 space-y-8">
+           <div className="bg-white rounded-[48px] p-10 shadow-sm border border-white relative overflow-hidden group">
+             <h3 className="text-[#1A1A2E] font-black text-xl tracking-tight mb-10 flex items-center gap-3">
+               Tiến độ <span className="w-2 h-2 rounded-full bg-[#4ECDC4] animate-pulse" />
+             </h3>
+             <div className="space-y-6">
+                {[
+                  { label: "Hoàn thành", count: done, color: "#4ECDC4" },
+                  { label: "Đang làm", count: inProg, color: "#17409A" },
+                  { label: "Chờ xử lý", count: pending, color: "#FF8C42" },
+                ].map(({ label, count, color }) => {
+                  const pctStat = Math.round((count / (total || 1)) * 100);
+                  return (
+                    <div key={label} className="group/item relative overflow-hidden">
+                      <div className="flex items-center justify-between mb-2 px-1">
+                        <p className="text-[#1A1A2E] font-black text-[11px] uppercase tracking-wider">{label}</p>
+                        <span className="text-[#17409A] font-black text-sm">{count}</span>
+                      </div>
+                      <div className="h-3 w-full bg-[#F4F7FF] rounded-full overflow-hidden border border-gray-50">
+                        <div 
+                          className="h-full rounded-full transition-all duration-1000 ease-out shadow-sm" 
+                          style={{ width: `${pctStat}%`, backgroundColor: color }} 
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+             </div>
+           </div>
         </div>
       </div>
     </div>

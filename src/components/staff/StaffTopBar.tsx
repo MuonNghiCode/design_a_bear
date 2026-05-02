@@ -11,8 +11,7 @@ import {
 import { MdDashboard, MdAssignment, MdInventory2 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAuth } from "@/contexts/AuthContext";
-
-const ACCENT = "#17409A";
+import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 
 const TABS = [
   { label: "TỔNG QUAN", href: "/staff", icon: MdDashboard },
@@ -28,6 +27,7 @@ export default function StaffTopBar({
   const pathname = usePathname();
   const [hasNotif] = useState(true);
   const { user } = useAuth();
+  const { accent } = useAdminPrefs();
 
   function isActive(href: string) {
     if (href === "/staff") return pathname === "/staff";
@@ -37,7 +37,7 @@ export default function StaffTopBar({
   return (
     <header
       className="flex items-center justify-between px-4 md:px-6 py-3.5 sticky top-0 z-30"
-      style={{ backgroundColor: ACCENT }}
+      style={{ backgroundColor: accent }}
     >
       {/* Left */}
       <div className="flex items-center gap-3">
@@ -68,9 +68,10 @@ export default function StaffTopBar({
               href={tab.href}
               className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 rounded-xl text-xs font-black tracking-[0.12em] transition-all duration-200 ${
                 active
-                  ? "bg-white text-[#17409A] shadow-sm"
+                  ? "bg-white shadow-sm"
                   : "text-white/55 hover:text-white hover:bg-white/10"
               }`}
+              style={active ? { color: accent } : undefined}
             >
               <Icon className="text-sm shrink-0" />
               <span className="hidden sm:inline">{tab.label}</span>
@@ -92,7 +93,10 @@ export default function StaffTopBar({
         <button className="relative w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all cursor-pointer">
           <IoNotificationsOutline className="text-lg" />
           {hasNotif && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF6B9D] rounded-full ring-2 ring-[#17409A]" />
+            <span
+              className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FF6B9D] rounded-full ring-2"
+              style={{ '--tw-ring-color': accent } as React.CSSProperties}
+            />
           )}
         </button>
       </div>

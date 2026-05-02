@@ -15,9 +15,8 @@ import {
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 import { useRouter } from "next/navigation";
-
-const ACCENT = "#17409A";
 
 const NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/staff" },
@@ -36,6 +35,7 @@ interface Props {
 export default function StaffSidebar({ open = false, onClose }: Props) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  const { accent } = useAdminPrefs();
   const router = useRouter();
 
   const handleLogout = () => {
@@ -48,7 +48,7 @@ export default function StaffSidebar({ open = false, onClose }: Props) {
       className={`w-18 min-h-screen flex flex-col items-center py-6 fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out ${
         open ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0`}
-      style={{ backgroundColor: ACCENT }}
+      style={{ backgroundColor: accent }}
     >
       {/* Close — mobile */}
       <button
@@ -91,7 +91,10 @@ export default function StaffSidebar({ open = false, onClose }: Props) {
                   : "text-white/50 hover:bg-white/15 hover:text-white"
               }`}
             >
-              <Icon className={`text-xl ${active ? "text-[#17409A]" : ""}`} />
+              <Icon
+                className="text-xl"
+                style={active ? { color: accent } : undefined}
+              />
               <span className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 bg-[#0E2A66] text-white text-xs px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl z-50">
                 {label}
               </span>

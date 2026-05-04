@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { Metadata } from "next";
 import StaffLayout from "@/components/staff/StaffLayout";
+import { AdminPreferencesProvider } from "@/contexts/AdminPreferencesContext";
 import { PRIVATE_ROBOTS } from "@/constants/seo";
 
 export const metadata: Metadata = {
@@ -9,5 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
-  return <StaffLayout>{children}</StaffLayout>;
+  return (
+    <AdminPreferencesProvider>
+      <StaffLayout>{children}</StaffLayout>
+    </AdminPreferencesProvider>
+  );
 }

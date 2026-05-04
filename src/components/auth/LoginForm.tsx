@@ -23,11 +23,18 @@ export default function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      if (remember) {
+        localStorage.setItem("dab_remember_me", "true");
+      } else {
+        localStorage.setItem("dab_remember_me", "false");
+      }
+
       await login(email, password);
       success("Đăng nhập thành công");
       
@@ -94,7 +101,12 @@ export default function LoginForm({
 
       <div className="field-item flex items-center justify-between mt-3 mb-5">
         <label className="flex items-center gap-2 text-sm text-[#6B7280] cursor-pointer select-none">
-          <input type="checkbox" className="w-4 h-4 rounded accent-[#17409A]" />
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="w-4 h-4 rounded accent-[#17409A]"
+          />
           Ghi nhớ đăng nhập
         </label>
         <button

@@ -209,12 +209,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         // Check for any failures
         for (const comp of components) {
+          let existingCompQty = 0;
+          for (const cartItem of items) {
+            const baseId = cartItem.baseVariantId || (cartItem.product as any).productId || cartItem.product.id;
+            if (baseId === comp.identityId) {
+              existingCompQty += cartItem.quantity;
+            }
+            if (cartItem.accessories && cartItem.accessories.length > 0) {
+              for (const acc of cartItem.accessories) {
+                if (acc.id === comp.identityId) {
+                  existingCompQty += cartItem.quantity;
+                }
+              }
+            }
+          }
+
+          const requestedAdditionQty = quantity || 1;
+          const requestedTotal = existingCompQty + requestedAdditionQty;
+
           const available = stockMap[comp.identityId] || 0;
-          if (available < (quantity || 1)) {
-            toast.error(
-              `Sản phẩm không đủ hàng trong kho (Còn lại: ${available})`,
-            );
-            return;
+          if (available < requestedTotal) {
+            throw new Error(`Sản phẩm hoặc phụ kiện không đủ hàng trong kho (Còn lại: ${available})`);
           }
         }
         // -----------------------------------------------------------
@@ -283,6 +298,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
           });
         }
 
+        // Reserve the items on backend!
+        for (const comp of components) {
+          try {
+            await inventoryService.reserveStock(comp.identityId, comp.isAccessory, quantity, "55555555-5555-5555-5555-555555555555");
+          } catch (reserveError) {
+            console.error(`Failed to reserve stock for component ${comp.identityId}`, reserveError);
+          }
+        }
+
         setIsOpen(true);
       } catch (err) {
         throw err;
@@ -293,6 +317,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeItem = useCallback(
     async (cartItemId: string) => {
+      const currentItem = items.find((i) => i.cartItemId === cartItemId);
+      if (currentItem) {
+        const components = await getComponentsForValidation(currentItem);
+        for (const comp of components) {
+          try {
+            await inventoryService.releaseReservation(comp.identityId, comp.isAccessory, currentItem.quantity, "55555555-5555-5555-5555-555555555555");
+          } catch (releaseError) {
+            console.error(`Failed to release reservation for component ${comp.identityId}`, releaseError);
+          }
+        }
+      }
+
       // Optimistic update
       setItems((prev) => prev.filter((i) => i.cartItemId !== cartItemId));
 
@@ -302,7 +338,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error("Failed to remove item from cart", err);
       }
     },
-    [removeCartItem, loadCart],
+    [removeCartItem, loadCart, items],
   );
 
   const updateQuantity = useCallback(
@@ -310,6 +346,64 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (quantity <= 0) {
         await removeItem(cartItemId);
         return;
+      }
+
+      const currentItem = items.find((i) => i.cartItemId === cartItemId);
+      if (currentItem) {
+        const components = await getComponentsForValidation(currentItem);
+
+        if (quantity > currentItem.quantity) {
+          // Only check if we are increasing
+          const stockMap = await inventoryService.batchCheck(components);
+
+          for (const comp of components) {
+            let existingCompQty = 0;
+            for (const cartItem of items) {
+              if (cartItem.cartItemId === cartItemId) continue;
+
+              const baseId = cartItem.baseVariantId || (cartItem.product as any).productId || cartItem.product.id;
+              if (baseId === comp.identityId) {
+                existingCompQty += cartItem.quantity;
+              }
+              if (cartItem.accessories && cartItem.accessories.length > 0) {
+                for (const acc of cartItem.accessories) {
+                  if (acc.id === comp.identityId) {
+                    existingCompQty += cartItem.quantity;
+                  }
+                }
+              }
+            }
+
+            const requestedTotal = existingCompQty + quantity;
+
+            const available = stockMap[comp.identityId] || 0;
+            if (available < requestedTotal) {
+              toast.error(
+                `Sản phẩm hoặc phụ kiện không đủ hàng trong kho (Còn lại: ${available})`,
+              );
+              return;
+            }
+          }
+
+          // Reserve the increased diff on backend
+          const diff = quantity - currentItem.quantity;
+          for (const comp of components) {
+            try {
+              await inventoryService.reserveStock(comp.identityId, comp.isAccessory, diff, "55555555-5555-5555-5555-555555555555");
+            } catch (reserveError) {
+              console.error(`Failed to reserve stock diff for component ${comp.identityId}`, reserveError);
+            }
+          }
+        } else if (quantity < currentItem.quantity) {
+          const diff = currentItem.quantity - quantity;
+          for (const comp of components) {
+            try {
+              await inventoryService.releaseReservation(comp.identityId, comp.isAccessory, diff, "55555555-5555-5555-5555-555555555555");
+            } catch (releaseError) {
+              console.error(`Failed to release reservation diff for component ${comp.identityId}`, releaseError);
+            }
+          }
+        }
       }
 
       // Optimistic quantity update
@@ -324,10 +418,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
         loadCart(); // Sync on fail
       }
     },
-    [removeItem, updateItemQuantity, loadCart],
+    [removeItem, updateItemQuantity, loadCart, items],
   );
 
   const clearCart = useCallback(async () => {
+    for (const item of items) {
+      try {
+        const components = await getComponentsForValidation(item);
+        for (const comp of components) {
+          try {
+            await inventoryService.releaseReservation(comp.identityId, comp.isAccessory, item.quantity, "55555555-5555-5555-5555-555555555555");
+          } catch (releaseError) {
+            console.error(`Failed to release reservation for component ${comp.identityId}`, releaseError);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to get components for clearing cart item", err);
+      }
+    }
+
     setItems([]); // Optimistic
 
     const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
@@ -339,7 +448,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         loadCart();
       }
     }
-  }, [items.length, clearCartItems, loadCart]);
+  }, [items, clearCartItems, loadCart]);
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce(
@@ -372,3 +481,4 @@ export function useCart(): CartContextType {
   if (!ctx) throw new Error("useCart must be used within CartProvider");
   return ctx;
 }
+

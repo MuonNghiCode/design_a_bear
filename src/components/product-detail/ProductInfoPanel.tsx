@@ -182,6 +182,7 @@ export default function ProductInfoPanel({
     loading: favoriteLoading,
   } = useFavorite();
   const [addingToCart, setAddingToCart] = useState(false);
+  const [sessionDeductions, setSessionDeductions] = useState<Record<string, number>>({});
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
     product.variants && product.variants.length > 0
       ? product.variants[0].variantId
@@ -205,10 +206,31 @@ export default function ProductInfoPanel({
   };
 
   const currentAvailable = useMemo(() => {
-    return selectedVariant
-      ? selectedVariant.available
+    let avail = selectedVariant
+      ? (selectedVariant.available ?? 0)
       : (product.available ?? 0);
-  }, [product.available, selectedVariant]);
+
+    const varId = selectedVariant?.variantId || product.id;
+    avail -= sessionDeductions[varId] || 0;
+
+    if (selectedAccessories && selectedAccessories.length > 0) {
+      for (const rule of selectedAccessories) {
+        const accId = rule.addonProduct.productId || (rule.addonProduct as any).id;
+        let accAvail = rule.addonProduct?.available ?? 0;
+        accAvail -= sessionDeductions[accId] || 0;
+        avail = Math.min(avail, accAvail);
+      }
+    }
+    return Math.max(0, avail);
+  }, [product.available, product.id, selectedVariant, selectedAccessories, sessionDeductions]);
+
+  useMemo(() => {
+    if (quantity > currentAvailable && currentAvailable > 0) {
+      setQuantity(currentAvailable);
+    } else if (currentAvailable === 0 && quantity > 1) {
+      setQuantity(1);
+    }
+  }, [currentAvailable, quantity, setQuantity]);
 
   // Calculate total price
   const basePrice = selectedVariant ? selectedVariant.price : product.price;
@@ -316,6 +338,19 @@ export default function ProductInfoPanel({
         })),
       );
 
+      setSessionDeductions((prev) => {
+        const next = { ...prev };
+        const varId = selectedVariant?.variantId || product.id;
+        next[varId] = (next[varId] || 0) + quantity;
+
+        selectedAccessories.forEach((acc) => {
+          const accId = acc.addonProduct.productId || (acc.addonProduct as any).id;
+          next[accId] = (next[accId] || 0) + quantity;
+        });
+
+        return next;
+      });
+
       if (goCheckout) {
         success(
           `Đã thêm "${product.name}" vào giỏ. Đang chuyển đến thanh toán...`,
@@ -413,25 +448,30 @@ export default function ProductInfoPanel({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {product.variants.map((v) => {
               const isSelected = selectedVariantId === v.variantId;
+              const vAvail = Math.max(0, (v.available ?? 0) - (sessionDeductions[v.variantId] || 0));
+              const outOfStock = vAvail <= 0;
               return (
                 <button
                   key={v.variantId}
+                  disabled={outOfStock}
                   onClick={() => setSelectedVariantId(v.variantId)}
                   className={`relative flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all duration-300 ${
-                    isSelected
-                      ? "border-[#17409A] bg-[#17409A]/5 ring-4 ring-[#17409A]/10"
-                      : "border-gray-100 bg-white hover:border-[#17409A]/30"
+                    outOfStock
+                      ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                      : isSelected
+                        ? "border-[#17409A] bg-[#17409A]/5 ring-4 ring-[#17409A]/10"
+                        : "border-gray-100 bg-white hover:border-[#17409A]/30"
                   }`}
                 >
                   <span
-                    className={`text-sm font-black ${isSelected ? "text-[#17409A]" : "text-[#4B5563]"}`}
+                    className={`text-sm font-black ${outOfStock ? "text-[#9CA3AF]" : isSelected ? "text-[#17409A]" : "text-[#4B5563]"}`}
                   >
                     {v.sizeTag}
                   </span>
                   <span className="text-[9px] font-bold text-[#9CA3AF] mt-0.5">
                     {formatPrice(v.price)}
                   </span>
-                  {isSelected && (
+                  {!outOfStock && isSelected && (
                     <div className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#17409A]" />
                   )}
                 </button>
@@ -504,15 +544,19 @@ export default function ProductInfoPanel({
                       </div>
                       {/* Stock Display for Accessory */}
                       <div className="ml-8">
-                        {(rule.addonProduct.available ?? 0) > 0 ? (
-                          <span className="text-[10px] font-bold text-[#059669] bg-green-50 px-2 py-0.5 rounded-md border border-green-100">
-                            Còn {rule.addonProduct.available} sản phẩm
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-[#FF6B9D] bg-red-50 px-2 py-0.5 rounded-md border border-red-100">
-                            Hết hàng
-                          </span>
-                        )}
+                        {(() => {
+                          const accId = rule.addonProduct.productId || (rule.addonProduct as any).id;
+                          const accAvail = Math.max(0, (rule.addonProduct.available ?? 0) - (sessionDeductions[accId] || 0));
+                          return accAvail > 0 ? (
+                            <span className="text-[10px] font-bold text-[#059669] bg-green-50 px-2 py-0.5 rounded-md border border-green-100">
+                              Còn {accAvail} sản phẩm
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-[#FF6B9D] bg-red-50 px-2 py-0.5 rounded-md border border-red-100">
+                              Hết hàng
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                     <span className="font-bold text-sm text-[#1A1A2E]">

@@ -344,55 +344,61 @@ export default function StaffProductsGrid({
   }
 
   return (
-    <>
-      {/* Controls */}
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#F4F7FF]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] text-lg" />
+    <div className="space-y-6">
+      {/* ── Search & Tabs (Admin style) ── */}
+      <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+        <div className="flex items-center gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-white/50 overflow-x-auto max-w-full no-scrollbar">
+          {CATEGORY_TABS.map(({ key, label }) => {
+            const active = cat === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setCat(key)}
+                className={`px-5 py-2.5 rounded-xl text-[13px] font-black transition-all uppercase tracking-wider whitespace-nowrap ${
+                  active
+                    ? "bg-[#17409A] text-white shadow-md"
+                    : "text-gray-400 hover:text-[#17409A] hover:bg-gray-50"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="relative flex-1 md:w-80 group">
+            <MdSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-2xl group-focus-within:text-[#17409A] transition-colors pointer-events-none" />
             <input
               type="text"
               placeholder="Tìm sản phẩm…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-[#F4F7FF] rounded-2xl pl-9 pr-4 py-2.5 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/20 transition"
+              className="w-full pl-14 pr-6 py-3.5 bg-white border border-white/50 rounded-2xl shadow-sm text-sm font-bold text-[#1A1A2E] outline-none focus:border-[#17409A]/20 transition-all placeholder:text-gray-300 uppercase tracking-wide"
             />
           </div>
 
-          {/* View toggle */}
-          <div className="flex gap-1 bg-[#F4F7FF] rounded-2xl p-1">
+          <div className="flex gap-1 bg-white p-1.5 rounded-2xl shadow-sm border border-white/50">
             {(["grid", "table"] as ViewMode[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${view === v ? "bg-[#17409A] text-white shadow-sm" : "text-[#9CA3AF] hover:text-[#1A1A2E]"}`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                  view === v
+                    ? "bg-[#17409A] text-white shadow-sm"
+                    : "text-[#9CA3AF] hover:text-[#1A1A2E] hover:bg-gray-50"
+                }`}
               >
                 {v === "grid" ? (
-                  <MdGridView className="text-base" />
+                  <MdGridView className="text-xl" />
                 ) : (
-                  <MdTableRows className="text-base" />
+                  <MdTableRows className="text-xl" />
                 )}
               </button>
             ))}
           </div>
         </div>
-
-        {/* Category tabs */}
-        <div className="flex gap-1.5 flex-wrap">
-          {CATEGORY_TABS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setCat(key)}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${cat === key ? "bg-[#17409A] text-white" : "bg-[#F4F7FF] text-[#9CA3AF] hover:text-[#1A1A2E]"}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </div>
-
-      {/* Grid view */}
       {view === "grid" && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-4">
           {loading && filtered.length === 0 && (
@@ -413,27 +419,27 @@ export default function StaffProductsGrid({
 
       {/* Table view */}
       {view === "table" && (
-        <div className="bg-white rounded-3xl shadow-sm border border-[#F4F7FF] overflow-hidden mt-4">
+        <div className="bg-white rounded-[32px] overflow-hidden border border-white/50 shadow-sm border-b-8 border-b-[#f4f7ff] mt-4">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[#F4F7FF]">
+                <tr className="bg-[#F4F7FF]/50 border-b border-[#f4f7ff]">
                   {COL_HEADS.map((h) => (
                     <th
                       key={h}
-                      className="text-left px-4 py-3 text-[#9CA3AF] text-[10px] font-black uppercase tracking-wider whitespace-nowrap"
+                      className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-50">
                 {loading && filtered.length === 0 && (
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-4 py-10 text-center text-sm text-[#9CA3AF]"
+                      className="px-6 py-10 text-center text-sm text-[#9CA3AF]"
                     >
                       Đang tải sản phẩm...
                     </td>
@@ -444,9 +450,9 @@ export default function StaffProductsGrid({
                   return (
                     <tr
                       key={p.id}
-                      className={`border-b border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors ${i % 2 === 0 ? "" : "bg-[#FAFBFF]"}`}
+                      className="group transition-all hover:bg-[#F4F7FF]/30"
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-5 border-b border-gray-50">
                         <div className="flex items-center gap-3">
                           <Image
                             src={p.imageUrl}
@@ -470,16 +476,16 @@ export default function StaffProductsGrid({
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-[10px] text-[#6B7280] capitalize font-semibold">
+                      <td className="px-6 py-5 border-b border-gray-50 text-[10px] text-[#6B7280] capitalize font-semibold">
                         {p.category}
                       </td>
-                      <td className="px-4 py-3 text-xs font-black text-[#17409A] whitespace-nowrap">
+                      <td className="px-6 py-5 border-b border-gray-50 text-xs font-black text-[#17409A] whitespace-nowrap">
                         {(p.price ?? 0).toLocaleString("vi-VN")}₫
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-5 border-b border-gray-50">
                         <StockBadge stock={p.stock} />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-5 border-b border-gray-50">
                         <div className="flex items-center gap-1">
                           <MdStar style={{ color: "#FFD93D", fontSize: 12 }} />
                           <span className="text-[10px] font-bold text-[#1A1A2E]">
@@ -487,7 +493,7 @@ export default function StaffProductsGrid({
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-5 border-b border-gray-50">
                         <span
                           className="text-[9px] font-black px-2 py-1 rounded-full"
                           style={{ color: st.color, backgroundColor: st.bg }}
@@ -495,7 +501,7 @@ export default function StaffProductsGrid({
                           {st.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-5 border-b border-gray-50">
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleUpdateStock(p)}
@@ -527,7 +533,7 @@ export default function StaffProductsGrid({
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-3 border-t border-[#F4F7FF] text-[#9CA3AF] text-xs">
+          <div className="px-6 py-4 border-t border-[#F4F7FF] text-[#9CA3AF] text-xs">
             {filtered.length} / {products.length} sản phẩm
           </div>
         </div>
@@ -568,6 +574,6 @@ export default function StaffProductsGrid({
           }}
         />
       )}
-    </>
+    </div>
   );
 }

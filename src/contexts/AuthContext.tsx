@@ -180,6 +180,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEYS.TOKEN, token);
 
     try {
+      // Set session as valid so it's not cleared on entry within same tab
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("dab_session_valid", "true");
+      }
+
       // 2. Fetch full profile to get the real UUID (userId)
       const profileResponse = await userService.getProfile();
 
@@ -234,6 +239,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     window.addEventListener("auth:unauthorized", handleUnauthorized);
+
+    const rememberMe = localStorage.getItem("dab_remember_me");
+    const sessionValid = sessionStorage.getItem("dab_session_valid");
+
+    if (rememberMe !== "true" && sessionValid !== "true") {
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem("dab_user");
+      localStorage.removeItem(STORAGE_KEYS.TOKEN);
+    }
 
     const storedUser =
       localStorage.getItem(STORAGE_KEYS.USER) ??

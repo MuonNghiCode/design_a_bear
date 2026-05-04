@@ -594,6 +594,22 @@ export default function CheckoutClient() {
           const cartId = localStorage.getItem(STORAGE_KEYS.CART_ID);
           if (!cartId) throw new Error("Chưa có giỏ hàng.");
 
+          // Release the old cart reservation so it doesn't double-reserve when creating the order
+          for (const item of items) {
+            try {
+              const components = await getComponentsForValidation(item);
+              for (const comp of components) {
+                try {
+                  await inventoryService.releaseReservation(comp.identityId, comp.isAccessory, item.quantity, "55555555-5555-5555-5555-555555555555");
+                } catch (releaseError) {
+                  console.error(`Failed to release reservation for component ${comp.identityId}`, releaseError);
+                }
+              }
+            } catch (err) {
+              console.error("Failed to resolve components for checkout item", err);
+            }
+          }
+
           const orderPayload = {
             userId: localStorage.getItem(STORAGE_KEYS.USER)
               ? JSON.parse(localStorage.getItem(STORAGE_KEYS.USER)!).id
@@ -618,6 +634,7 @@ export default function CheckoutClient() {
           );
 
           if (orderRes.isSuccess && orderRes.value) {
+            localStorage.removeItem(STORAGE_KEYS.CART_ID);
             const orderId = orderRes.value.orderId;
             const safeDescription = `DAB ${orderRes.value.orderNumber}`.slice(
               0,

@@ -12,20 +12,38 @@ import {
   MdClose,
   MdLogout,
   MdBuild,
+  MdAttachMoney,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import ExpandableTab from "@/components/admin/ExpandableTab";
+import { useState, useEffect } from "react";
 
 const ACCENT = "#17409A";
 
-const NAV = [
+const STANDALONE_NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/staff" },
-  { icon: MdShoppingBag, label: "Đơn hàng", href: "/staff/orders" },
-  { icon: MdInventory2, label: "Sản phẩm", href: "/staff/products" },
-  { icon: MdStar, label: "Đánh giá", href: "/staff/reviews" },
-  { icon: MdBuild, label: "Bảo hành", href: "/staff/issues" },
-  { icon: MdAssignment, label: "Báo cáo", href: "/staff/reports" },
+  { icon: MdAttachMoney, label: "Bảng lương", href: "/staff/payroll" },
+];
+
+const EXPANDABLE_SECTIONS = [
+  {
+    icon: MdShoppingBag,
+    label: "Quản lý bán hàng",
+    children: [
+      { label: "Đơn hàng", href: "/staff/orders" },
+      { label: "Đánh giá", href: "/staff/reviews" },
+    ],
+  },
+  {
+    icon: MdInventory2,
+    label: "Sản phẩm & Kho",
+    children: [
+      { label: "Sản phẩm", href: "/staff/products" },
+      { label: "Bảo hành", href: "/staff/issues" },
+    ],
+  },
 ];
 
 interface Props {
@@ -37,10 +55,19 @@ export default function StaffSidebar({ open = false, onClose }: Props) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
   const router = useRouter();
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  useEffect(() => {
+    setExpandedSection(null);
+  }, [pathname]);
 
   const handleLogout = () => {
     logout();
     router.push("/auth");
+  };
+
+  const handleTabClick = () => {
+    onClose?.();
   };
 
   return (
@@ -76,15 +103,14 @@ export default function StaffSidebar({ open = false, onClose }: Props) {
 
       {/* Nav */}
       <nav className="flex flex-col gap-2 flex-1 items-center">
-        {NAV.map(({ icon: Icon, label, href }) => {
-          const active =
-            pathname === href ||
-            (href !== "/staff" && pathname.startsWith(href));
+        {STANDALONE_NAV.map(({ icon: Icon, label, href }) => {
+          const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
               title={label}
+              onClick={handleTabClick}
               className={`group relative w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 ${
                 active
                   ? "bg-white shadow-lg shadow-white/20"
@@ -98,6 +124,21 @@ export default function StaffSidebar({ open = false, onClose }: Props) {
             </Link>
           );
         })}
+
+        {/* Expandable sections */}
+        {EXPANDABLE_SECTIONS.map((section) => (
+          <ExpandableTab
+            key={section.label}
+            icon={section.icon}
+            label={section.label}
+            children={section.children}
+            isOpen={expandedSection === section.label}
+            onToggle={(openState) => {
+              setExpandedSection(openState ? section.label : null);
+            }}
+            onItemClick={handleTabClick}
+          />
+        ))}
       </nav>
 
       {/* Divider */}

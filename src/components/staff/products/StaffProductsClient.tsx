@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useMemo, useState } from "react";
 import gsap from "gsap";
-import { MdInventory2 } from "react-icons/md";
+import { MdInventory2, MdRefresh } from "react-icons/md";
 import StaffProductsHero from "./StaffProductsHero";
 import StaffProductsGrid, { type StaffProductView } from "./StaffProductsGrid";
 import { useAdminProductsApi } from "@/hooks";
@@ -34,11 +34,10 @@ function mapProductToStaffView(
     badgeColor: color,
     category,
     price: item.price,
-    // Backend hiện tại chưa có field stock trong list API, tạm hiển thị số ước lượng.
-    stock: item.isActive ? 20 : 0,
+    stock: item.onHand || 0,
     sold: item.totalSales,
     rating: item.averageRating,
-    status: item.isActive ? "active" : "archived",
+    status: item.isActive ? "active" : "draft",
     popular: item.viewCountIn10Min > 5,
   };
 }
@@ -76,20 +75,23 @@ export default function StaffProductsClient() {
   return (
     <div ref={ref} className="space-y-5">
       {/* Title row */}
-      <div className="ac flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+      <div className="ac flex items-end justify-between flex-wrap gap-2">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <MdInventory2 style={{ color: "#17409A", fontSize: 22 }} />
-            <h1
-              className="font-black text-xl text-[#1A1A2E] tracking-tight"
-              style={{ fontFamily: "'Nunito', sans-serif" }}
-            >
-              Sản phẩm
-            </h1>
-          </div>
-          <p className="text-[#9CA3AF] text-sm">
-            Cập nhật tồn kho và trạng thái sản phẩm theo ca làm việc.
+          <h1 className="text-[#1A1A2E] font-black text-2xl leading-tight">
+            Sản phẩm
+          </h1>
+          <p className="text-[#9CA3AF] text-sm font-semibold">
+            Quản lý danh mục và kho hàng trong ca
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-2 bg-white text-[#17409A] text-[11px] font-black px-6 py-3.5 rounded-2xl hover:bg-[#F4F7FF] transition-all border border-[#F4F7FF] shadow-sm active:scale-95 uppercase tracking-widest"
+          >
+            <MdRefresh className="text-lg" />
+            Làm mới dữ liệu
+          </button>
         </div>
       </div>
 
@@ -99,7 +101,7 @@ export default function StaffProductsClient() {
           <StaffProductsHero products={products} loading={loading} />
         </div>
         <div className="lg:col-span-3">
-          <div className="bg-white rounded-3xl h-full p-6 shadow-sm border border-[#F4F7FF] flex flex-col gap-4">
+          <div className="bg-white rounded-[48px] h-full p-10 shadow-sm border border-white flex flex-col gap-4">
             <p
               className="font-black text-[#1A1A2E] text-base"
               style={{ fontFamily: "'Nunito', sans-serif" }}

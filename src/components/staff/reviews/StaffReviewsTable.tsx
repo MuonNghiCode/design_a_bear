@@ -291,198 +291,204 @@ export default function StaffReviewsTable({
   };
 
   return (
-    <>
-      <div className="bg-white rounded-3xl overflow-hidden">
-        <div className="p-5 border-b border-[#F4F7FF] flex flex-col lg:flex-row items-start lg:items-center gap-3">
-          <div className="relative flex-1 w-full lg:max-w-xs">
-            <MdSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] text-lg" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm nội dung, userId, productId..."
-              className="w-full bg-[#F4F7FF] rounded-2xl pl-10 pr-4 py-2.5 text-sm text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:ring-2 focus:ring-[#17409A]/20 transition"
-            />
-          </div>
-
-          <div className="flex gap-1 flex-wrap">
-            {(
-              [
-                ["ALL", "Tất cả"],
-                ["PENDING", "Chờ duyệt"],
-                ["UNANSWERED", "Chưa phản hồi"],
-                ["PUBLISHED", "Đã duyệt"],
-                ["REJECTED", "Từ chối"],
-              ] as const
-            ).map(([key, label]) => (
+    <div className="space-y-6">
+      {/* ── Search & Tabs (Admin style) ── */}
+      <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+        <div className="flex items-center gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-white/50 overflow-x-auto max-w-full no-scrollbar">
+          {(
+            [
+              ["ALL", "Tất cả"],
+              ["PENDING", "Chờ duyệt"],
+              ["UNANSWERED", "Chưa phản hồi"],
+              ["PUBLISHED", "Đã duyệt"],
+              ["REJECTED", "Từ chối"],
+            ] as const
+          ).map(([key, label]) => {
+            const active = statusTab === key;
+            return (
               <button
                 key={key}
                 onClick={() => onStatusTabChange(key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  statusTab === key
-                    ? "bg-[#17409A] text-white"
-                    : "bg-[#F4F7FF] text-[#9CA3AF] hover:bg-[#EEF1FF] hover:text-[#17409A]"
+                className={`px-5 py-2.5 rounded-xl text-[13px] font-black transition-all uppercase tracking-wider whitespace-nowrap ${
+                  active
+                    ? "bg-[#17409A] text-white shadow-md"
+                    : "text-gray-400 hover:text-[#17409A] hover:bg-gray-50"
                 }`}
               >
                 {label}
                 <span
-                  className={`ml-1.5 rounded-lg px-1.5 py-0.5 text-[10px] font-black ${
-                    statusTab === key
-                      ? "bg-white/20 text-white"
-                      : "bg-white text-[#17409A]"
+                  className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                    active ? "bg-white/20 text-white" : "bg-[#F4F7FF] text-[#6B7280]"
                   }`}
                 >
                   {key === "PENDING" ? pendingCount : counts[key]}
                 </span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
-        <div className="overflow-x-auto hidden sm:block">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#F4F7FF]">
-                {[
-                  "User",
-                  "Product",
-                  "Đánh giá",
-                  "Nội dung",
-                  "Trạng thái",
-                  "Ngày",
-                  "Hành động",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left text-[#9CA3AF] font-semibold text-xs uppercase tracking-wide px-5 py-3"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading && filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="text-center text-[#9CA3AF] text-sm py-10"
-                  >
-                    Đang tải đánh giá...
-                  </td>
-                </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="text-center text-[#9CA3AF] text-sm py-10"
-                  >
-                    Không tìm thấy đánh giá
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((review) => {
-                  const statusKey = review.status?.toUpperCase() || "PENDING";
-                  const cfg = STATUS_LABELS[statusKey] || STATUS_LABELS.PENDING;
-                  const canModerate = statusKey === "PENDING";
-                  const hasReply = (review.reviewReplies?.length || 0) > 0;
-                  const isActing = processingId === review.reviewId;
-                  const userName =
-                    (review.authorName || "").trim() ||
-                    usersMap[review.userId] ||
-                    `Khách hàng ${shortId(review.userId)}`;
-                  const productName =
-                    productsMap[review.productId] ||
-                    `Sản phẩm ${shortId(review.productId)}`;
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="relative flex-1 md:w-80 group">
+            <MdSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-2xl group-focus-within:text-[#17409A] transition-colors pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Tìm nội dung, userId, productId..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-14 pr-6 py-3.5 bg-white border border-white/50 rounded-2xl shadow-sm text-sm font-bold text-[#1A1A2E] outline-none focus:border-[#17409A]/20 transition-all placeholder:text-gray-300 uppercase tracking-wide"
+            />
+          </div>
+        </div>
+      </div>
 
-                  return (
-                    <tr
-                      key={review.reviewId}
-                      className="border-b border-[#F4F7FF] last:border-0 hover:bg-[#F4F7FF]/60 transition-colors"
+      <div className="bg-white rounded-[32px] overflow-hidden border border-white/50 shadow-sm border-b-8 border-b-[#f4f7ff] hidden sm:block mt-4">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#F4F7FF]/50 border-b border-[#f4f7ff]">
+                  {[
+                    "User",
+                    "Product",
+                    "Đánh giá",
+                    "Nội dung",
+                    "Trạng thái",
+                    "Ngày",
+                    "Hành động",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider"
                     >
-                      <td className="px-5 py-4 text-xs font-semibold text-[#1A1A2E]">
-                        <p className="line-clamp-1">
-                          {safeName(userName, "Khách hàng")}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4 text-xs text-[#374151]">
-                        <p className="line-clamp-1">
-                          {safeName(productName, "Sản phẩm")}
-                        </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <Stars rating={review.rating} />
-                      </td>
-                      <td className="px-5 py-4 max-w-60">
-                        <p className="text-[#374151] line-clamp-1 font-semibold text-xs">
-                          {review.title}
-                        </p>
-                        <p className="text-[#6B7280] line-clamp-2 text-xs leading-relaxed">
-                          {review.body}
-                        </p>
-                        {hasReply && (
-                          <span className="inline-flex items-center gap-1 mt-1 text-[#17409A] text-[10px] font-bold">
-                            <MdReply className="text-xs" /> Đã phản hồi
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span
-                          className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl"
-                          style={{ color: cfg.color, backgroundColor: cfg.bg }}
-                        >
-                          {cfg.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 whitespace-nowrap text-[#9CA3AF] text-xs">
-                        {fmtDate(review.createdAt)}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {canModerate && (
-                            <button
-                              onClick={() =>
-                                runAction(review.reviewId, () =>
-                                  onApprove(review.reviewId),
-                                )
-                              }
-                              disabled={isActing}
-                              className="inline-flex items-center gap-1.5 bg-[#4ECDC4]/15 hover:bg-[#4ECDC4]/25 text-[#0f766e] text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
-                            >
-                              <MdCheckCircle className="text-sm" />
-                              Duyệt
-                            </button>
-                          )}
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {loading && filtered.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="text-center text-[#9CA3AF] text-sm py-10"
+                    >
+                      Đang tải đánh giá...
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="text-center text-[#9CA3AF] text-sm py-10"
+                    >
+                      Không tìm thấy đánh giá
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((review) => {
+                    const statusKey = review.status?.toUpperCase() || "PENDING";
+                    const cfg = STATUS_LABELS[statusKey] || STATUS_LABELS.PENDING;
+                    const canModerate = statusKey === "PENDING";
+                    const hasReply = (review.reviewReplies?.length || 0) > 0;
+                    const isActing = processingId === review.reviewId;
+                    const userName =
+                      (review.authorName || "").trim() ||
+                      usersMap[review.userId] ||
+                      `Khách hàng ${shortId(review.userId)}`;
+                    const productName =
+                      productsMap[review.productId] ||
+                      `Sản phẩm ${shortId(review.productId)}`;
 
-                          {canModerate && (
-                            <button
-                              onClick={() =>
-                                runAction(review.reviewId, () =>
-                                  onReject(review.reviewId),
-                                )
-                              }
-                              disabled={isActing}
-                              className="inline-flex items-center gap-1.5 bg-[#FF6B9D]/15 hover:bg-[#FF6B9D]/25 text-[#BE123C] text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
-                            >
-                              <MdBlock className="text-sm" />
-                              Từ chối
-                            </button>
+                    return (
+                      <tr
+                        key={review.reviewId}
+                        className="group transition-all hover:bg-[#F4F7FF]/30"
+                      >
+                        <td className="px-6 py-5 border-b border-gray-50 text-xs font-semibold text-[#1A1A2E]">
+                          <p className="line-clamp-1">
+                            {safeName(userName, "Khách hàng")}
+                          </p>
+                        </td>
+                        <td className="px-6 py-5 border-b border-gray-50 text-xs text-[#374151]">
+                          <p className="line-clamp-1">
+                            {safeName(productName, "Sản phẩm")}
+                          </p>
+                        </td>
+                        <td className="px-6 py-5 border-b border-gray-50">
+                          <Stars rating={review.rating} />
+                        </td>
+                        <td className="px-6 py-5 border-b border-gray-50 max-w-60">
+                          <p className="text-[#374151] line-clamp-1 font-semibold text-xs">
+                            {review.title}
+                          </p>
+                          <p className="text-[#6B7280] line-clamp-2 text-xs leading-relaxed">
+                            {review.body}
+                          </p>
+                          {hasReply && (
+                            <span className="inline-flex items-center gap-1 mt-1 text-[#17409A] text-[10px] font-bold">
+                              <MdReply className="text-xs" /> Đã phản hồi
+                            </span>
                           )}
-
-                          <button
-                            onClick={() => setSelected(review)}
-                            className="inline-flex items-center gap-1.5 bg-[#17409A]/10 hover:bg-[#17409A]/20 text-[#17409A] text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                        </td>
+                        <td className="px-6 py-5 border-b border-gray-50">
+                          <span
+                            className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-xl"
+                            style={{ color: cfg.color, backgroundColor: cfg.bg }}
                           >
-                            <MdReply className="text-sm" />
-                            {hasReply ? "Xem / sửa" : "Phản hồi"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                            {cfg.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 border-b border-gray-50 whitespace-nowrap text-[#9CA3AF] text-xs">
+                          {fmtDate(review.createdAt)}
+                        </td>
+                        <td className="px-6 py-5 border-b border-gray-50">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {canModerate && (
+                              <button
+                                onClick={() =>
+                                  runAction(review.reviewId, () =>
+                                    onApprove(review.reviewId),
+                                  )
+                                }
+                                disabled={isActing}
+                                className="inline-flex items-center gap-1.5 bg-[#4ECDC4]/15 hover:bg-[#4ECDC4]/25 text-[#0f766e] text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                <MdCheckCircle className="text-sm" />
+                                Duyệt
+                              </button>
+                            )}
+
+                            {canModerate && (
+                              <button
+                                onClick={() =>
+                                  runAction(review.reviewId, () =>
+                                    onReject(review.reviewId),
+                                  )
+                                }
+                                disabled={isActing}
+                                className="inline-flex items-center gap-1.5 bg-[#FF6B9D]/15 hover:bg-[#FF6B9D]/25 text-[#BE123C] text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                <MdBlock className="text-sm" />
+                                Từ chối
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => setSelected(review)}
+                              className="inline-flex items-center gap-1.5 bg-[#17409A]/10 hover:bg-[#17409A]/20 text-[#17409A] text-xs font-bold px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                            >
+                              <MdReply className="text-sm" />
+                              {hasReply ? "Xem / sửa" : "Phản hồi"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="sm:hidden flex flex-col divide-y divide-[#F4F7FF]">
@@ -596,7 +602,6 @@ export default function StaffReviewsTable({
             >
               Trang sau
             </button>
-          </div>
         </div>
       </div>
 
@@ -610,6 +615,6 @@ export default function StaffReviewsTable({
           onSubmit={(content) => Promise.resolve(onReply(selected, content))}
         />
       )}
-    </>
+    </div>
   );
 }

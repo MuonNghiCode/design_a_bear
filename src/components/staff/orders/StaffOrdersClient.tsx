@@ -4,9 +4,17 @@ import { useRef, useEffect } from "react";
 import gsap from "gsap";
 import { MdShoppingBag } from "react-icons/md";
 import StaffOrdersTable from "@/components/staff/orders/StaffOrdersTable";
+import OrdersHero from "@/components/admin/orders/OrdersHero";
+import OrdersPipeline from "@/components/admin/orders/OrdersPipeline";
+import { useAdminOrdersApi } from "@/hooks/useAdminOrdersApi";
 
 export default function StaffOrdersClient() {
   const ref = useRef<HTMLDivElement>(null);
+  const { data, loading, fetchOrders } = useAdminOrdersApi();
+
+  useEffect(() => {
+    fetchOrders({ pageIndex: 1, pageSize: 10, fetchAllPages: true });
+  }, [fetchOrders]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -26,6 +34,8 @@ export default function StaffOrdersClient() {
     return () => ctx.revert();
   }, []);
 
+  const orders = data?.items || [];
+
   return (
     <div ref={ref} className="space-y-5">
       <div className="ac flex items-end justify-between gap-4">
@@ -42,6 +52,16 @@ export default function StaffOrdersClient() {
           <p className="text-[#9CA3AF] text-sm">
             Xử lý và cập nhật trạng thái đơn hàng
           </p>
+        </div>
+      </div>
+
+      {/* Hero cards at top */}
+      <div className="ac grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="lg:col-span-3">
+          <OrdersHero orders={orders} loading={loading} />
+        </div>
+        <div className="lg:col-span-2">
+          <OrdersPipeline orders={orders} loading={loading} />
         </div>
       </div>
 

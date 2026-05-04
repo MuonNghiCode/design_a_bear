@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import StaffSidebar from "@/components/staff/StaffSidebar";
 import StaffTopBar from "@/components/staff/StaffTopBar";
 import { useAuth } from "@/contexts/AuthContext";
-
-const ACCENT = "#17409A";
+import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 
 export default function StaffLayout({
   children,
@@ -14,6 +13,7 @@ export default function StaffLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { accent, density } = useAdminPrefs();
   const { user, isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
@@ -27,10 +27,17 @@ export default function StaffLayout({
     return null;
   }
 
+  const contentPadding =
+    density === "compact"
+      ? "p-3 md:p-4"
+      : density === "comfortable"
+        ? "p-6 md:p-9"
+        : "p-5 md:p-7";
+
   return (
     <div
       className="h-screen flex overflow-hidden"
-      style={{ fontFamily: "'Nunito', sans-serif", backgroundColor: ACCENT }}
+      style={{ fontFamily: "'Nunito', sans-serif", backgroundColor: accent }}
     >
       {/* Sidebar */}
       <StaffSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -48,7 +55,9 @@ export default function StaffLayout({
         <StaffTopBar onMenuToggle={() => setSidebarOpen((v) => !v)} />
 
         <div className="flex-1 p-4 overflow-hidden">
-          <div className="bg-[#F4F7FF] rounded-3xl h-full overflow-y-auto p-5 md:p-7">
+          <div
+            className={`bg-[#F4F7FF] rounded-3xl h-full overflow-y-auto ${contentPadding}`}
+          >
             {children}
           </div>
         </div>

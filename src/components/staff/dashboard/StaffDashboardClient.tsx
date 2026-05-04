@@ -1,55 +1,74 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import gsap from "gsap";
 import { GiPawPrint } from "react-icons/gi";
 import {
   MdShoppingBag,
   MdCheckCircle,
   MdStar,
-  MdAssignment,
   MdAccessTime,
   MdTrendingUp,
-  MdWarning,
+  MdRefresh,
 } from "react-icons/md";
-import {
-  STAFF_TASKS,
-  TASK_TYPE_CFG,
-  SHIFT_CFG,
-  type StaffTask,
-  type TaskStatus,
-} from "@/data/staff";
+import { orderService } from "@/services/order.service";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
+import DataTable from "@/components/admin/common/DataTable";
+import { formatPrice } from "@/utils/currency";
+import { format } from "date-fns";
+import type { OrderListItem } from "@/types";
 
-// Current shift determination (morning 6-14, afternoon 14-22, evening 22-6)
 function getCurrentShift() {
   const h = new Date().getHours();
   if (h >= 6 && h < 14) return "morning";
   if (h >= 14 && h < 22) return "afternoon";
   return "evening";
 }
+
 const CURRENT_SHIFT = getCurrentShift();
 
-const STATUS_CFG: Record<
-  TaskStatus,
-  { label: string; color: string; bg: string }
-> = {
-  pending: { label: "Chờ làm", color: "#FF8C42", bg: "#FF8C4215" },
-  in_progress: { label: "Đang làm", color: "#17409A", bg: "#17409A15" },
-  done: { label: "Xong", color: "#4ECDC4", bg: "#4ECDC415" },
+const SHIFT_CFG = {
+  morning: { label: "Ca sáng", time: "06:00 - 14:00", color: "#FFD93D" },
+  afternoon: { label: "Ca chiều", time: "14:00 - 22:00", color: "#FF8C42" },
+  evening: { label: "Ca tối", time: "22:00 - 06:00", color: "#17409A" },
 };
 
-const PRIORITY_DOT: Record<string, string> = {
-  urgent: "#FF6B9D",
-  normal: "#17409A",
-  low: "#9CA3AF",
+const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
+  PENDING: { label: "Chờ duyệt", color: "#FF8C42", bg: "#FF8C4218" },
+  PAID: { label: "Đã thanh toán", color: "#1D4ED8", bg: "#1D4ED818" },
+  PROCESSING: { label: "Chế tác", color: "#7C5CFC", bg: "#7C5CFC18" },
+  PRINTING: { label: "Đang in", color: "#06B6D4", bg: "#06B6D418" },
+  READY_FOR_PICKUP: { label: "Kiểm định", color: "#4ECDC4", bg: "#4ECDC418" },
+  SHIPPING: { label: "Đang giao", color: "#14B8A6", bg: "#14B8A618" },
+  COMPLETED: { label: "Hoàn thành", color: "#4ECDC4", bg: "#4ECDC418" },
+  CANCELLED: { label: "Đã hủy", color: "#FF6B9D", bg: "#FF6B9D18" },
+  REFUNDED: { label: "Hoàn tiền", color: "#6B7280", bg: "#6B728018" },
 };
 
 export default function StaffDashboardClient() {
   const ref = useRef<HTMLDivElement>(null);
-  const [tasks, setTasks] = useState<StaffTask[]>(STAFF_TASKS);
   const { user } = useAuth();
+  const [orders, setOrders] = useState<OrderListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await orderService.getOrders();
+      if (res && res.isSuccess && res.value && res.value.items) {
+        setOrders(res.value.items);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -63,60 +82,104 @@ export default function StaffDashboardClient() {
           ease: "power2.out",
           stagger: 0.07,
           clearProps: "all",
-        },
+        }
       );
     }, ref);
     return () => ctx.revert();
-  }, []);
-
-  const done = tasks.filter((t) => t.status === "done").length;
-  const pending = tasks.filter((t) => t.status === "pending").length;
-  const inProg = tasks.filter((t) => t.status === "in_progress").length;
-  const urgent = tasks.filter(
-    (t) => t.priority === "urgent" && t.status !== "done",
-  ).length;
-  const total = tasks.length;
-  const pct = Math.round((done / total) * 100);
+  }, [loading]);
 
   const shift = SHIFT_CFG[CURRENT_SHIFT as keyof typeof SHIFT_CFG];
 
-  function cycleStatus(id: string) {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        const next: TaskStatus =
-          t.status === "pending"
-            ? "in_progress"
-            : t.status === "in_progress"
-              ? "done"
-              : "pending";
-        return { ...t, status: next };
-      }),
-    );
-  }
+  const orderStats = useMemo(() => {
+    const total = orders.length;
+    const completed = orders.filter((o) => o.status === "COMPLETED").length;
+    const pending = orders.filter((o) => o.status === "PENDING").length;
+    const processing = orders.filter((o) => o.status === "PROCESSING").length;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, pending, processing, pct };
+  }, [orders]);
+
+  const columns = useMemo(() => [
+    {
+      header: "Mã đơn hàng",
+      accessor: (item: OrderListItem) => {
+        const fullNum = item.orderNumber || item.orderId || "";
+        const cleanNum = fullNum.startsWith("ORD-") ? fullNum : `ORD-${fullNum.slice(-6).toUpperCase()}`;
+        return (
+          <span className="font-black text-[#1A1A2E] text-xs uppercase bg-[#F4F7FF] px-2.5 py-1 rounded-xl">
+            {cleanNum}
+          </span>
+        );
+      },
+    },
+    {
+      header: "Khách hàng",
+      accessor: (item: OrderListItem) => (
+        <span className="font-bold text-gray-700 text-xs">
+          {(item as any).customerName || (item.userId ? "Thành viên" : "Khách vãng lai")}
+        </span>
+      ),
+    },
+    {
+      header: "Tổng tiền",
+      accessor: (item: OrderListItem) => (
+        <span className="font-black text-[#17409A] text-xs">
+          {formatPrice(item.grandTotal || 0)}
+        </span>
+      ),
+    },
+    {
+      header: "Trạng thái",
+      accessor: (item: OrderListItem) => {
+        const cfg = STATUS_CFG[item.status] || STATUS_CFG.PENDING;
+        return (
+          <span
+            className="text-[10px] font-black px-3 py-1 rounded-2xl whitespace-nowrap inline-block"
+            style={{ color: cfg.color, backgroundColor: cfg.bg }}
+          >
+            {cfg.label}
+          </span>
+        );
+      },
+    },
+    {
+      header: "Ngày tạo",
+      accessor: (item: OrderListItem) => (
+        <span className="text-gray-500 text-xs font-medium">
+          {item.createdAt ? format(new Date(item.createdAt), "dd/MM/yyyy HH:mm") : "N/A"}
+        </span>
+      ),
+    },
+  ], []);
+
+  const dataForTable = useMemo(() => {
+    return orders.slice(0, 10).map((o) => ({ ...o, id: o.orderId }));
+  }, [orders]);
 
   return (
-    <div ref={ref} className="space-y-5">
+    <div ref={ref} className="space-y-5" style={{ fontFamily: "var(--font-nunito), sans-serif" }}>
       {/* ── Title row ── */}
       <div className="ac flex items-end justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
             <GiPawPrint className="text-[#17409A]" style={{ fontSize: 22 }} />
             <h1 className="font-black text-[#1A1A2E] text-2xl tracking-tight">
-              Tổng quan ca làm
+              Tổng quan ca làm việc
             </h1>
           </div>
           <p className="text-[#9CA3AF] text-sm">
             Chào {user?.name ?? "nhân viên"} · {shift.label} {shift.time}
           </p>
         </div>
-        <Link
-          href="/staff/reports"
-          className="flex items-center gap-2 bg-[#17409A] hover:bg-[#1a3a8a] text-white text-sm font-bold px-4 py-2.5 rounded-2xl transition-colors cursor-pointer whitespace-nowrap"
+
+        <button
+          onClick={fetchOrders}
+          disabled={loading}
+          className="flex items-center gap-2 bg-[#17409A] hover:bg-[#1a3a8a] text-white text-sm font-bold px-4 py-2.5 rounded-2xl transition-all cursor-pointer whitespace-nowrap shadow-sm"
         >
-          <MdAssignment className="text-base" />
-          Tạo báo cáo
-        </Link>
+          <MdRefresh className={loading ? "animate-spin" : ""} />
+          Làm mới
+        </button>
       </div>
 
       {/* ── Hero banner + quick stats ── */}
@@ -126,10 +189,6 @@ export default function StaffDashboardClient() {
           <GiPawPrint
             className="absolute -top-12 -right-10 text-white/4 pointer-events-none select-none"
             style={{ fontSize: 300 }}
-          />
-          <GiPawPrint
-            className="absolute -bottom-14 -left-12 text-white/3 pointer-events-none select-none"
-            style={{ fontSize: 260 }}
           />
 
           <div className="relative flex items-start justify-between gap-4 flex-wrap">
@@ -142,13 +201,13 @@ export default function StaffDashboardClient() {
                   className="text-white font-black leading-none"
                   style={{ fontSize: "clamp(3.5rem, 6.5vw, 6rem)" }}
                 >
-                  {pct}%
+                  {orderStats.pct}%
                 </span>
                 <div className="pb-1.5 flex flex-col gap-1">
                   <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-2xl px-3 py-1.5 self-start">
                     <MdTrendingUp className="text-[#4ECDC4] text-sm" />
                     <span className="text-white text-xs font-bold">
-                      {done}/{total} nhiệm vụ
+                      {orderStats.completed}/{orderStats.total} đơn hàng
                     </span>
                   </div>
                 </div>
@@ -175,196 +234,88 @@ export default function StaffDashboardClient() {
             <div className="h-2.5 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full bg-linear-to-r from-[#4ECDC4] to-[#17409A] transition-all duration-700"
-                style={{ width: `${pct}%` }}
+                style={{ width: `${orderStats.pct}%` }}
               />
             </div>
             <div className="flex justify-between text-white/50 text-xs font-semibold">
-              <span>{done} hoàn thành</span>
-              <span>{pending + inProg} còn lại</span>
+              <span>{orderStats.completed} hoàn thành</span>
+              <span>{orderStats.total - orderStats.completed} còn lại</span>
             </div>
-          </div>
-
-          {/* Pills */}
-          <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              {
-                icon: MdShoppingBag,
-                label: "Đóng gói",
-                value: tasks.filter(
-                  (t) => t.type === "pack" && t.status !== "done",
-                ).length,
-                color: "bg-white/15",
-              },
-              {
-                icon: MdCheckCircle,
-                label: "Kiểm tra",
-                value: tasks.filter(
-                  (t) => t.type === "verify" && t.status !== "done",
-                ).length,
-                color: "bg-[#4ECDC4]/20",
-              },
-              {
-                icon: MdStar,
-                label: "Phản hồi",
-                value: tasks.filter(
-                  (t) => t.type === "review_reply" && t.status !== "done",
-                ).length,
-                color: "bg-[#FFD93D]/20",
-              },
-              {
-                icon: MdWarning,
-                label: "Khẩn cấp",
-                value: urgent,
-                color: "bg-[#FF6B9D]/20",
-              },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <div
-                key={label}
-                className={`${color} backdrop-blur-sm rounded-2xl px-3 py-2.5 flex flex-col gap-1`}
-              >
-                <Icon className="text-white/70 text-base" />
-                <span className="text-white font-black text-lg leading-none">
-                  {value}
-                </span>
-                <span className="text-white/60 text-[11px] font-semibold">
-                  {label}
-                </span>
-              </div>
-            ))}
           </div>
         </div>
 
         {/* Quick nav cards */}
         <div className="lg:col-span-2 grid grid-cols-2 gap-3 content-start">
-          {[
-            {
-              href: "/staff/orders",
-              icon: MdShoppingBag,
-              label: "Đơn hàng",
-              sub: `${tasks.filter((t) => t.type === "pack").length} việc chờ`,
-              color: "#17409A",
-            },
-            {
-              href: "/staff/reviews",
-              icon: MdStar,
-              label: "Đánh giá",
-              sub: `${tasks.filter((t) => t.type === "review_reply").length} chưa trả lời`,
-              color: "#FFD93D",
-            },
-            {
-              href: "/staff/reports",
-              icon: MdAssignment,
-              label: "Báo cáo",
-              sub: "Tạo báo cáo ca",
-              color: "#4ECDC4",
-            },
-            {
-              href: "/staff",
-              icon: MdAccessTime,
-              label: "Ca tiếp",
-              sub: shift.time,
-              color: "#7C5CFC",
-            },
-          ].map(({ href, icon: Icon, label, sub, color }) => (
-            <Link
-              key={href + label}
-              href={href}
-              className="bg-white rounded-2xl p-4 flex flex-col gap-2 hover:shadow-md transition-shadow cursor-pointer group"
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ backgroundColor: `${color}15` }}
-              >
-                <Icon style={{ color, fontSize: 20 }} />
-              </div>
-              <p className="font-black text-[#1A1A2E] text-sm">{label}</p>
-              <p className="text-[#9CA3AF] text-xs">{sub}</p>
-            </Link>
-          ))}
+          <Link
+            href="/staff/orders"
+            className="bg-white rounded-3xl p-5 flex flex-col justify-between h-32 hover:shadow-lg transition-all cursor-pointer group border border-white/40 shadow-sm"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-[#17409A15] flex items-center justify-center">
+              <MdShoppingBag className="text-[#17409A] text-xl" />
+            </div>
+            <div>
+              <p className="font-black text-[#1A1A2E] text-base leading-tight">Đơn hàng</p>
+              <p className="text-[#9CA3AF] text-xs font-bold mt-0.5">{orderStats.pending} đơn chờ duyệt</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/staff/reviews"
+            className="bg-white rounded-3xl p-5 flex flex-col justify-between h-32 hover:shadow-lg transition-all cursor-pointer group border border-white/40 shadow-sm"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-[#FFD93D15] flex items-center justify-center">
+              <MdStar className="text-[#FFD93D] text-xl" />
+            </div>
+            <div>
+              <p className="font-black text-[#1A1A2E] text-base leading-tight">Đánh giá</p>
+              <p className="text-[#9CA3AF] text-xs font-bold mt-0.5">Xử lý phản hồi</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/staff/products"
+            className="bg-white rounded-3xl p-5 flex flex-col justify-between h-32 hover:shadow-lg transition-all cursor-pointer group border border-white/40 shadow-sm"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-[#4ECDC415] flex items-center justify-center">
+              <MdCheckCircle className="text-[#4ECDC4] text-xl" />
+            </div>
+            <div>
+              <p className="font-black text-[#1A1A2E] text-base leading-tight">Sản phẩm</p>
+              <p className="text-[#9CA3AF] text-xs font-bold mt-0.5">Danh sách hàng</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/staff/payroll"
+            className="bg-white rounded-3xl p-5 flex flex-col justify-between h-32 hover:shadow-lg transition-all cursor-pointer group border border-white/40 shadow-sm"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-[#7C5CFC15] flex items-center justify-center">
+              <MdAccessTime className="text-[#7C5CFC] text-xl" />
+            </div>
+            <div>
+              <p className="font-black text-[#1A1A2E] text-base leading-tight">Thù lao</p>
+              <p className="text-[#9CA3AF] text-xs font-bold mt-0.5">Xem lương ca</p>
+            </div>
+          </Link>
         </div>
       </div>
 
-      {/* ── Task list ── */}
-      <div className="ac bg-white rounded-3xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-[#F4F7FF] flex items-center justify-between">
-          <div>
-            <p className="font-black text-[#1A1A2E] text-base">
-              Danh sách nhiệm vụ
-            </p>
-            <p className="text-[#9CA3AF] text-xs mt-0.5">
-              Nhấn để chuyển trạng thái
-            </p>
-          </div>
-          <span className="bg-[#17409A]/10 text-[#17409A] text-xs font-black px-3 py-1 rounded-xl">
-            {done}/{total}
-          </span>
+      {/* ── Order List ── */}
+      <div className="ac">
+        <div className="mb-4">
+          <h2 className="font-black text-[#1A1A2E] text-xl tracking-tight">
+            Đơn hàng gần đây
+          </h2>
+          <p className="text-[#9CA3AF] text-sm">
+            Tất cả đơn hàng thực tế trong kỳ làm việc
+          </p>
         </div>
-
-        <div className="divide-y divide-[#F4F7FF]">
-          {tasks.map((task) => {
-            const typeCfg = TASK_TYPE_CFG[task.type];
-            const statusCfg = STATUS_CFG[task.status];
-            return (
-              <div
-                key={task.id}
-                className={`flex items-center gap-4 px-6 py-3.5 hover:bg-[#F4F7FF]/70 transition-colors ${
-                  task.status === "done" ? "opacity-50" : ""
-                }`}
-              >
-                {/* Priority dot */}
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: PRIORITY_DOT[task.priority] }}
-                />
-
-                {/* Type badge */}
-                <span
-                  className="shrink-0 text-[10px] font-black px-2 py-0.5 rounded-lg"
-                  style={{ color: typeCfg.color, backgroundColor: typeCfg.bg }}
-                >
-                  {typeCfg.label}
-                </span>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p
-                    className={`text-sm font-bold text-[#1A1A2E] truncate ${task.status === "done" ? "line-through" : ""}`}
-                  >
-                    {task.product}
-                    {task.customer && (
-                      <span className="text-[#9CA3AF] font-normal">
-                        {" "}
-                        · {task.customer}
-                      </span>
-                    )}
-                  </p>
-                  {task.note && (
-                    <p className="text-[#9CA3AF] text-xs truncate">
-                      {task.note}
-                    </p>
-                  )}
-                </div>
-
-                {/* Due time */}
-                <span className="text-[#9CA3AF] text-xs font-semibold shrink-0">
-                  {task.dueBy}
-                </span>
-
-                {/* Status toggle */}
-                <button
-                  onClick={() => cycleStatus(task.id)}
-                  className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-xl transition-all cursor-pointer hover:scale-105"
-                  style={{
-                    color: statusCfg.color,
-                    backgroundColor: statusCfg.bg,
-                  }}
-                >
-                  {statusCfg.label}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        <DataTable
+          columns={columns}
+          data={dataForTable}
+          isLoading={loading}
+          emptyMessage="Chưa ghi nhận đơn hàng nào"
+        />
       </div>
     </div>
   );

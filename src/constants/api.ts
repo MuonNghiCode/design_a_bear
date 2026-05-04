@@ -111,6 +111,8 @@ export const API_ENDPOINTS = {
   },
   REPORTS: {
     REVENUE: "/api/Reports/revenue",
+    PAYROLL: "/api/Reports/payroll",
+    PAYROLL_ME: "/api/Reports/payroll/me",
   },
   PRODUCT_ISSUE_REPORTS: {
     BASE: "/api/ProductIssueReports",

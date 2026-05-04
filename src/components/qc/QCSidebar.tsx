@@ -9,6 +9,7 @@ import {
   MdClose,
   MdLogout,
   MdFactCheck,
+  MdAttachMoney,
 } from "react-icons/md";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -17,6 +18,7 @@ const ACCENT = "#17409A"; // Navy
 const NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/qc" },
   { icon: MdChecklist, label: "Danh sách kiểm định", href: "/qc/inspections" },
+  { icon: MdAttachMoney, label: "Thù lao", href: "/qc/payroll" },
 ];
 
 interface Props {

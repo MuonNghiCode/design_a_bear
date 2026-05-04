@@ -55,7 +55,7 @@ export default function StaffProductsHero({
   ];
 
   return (
-    <div className="relative bg-[#17409A] rounded-3xl overflow-hidden p-6 sm:p-8 h-full flex flex-col justify-between min-h-64">
+    <div className="relative bg-[#17409A] rounded-[40px] p-10 shadow-2xl shadow-blue-900/20 border border-white/10 overflow-hidden h-full flex flex-col justify-between min-h-64">
       <GiPawPrint
         className="absolute -top-12 -right-10 text-white/4 pointer-events-none"
         style={{ fontSize: 300 }}

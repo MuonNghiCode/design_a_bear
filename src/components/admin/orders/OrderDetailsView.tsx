@@ -42,6 +42,7 @@ interface OrderDetailsViewProps {
   userRole?: string;
   backendStatuses: { value: string; label: string }[];
   statusCfg: Record<string, { label: string; color: string; bg: string }>;
+  onClose?: () => void;
 }
 
 const TIMELINE_STAGES = [
@@ -65,6 +66,7 @@ export default function OrderDetailsView({
   userRole,
   backendStatuses,
   statusCfg,
+  onClose,
 }: OrderDetailsViewProps) {
   const router = useRouter();
   const headerRef = useRef<HTMLDivElement>(null);
@@ -149,7 +151,7 @@ export default function OrderDetailsView({
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <button 
-              onClick={() => router.back()}
+              onClick={onClose ? onClose : () => router.back()}
               className="w-12 h-12 rounded-2xl bg-white/50 backdrop-blur-sm flex items-center justify-center text-gray-400 hover:text-[#17409A] hover:bg-white transition-all border border-white shadow-sm group"
             >
               <MdArrowBack className="text-xl group-hover:-translate-x-1 transition-transform" />

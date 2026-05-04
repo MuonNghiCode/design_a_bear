@@ -79,185 +79,181 @@ export default function IssuesTable() {
   };
 
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-        <div>
-          <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.22em] uppercase mb-0.5">
-            Quản lý
-          </p>
-          <p className="text-[#1A1A2E] font-black text-xl">Yêu cầu bảo hành</p>
+    <div className="space-y-6">
+      {/* ── Search & Tabs (Admin style) ── */}
+      <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
+        <div className="flex items-center gap-2 p-1.5 bg-white rounded-2xl shadow-sm border border-white/50 overflow-x-auto max-w-full no-scrollbar">
+          {TABS.map(({ key, label }) => {
+            const active = tab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={`px-5 py-2.5 rounded-xl text-[13px] font-black transition-all uppercase tracking-wider whitespace-nowrap ${
+                  active
+                    ? "bg-[#17409A] text-white shadow-md"
+                    : "text-gray-400 hover:text-[#17409A] hover:bg-gray-50"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
+
         <button
           onClick={handleRefresh}
           disabled={refreshing || loading}
-          className="bg-[#17409A] hover:bg-[#17409A]/90 text-white font-black text-sm rounded-xl px-4 py-2.5 flex items-center gap-2 transition-all disabled:opacity-50"
+          className="flex items-center gap-2 bg-white border border-white/50 text-[#17409A] text-[13px] font-black px-6 py-3.5 rounded-2xl hover:bg-gray-50 transition-all shadow-sm uppercase tracking-widest disabled:opacity-50"
+          title="Làm mới dữ liệu"
         >
-          <MdRefresh
-            className={`text-base ${refreshing ? "animate-spin" : ""}`}
-          />
-          Làm mới
+          <MdRefresh className={`text-xl ${refreshing ? "animate-spin" : ""}`} />
+          <span>Làm mới</span>
         </button>
       </div>
 
-      <div className="flex gap-2 flex-wrap mb-5 pb-1 border-b border-[#F4F7FF]">
-        {TABS.map(({ key, label }) => {
-          const active = tab === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-200 ${
-                active
-                  ? "bg-[#17409A] text-white shadow-sm"
-                  : "bg-[#F4F7FF] text-[#6B7280] hover:bg-[#E8EEF9]"
-              }`}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-150">
-          <thead>
-            <tr>
-              <th className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4">
-                Mã báo cáo
-              </th>
-              <th className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4">
-                Loại Y/C
-              </th>
-              <th className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4">
-                Mô tả
-              </th>
-              <th className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4">
-                Ngày gửi
-              </th>
-              <th className="text-left text-[9px] font-black text-[#9CA3AF] tracking-[0.2em] uppercase pb-3 pr-4">
-                Thao tác
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="text-center py-8 text-[#9CA3AF]">
-                  Đang tải...
-                </td>
+      <div className="bg-white rounded-[32px] overflow-hidden border border-white/50 shadow-sm border-b-8 border-b-[#f4f7ff] mt-4">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#F4F7FF]/50 border-b border-[#f4f7ff]">
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
+                  Mã báo cáo
+                </th>
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
+                  Loại Y/C
+                </th>
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
+                  Mô tả
+                </th>
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
+                  Ngày gửi
+                </th>
+                <th className="px-6 py-5 text-[11px] font-black text-[#6B7280] uppercase tracking-wider">
+                  Thao tác
+                </th>
               </tr>
-            ) : issues.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-12">
-                  <div className="flex flex-col items-center text-center">
-                    <GiPawPrint
-                      className="text-[#E5E7EB] mb-3"
-                      style={{ fontSize: 52 }}
-                    />
-                    <p className="text-[#9CA3AF] font-black text-sm">
-                      Không có báo cáo nào ở trạng thái này
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              issues.map((issue) => {
-                const date = new Date(issue.createdAt);
-                return (
-                  <tr
-                    key={issue.reportId}
-                    className="border-t border-[#F4F7FF] hover:bg-[#F8F9FF] transition-colors"
-                  >
-                    <td className="py-4 pr-4">
-                      <span className="text-[11px] font-black text-[#17409A] bg-[#17409A]/8 px-2.5 py-1 rounded-lg font-mono">
-                        #{issue.reportId?.slice(-6).toUpperCase() || "..."}
-                      </span>
-                    </td>
-                    <td className="py-4 pr-4">
-                      <span
-                        className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
-                          issue.requestRefund
-                            ? "bg-[#FF8C42]/10 text-[#FF8C42]"
-                            : "bg-[#7C5CFC]/10 text-[#7C5CFC]"
-                        }`}
-                      >
-                        {issue.requestRefund ? "Hoàn tiền" : "Bảo hành"}
-                      </span>
-                    </td>
-                    <td className="py-4 pr-4 max-w-xs">
-                      <p className="text-[#1A1A2E] text-sm truncate font-semibold">
-                        {issue.description}
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center px-6 py-10 text-[#9CA3AF] text-sm">
+                    Đang tải...
+                  </td>
+                </tr>
+              ) : issues.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 px-6">
+                    <div className="flex flex-col items-center text-center">
+                      <GiPawPrint
+                        className="text-[#E5E7EB] mb-3"
+                        style={{ fontSize: 52 }}
+                      />
+                      <p className="text-[#9CA3AF] font-black text-sm">
+                        Không có báo cáo nào ở trạng thái này
                       </p>
-                    </td>
-                    <td className="py-4 pr-4">
-                      <p className="text-[#4B5563] font-semibold text-[11px]">
-                        {date.toLocaleDateString("vi-VN")}
-                      </p>
-                      <p className="text-[#9CA3AF] text-[10px]">
-                        {date.toLocaleTimeString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </td>
-                    <td className="py-4 pr-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setSelectedIssue(issue)}
-                          className="w-8 h-8 rounded-xl bg-[#F4F7FF] text-[#17409A] hover:bg-[#17409A] hover:text-white transition-all flex items-center justify-center font-bold"
-                          title="Xem chi tiết"
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                issues.map((issue) => {
+                  const date = new Date(issue.createdAt);
+                  return (
+                    <tr
+                      key={issue.reportId}
+                      className="group transition-all hover:bg-[#F4F7FF]/30"
+                    >
+                      <td className="px-6 py-5 border-b border-gray-50">
+                        <span className="text-[11px] font-black text-[#17409A] bg-[#17409A]/8 px-2.5 py-1 rounded-lg font-mono">
+                          #{issue.reportId?.slice(-6).toUpperCase() || "..."}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 border-b border-gray-50">
+                        <span
+                          className={`text-[10px] font-black px-2.5 py-1 rounded-full ${
+                            issue.requestRefund
+                              ? "bg-[#FF8C42]/10 text-[#FF8C42]"
+                              : "bg-[#7C5CFC]/10 text-[#7C5CFC]"
+                          }`}
                         >
-                          <MdRemoveRedEye className="text-base" />
-                        </button>
-                        {tab === "PENDING" && (
+                          {issue.requestRefund ? "Hoàn tiền" : "Bảo hành"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 border-b border-gray-50 max-w-xs">
+                        <p className="text-[#1A1A2E] text-sm truncate font-semibold">
+                          {issue.description}
+                        </p>
+                      </td>
+                      <td className="px-6 py-5 border-b border-gray-50">
+                        <p className="text-[#4B5563] font-semibold text-[11px]">
+                          {date.toLocaleDateString("vi-VN")}
+                        </p>
+                        <p className="text-[#9CA3AF] text-[10px]">
+                          {date.toLocaleTimeString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </td>
+                      <td className="px-6 py-5 border-b border-gray-50">
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleAssign(issue.reportId)}
-                            className="text-[11px] font-black bg-[#4ECDC4]/10 text-[#259790] hover:bg-[#4ECDC4] hover:text-white px-3 py-1.5 rounded-xl transition-all"
+                            onClick={() => setSelectedIssue(issue)}
+                            className="w-8 h-8 rounded-xl bg-[#F4F7FF] text-[#17409A] hover:bg-[#17409A] hover:text-white transition-all flex items-center justify-center font-bold"
+                            title="Xem chi tiết"
                           >
-                            Nhận xử lý
+                            <MdRemoveRedEye className="text-base" />
                           </button>
-                        )}
-                        {tab === "PROCESSING" && (
-                          <button
-                            onClick={() => {
-                              setSelectedIssue(issue);
-                              setActionType("resolve");
-                            }}
-                            className="text-[11px] font-black bg-[#1D4ED8]/10 text-[#1D4ED8] hover:bg-[#1D4ED8] hover:text-white px-3 py-1.5 rounded-xl transition-all"
-                          >
-                            Giải quyết
-                          </button>
-                        )}
-                        {tab === "RESOLVED" && (
-                          <button
-                            onClick={() => {
-                              setSelectedIssue(issue);
-                              setActionType("complete");
-                            }}
-                            className="text-[11px] font-black bg-[#4ECDC4]/10 text-[#259790] hover:bg-[#4ECDC4] hover:text-white px-3 py-1.5 rounded-xl transition-all"
-                          >
-                            Hoàn tất
-                          </button>
-                        )}
-                        {(tab === "PENDING" || tab === "PROCESSING") && (
-                          <button
-                            onClick={() => {
-                              setSelectedIssue(issue);
-                              setActionType("reject");
-                            }}
-                            className="text-[11px] font-black bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-xl transition-all"
-                          >
-                            Từ chối
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                          {tab === "PENDING" && (
+                            <button
+                              onClick={() => handleAssign(issue.reportId)}
+                              className="text-[11px] font-black bg-[#4ECDC4]/10 text-[#259790] hover:bg-[#4ECDC4] hover:text-white px-3 py-1.5 rounded-xl transition-all"
+                            >
+                              Nhận xử lý
+                            </button>
+                          )}
+                          {tab === "PROCESSING" && (
+                            <button
+                              onClick={() => {
+                                setSelectedIssue(issue);
+                                setActionType("resolve");
+                              }}
+                              className="text-[11px] font-black bg-[#1D4ED8]/10 text-[#1D4ED8] hover:bg-[#1D4ED8] hover:text-white px-3 py-1.5 rounded-xl transition-all"
+                            >
+                              Giải quyết
+                            </button>
+                          )}
+                          {tab === "RESOLVED" && (
+                            <button
+                              onClick={() => {
+                                setSelectedIssue(issue);
+                                setActionType("complete");
+                              }}
+                              className="text-[11px] font-black bg-[#4ECDC4]/10 text-[#259790] hover:bg-[#4ECDC4] hover:text-white px-3 py-1.5 rounded-xl transition-all"
+                            >
+                              Hoàn tất
+                            </button>
+                          )}
+                          {(tab === "PENDING" || tab === "PROCESSING") && (
+                            <button
+                              onClick={() => {
+                                setSelectedIssue(issue);
+                                setActionType("reject");
+                              }}
+                              className="text-[11px] font-black bg-red-50 text-red-600 hover:bg-red-600 hover:text-white px-3 py-1.5 rounded-xl transition-all"
+                            >
+                              Từ chối
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {selectedIssue && (

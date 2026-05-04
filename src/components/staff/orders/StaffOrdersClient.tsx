@@ -1,33 +1,20 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect } from "react";
 import gsap from "gsap";
-import { MdShoppingBag, MdRefresh } from "react-icons/md";
+import { MdShoppingBag } from "react-icons/md";
 import StaffOrdersTable from "@/components/staff/orders/StaffOrdersTable";
-import StaffOrdersHero from "@/components/staff/orders/StaffOrdersHero";
+import OrdersHero from "@/components/admin/orders/OrdersHero";
 import OrdersPipeline from "@/components/admin/orders/OrdersPipeline";
 import { useAdminOrdersApi } from "@/hooks/useAdminOrdersApi";
 
 export default function StaffOrdersClient() {
   const ref = useRef<HTMLDivElement>(null);
-
-  const { data, loading, fetchOrders, usersMap } = useAdminOrdersApi();
-  const [refreshing, setRefreshing] = useState(false);
+  const { data, loading, fetchOrders } = useAdminOrdersApi();
 
   useEffect(() => {
     fetchOrders({ pageIndex: 1, pageSize: 10, fetchAllPages: true });
   }, [fetchOrders]);
-
-  const handleRefresh = async () => {
-    try {
-      setRefreshing(true);
-      await fetchOrders({ pageIndex: 1, pageSize: 10, fetchAllPages: true });
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const orders = useMemo(() => data?.items || [], [data?.items]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -47,45 +34,39 @@ export default function StaffOrdersClient() {
     return () => ctx.revert();
   }, []);
 
+  const orders = data?.items || [];
+
   return (
-    <div ref={ref} className="space-y-6">
-      <div className="ac flex items-end justify-between flex-wrap gap-2">
+    <div ref={ref} className="space-y-5">
+      <div className="ac flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-[#1A1A2E] font-black text-2xl leading-tight">
-            Đơn hàng
-          </h1>
-          <p className="text-[#9CA3AF] text-sm font-semibold">
-            Theo dõi, xử lý và cập nhật trạng thái đơn hàng
+          <div className="flex items-center gap-2 mb-0.5">
+            <MdShoppingBag
+              className="text-[#17409A]"
+              style={{ fontSize: 22 }}
+            />
+            <h1 className="font-black text-[#1A1A2E] text-2xl tracking-tight">
+              Đơn hàng
+            </h1>
+          </div>
+          <p className="text-[#9CA3AF] text-sm">
+            Xử lý và cập nhật trạng thái đơn hàng
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleRefresh}
-            className="flex items-center gap-2 bg-white text-[#17409A] text-[11px] font-black px-6 py-3.5 rounded-2xl hover:bg-[#F4F7FF] transition-all border border-[#F4F7FF] shadow-sm active:scale-95 uppercase tracking-widest"
-          >
-            <MdRefresh className="text-lg" />
-            Làm mới dữ liệu
-          </button>
         </div>
       </div>
 
-      <div className="ac grid grid-cols-1 xl:grid-cols-12 gap-6">
-        <div className="xl:col-span-8">
-          <StaffOrdersHero orders={orders} loading={loading} />
+      {/* Hero cards at top */}
+      <div className="ac grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="lg:col-span-3">
+          <OrdersHero orders={orders} loading={loading} />
         </div>
-        <div className="xl:col-span-4">
+        <div className="lg:col-span-2">
           <OrdersPipeline orders={orders} loading={loading} />
         </div>
       </div>
 
-      <div className="ac bg-white rounded-[48px] p-8 sm:p-10 shadow-sm border border-white">
-        <StaffOrdersTable 
-          orders={orders} 
-          loading={loading} 
-          usersMap={usersMap} 
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
-        />
+      <div className="ac">
+        <StaffOrdersTable />
       </div>
     </div>
   );

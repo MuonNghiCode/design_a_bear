@@ -12,19 +12,38 @@ import {
   MdClose,
   MdLogout,
   MdBuild,
+  MdAttachMoney,
 } from "react-icons/md";
 import { GiPawPrint } from "react-icons/gi";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdminPrefs } from "@/contexts/AdminPreferencesContext";
 import { useRouter } from "next/navigation";
+import ExpandableTab from "@/components/admin/ExpandableTab";
+import { useState, useEffect } from "react";
 
-const NAV = [
+const ACCENT = "#17409A";
+
+const STANDALONE_NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/staff" },
-  { icon: MdShoppingBag, label: "Đơn hàng", href: "/staff/orders" },
-  { icon: MdInventory2, label: "Sản phẩm", href: "/staff/products" },
-  { icon: MdStar, label: "Đánh giá", href: "/staff/reviews" },
-  { icon: MdBuild, label: "Bảo hành", href: "/staff/issues" },
-  { icon: MdAssignment, label: "Báo cáo", href: "/staff/reports" },
+  { icon: MdAttachMoney, label: "Bảng lương", href: "/staff/payroll" },
+];
+
+const EXPANDABLE_SECTIONS = [
+  {
+    icon: MdShoppingBag,
+    label: "Quản lý bán hàng",
+    children: [
+      { label: "Đơn hàng", href: "/staff/orders" },
+      { label: "Đánh giá", href: "/staff/reviews" },
+    ],
+  },
+  {
+    icon: MdInventory2,
+    label: "Sản phẩm & Kho",
+    children: [
+      { label: "Sản phẩm", href: "/staff/products" },
+      { label: "Bảo hành", href: "/staff/issues" },
+    ],
+  },
 ];
 
 interface Props {
@@ -35,12 +54,20 @@ interface Props {
 export default function StaffSidebar({ open = false, onClose }: Props) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
-  const { accent } = useAdminPrefs();
   const router = useRouter();
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  useEffect(() => {
+    setExpandedSection(null);
+  }, [pathname]);
 
   const handleLogout = () => {
     logout();
     router.push("/auth");
+  };
+
+  const handleTabClick = () => {
+    onClose?.();
   };
 
   return (
@@ -48,7 +75,7 @@ export default function StaffSidebar({ open = false, onClose }: Props) {
       className={`w-18 min-h-screen flex flex-col items-center py-6 fixed left-0 top-0 z-40 transition-transform duration-300 ease-in-out ${
         open ? "translate-x-0" : "-translate-x-full"
       } md:translate-x-0`}
-      style={{ backgroundColor: accent }}
+      style={{ backgroundColor: ACCENT }}
     >
       {/* Close — mobile */}
       <button
@@ -76,31 +103,42 @@ export default function StaffSidebar({ open = false, onClose }: Props) {
 
       {/* Nav */}
       <nav className="flex flex-col gap-2 flex-1 items-center">
-        {NAV.map(({ icon: Icon, label, href }) => {
-          const active =
-            pathname === href ||
-            (href !== "/staff" && pathname.startsWith(href));
+        {STANDALONE_NAV.map(({ icon: Icon, label, href }) => {
+          const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
               title={label}
+              onClick={handleTabClick}
               className={`group relative w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 ${
                 active
                   ? "bg-white shadow-lg shadow-white/20"
                   : "text-white/50 hover:bg-white/15 hover:text-white"
               }`}
             >
-              <Icon
-                className="text-xl"
-                style={active ? { color: accent } : undefined}
-              />
+              <Icon className={`text-xl ${active ? "text-[#17409A]" : ""}`} />
               <span className="pointer-events-none absolute left-[calc(100%+14px)] top-1/2 -translate-y-1/2 bg-[#0E2A66] text-white text-xs px-3 py-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl z-50">
                 {label}
               </span>
             </Link>
           );
         })}
+
+        {/* Expandable sections */}
+        {EXPANDABLE_SECTIONS.map((section) => (
+          <ExpandableTab
+            key={section.label}
+            icon={section.icon}
+            label={section.label}
+            children={section.children}
+            isOpen={expandedSection === section.label}
+            onToggle={(openState) => {
+              setExpandedSection(openState ? section.label : null);
+            }}
+            onItemClick={handleTabClick}
+          />
+        ))}
       </nav>
 
       {/* Divider */}

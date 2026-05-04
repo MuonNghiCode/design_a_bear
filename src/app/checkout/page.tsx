@@ -16,14 +16,10 @@ export const metadata: Metadata = {
 
 export default function CheckoutPage() {
   return (
-    <>
-      <Header />
-      <div className="pt-24 pb-16 bg-[#FAFAFA] min-h-screen">
-        <Suspense fallback={null}>
-          <CheckoutClient />
-        </Suspense>
-      </div>
-      <Footer />
-    </>
+    <div className="bg-[#FAFAFA] min-h-screen">
+      <Suspense fallback={null}>
+        <CheckoutClient />
+      </Suspense>
+    </div>
   );
 }

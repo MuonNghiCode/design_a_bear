@@ -10,6 +10,7 @@ import {
   MdClose,
   MdLogout,
   MdEngineering,
+  MdAttachMoney,
 } from "react-icons/md";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ const NAV = [
   { icon: MdDashboard, label: "Tổng quan", href: "/craftsman" },
   { icon: MdList, label: "Sảnh việc (Lobby)", href: "/craftsman/lobby" },
   { icon: MdAssignmentInd, label: "Việc của tôi", href: "/craftsman/jobs" },
+  { icon: MdAttachMoney, label: "Thù lao", href: "/craftsman/payroll" },
 ];
 
 interface Props {

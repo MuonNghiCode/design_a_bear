@@ -1,5 +1,14 @@
-import StaffReportsClient from "@/components/staff/reports/StaffReportsClient";
+"use client";
 
-export default function StaffReportsPage() {
-  return <StaffReportsClient />;
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+export default function RedirectReports() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/staff");
+  }, [router]);
+
+  return null;
 }

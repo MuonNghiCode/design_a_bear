@@ -177,7 +177,7 @@ export interface CreateBuildRequest {
   buildName: string;
   personalizationNote: string;
   includesSmartChip?: boolean;
-  buildComponents: { optionProductId: string }[];
+  buildComponents?: { optionProductId: string }[];
 }
 
 export interface CreateOrderFromCartRequest {

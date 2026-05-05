@@ -471,13 +471,26 @@ export default function OrderDetailsView({
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <p className="text-[9px] font-black text-gray-300 uppercase tracking-[0.2em] ml-1">Thông tin vận đơn</p>
-                    <button 
-                      onClick={handleTrackDetail}
-                      disabled={trackingLoading}
-                      className="text-[9px] font-black text-[#17409A] uppercase tracking-widest hover:underline disabled:opacity-50"
-                    >
-                      {trackingLoading ? "Đang cập nhật..." : "Làm mới tracking"}
-                    </button>
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => {
+                          if (fulfillment.trackingNumber) {
+                            const url = shippingService.getPrintLabelUrl(fulfillment.trackingNumber);
+                            window.open(url, "_blank");
+                          }
+                        }}
+                        className="text-[9px] font-black text-[#17409A] uppercase tracking-widest hover:underline"
+                      >
+                        In vận đơn
+                      </button>
+                      <button 
+                        onClick={handleTrackDetail}
+                        disabled={trackingLoading}
+                        className="text-[9px] font-black text-[#17409A] uppercase tracking-widest hover:underline disabled:opacity-50"
+                      >
+                        {trackingLoading ? "Đang cập nhật..." : "Làm mới tracking"}
+                      </button>
+                    </div>
                   </div>
                   <div className="p-6 bg-[#F8FAFC] rounded-[24px] border border-gray-100 flex items-center justify-between">
                     <div>

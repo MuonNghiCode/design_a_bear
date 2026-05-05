@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -224,7 +224,7 @@ export default function ProductInfoPanel({
     return Math.max(0, avail);
   }, [product.available, product.id, selectedVariant, selectedAccessories, sessionDeductions]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (quantity > currentAvailable && currentAvailable > 0) {
       setQuantity(currentAvailable);
     } else if (currentAvailable === 0 && quantity > 1) {
@@ -300,9 +300,6 @@ export default function ProductInfoPanel({
           buildName: `Thiết kế ${product.name}`,
           personalizationNote: "Mua kèm phụ kiện",
           includesSmartChip: hasAiProcessor,
-          buildComponents: selectedAccessories.map((acc) => ({
-            optionProductId: acc.addonProduct.productId,
-          })),
         });
 
         if (buildRes && buildRes.value?.buildId) {

@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { 
-  MdOutlineInventory, 
-  MdTrendingUp, 
-  MdTrendingDown, 
+import {
+  MdOutlineInventory,
+  MdTrendingUp,
+  MdTrendingDown,
   MdArrowBack,
   MdCheck,
   MdSettingsBackupRestore,
@@ -13,10 +13,15 @@ import {
   MdAttachMoney,
   MdLayers,
   MdLockOutline,
-  MdCheckCircleOutline
+  MdCheckCircleOutline,
 } from "react-icons/md";
 import { useToast } from "@/contexts/ToastContext";
-import { inventoryService, locationService, productService, accessoryService } from "@/services";
+import {
+  inventoryService,
+  locationService,
+  productService,
+  accessoryService,
+} from "@/services";
 import type { Location, Product, AccessoryResponse, Inventory } from "@/types";
 import { formatPrice } from "@/utils/currency";
 import gsap from "gsap";
@@ -27,9 +32,10 @@ function AdjustStockContent() {
   const { success, error: toastError } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const productId = searchParams.get("id");
-  const identityId = searchParams.get("identityId");
+  const productId = searchParams.get("productId") || searchParams.get("id");
+  const identityId = searchParams.get("id"); // Current ID passed from list is the identityId
   const isAccessory = searchParams.get("isAccessory") === "true";
+  const sizeTag = searchParams.get("sizeTag");
 
   const [itemDetails, setItemDetails] = useState<any>(null);
   const [inventories, setInventories] = useState<Inventory[]>([]);
@@ -43,9 +49,10 @@ function AdjustStockContent() {
   useEffect(() => {
     if (!containerRef.current || isLoading) return;
     const ctx = gsap.context(() => {
-      gsap.fromTo(".ac", 
+      gsap.fromTo(
+        ".ac",
         { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.6, stagger: 0.1, ease: "power2.out" }
+        { opacity: 1, y: 0, duration: 0.6, stagger: 0.1, ease: "power2.out" },
       );
     }, containerRef);
     return () => ctx.revert();
@@ -60,14 +67,15 @@ function AdjustStockContent() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        const fetchId = isAccessory ? identityId : productId;
         const [locRes, detailRes, invRes] = await Promise.all([
           locationService.getLocations(),
-          isAccessory 
-            ? accessoryService.getById(productId)
-            : productService.getProductById(productId),
           isAccessory
-            ? inventoryService.getByAccessoryId(productId)
-            : inventoryService.getByProductId(productId)
+            ? accessoryService.getById(fetchId as string)
+            : productService.getProductById(fetchId as string),
+          isAccessory
+            ? inventoryService.getByAccessoryId(fetchId as string)
+            : inventoryService.getByProductId(fetchId as string),
         ]);
 
         if (locRes.isSuccess && locRes.value) {
@@ -107,8 +115,8 @@ function AdjustStockContent() {
     setIsSubmitting(true);
     try {
       const res = await inventoryService.adjustStock(
-        identityId || productId!,
-        isAccessory,
+        identityId as string,
+        isAccessory === true,
         delta,
         selectedLocationId,
       );
@@ -133,13 +141,28 @@ function AdjustStockContent() {
     );
   }
 
-  const currentPrice = isAccessory ? (itemDetails as AccessoryResponse)?.targetPrice : (itemDetails as Product)?.price;
-  const currentSku = isAccessory ? (itemDetails as AccessoryResponse)?.sku : (itemDetails as Product)?.sku;
-  const currentImage = isAccessory ? (itemDetails as AccessoryResponse)?.imageUrl : (itemDetails as Product)?.imageUrl;
+  const currentPrice = isAccessory
+    ? (itemDetails as AccessoryResponse)?.targetPrice
+    : (itemDetails as Product)?.price;
+  const currentSku = isAccessory
+    ? (itemDetails as AccessoryResponse)?.sku
+    : (itemDetails as Product)?.sku;
+  const currentImage = isAccessory
+    ? (itemDetails as AccessoryResponse)?.imageUrl
+    : (itemDetails as Product)?.imageUrl;
 
-  const totalOnHand = inventories.reduce((acc, curr) => acc + (curr.onHand || 0), 0);
-  const totalReserved = inventories.reduce((acc, curr) => acc + (curr.reserved || 0), 0);
-  const totalAvailable = inventories.reduce((acc, curr) => acc + (curr.totalAvailable || 0), 0);
+  const totalOnHand = inventories.reduce(
+    (acc, curr) => acc + (curr.onHand || 0),
+    0,
+  );
+  const totalReserved = inventories.reduce(
+    (acc, curr) => acc + (curr.reserved || 0),
+    0,
+  );
+  const totalAvailable = inventories.reduce(
+    (acc, curr) => acc + (curr.totalAvailable || 0),
+    0,
+  );
 
   return (
     <div ref={containerRef} className="pb-20">
@@ -154,8 +177,19 @@ function AdjustStockContent() {
               <MdArrowBack className="text-xl" />
             </button>
             <div>
-              <h1 className="text-xl font-black text-[#1A1A2E] leading-tight">Điều chỉnh kho</h1>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{itemDetails?.name}</p>
+              <h1 className="text-xl font-black text-[#1A1A2E] leading-tight">
+                Điều chỉnh kho
+              </h1>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  {itemDetails?.name}
+                </p>
+                {sizeTag && (
+                  <span className="text-[10px] font-black text-[#17409A] bg-[#17409A]/10 px-2 py-0.5 rounded-md">
+                    {sizeTag}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="ac flex items-center gap-3">
@@ -170,7 +204,13 @@ function AdjustStockContent() {
               disabled={isSubmitting}
               className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-[#17409A] text-white font-black text-xs hover:bg-[#0E2A66] transition-all shadow-lg shadow-[#17409A]/20 disabled:opacity-50"
             >
-              {isSubmitting ? "Đang xử lý..." : <><MdCheck className="text-lg" /> Xác nhận</>}
+              {isSubmitting ? (
+                "Đang xử lý..."
+              ) : (
+                <>
+                  <MdCheck className="text-lg" /> Xác nhận
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -181,8 +221,8 @@ function AdjustStockContent() {
         <div className="lg:col-span-2 space-y-6">
           <div className="ac bg-white rounded-[32px] p-8 shadow-sm border border-[#F1F5F9] sticky top-24">
             <div className="relative w-full aspect-square rounded-[24px] bg-[#F8FAFC] border border-[#F1F5F9] p-4 mb-6 overflow-hidden group">
-              <img 
-                src={currentImage || "/teddy_bear.png"} 
+              <img
+                src={currentImage || "/teddy_bear.png"}
                 alt={itemDetails?.name}
                 className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-700"
               />
@@ -196,9 +236,18 @@ function AdjustStockContent() {
 
             <div className="space-y-6">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">Định danh SKU</p>
-                <h2 className="text-2xl font-black text-[#1A1A2E] leading-tight">{itemDetails?.name}</h2>
-                <p className="text-sm font-bold text-[#17409A] mt-1">{currentSku || "N/A"}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">
+                  Định danh SKU
+                </p>
+                <h2 className="text-2xl font-black text-[#1A1A2E] leading-tight">
+                  {itemDetails?.name}
+                  {sizeTag && (
+                    <span className="ml-2 text-[#17409A]">({sizeTag})</span>
+                  )}
+                </h2>
+                <p className="text-sm font-bold text-[#17409A] mt-1">
+                  {currentSku || "N/A"}
+                </p>
               </div>
 
               <div className="h-px bg-[#F8FAFC]" />
@@ -206,16 +255,28 @@ function AdjustStockContent() {
               {/* Stock Levels Preview */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 bg-[#F4F7FF] rounded-2xl border border-white text-center">
-                  <p className="text-[9px] font-black text-gray-400 uppercase mb-1">Tồn thực</p>
-                  <p className="text-base font-black text-[#1A1A2E]">{totalOnHand}</p>
+                  <p className="text-[9px] font-black text-gray-400 uppercase mb-1">
+                    Tồn thực
+                  </p>
+                  <p className="text-base font-black text-[#1A1A2E]">
+                    {totalOnHand}
+                  </p>
                 </div>
                 <div className="p-3 bg-green-50/50 rounded-2xl border border-white text-center">
-                  <p className="text-[9px] font-black text-green-600/50 uppercase mb-1">Khả dụng</p>
-                  <p className="text-base font-black text-green-600">{totalAvailable}</p>
+                  <p className="text-[9px] font-black text-green-600/50 uppercase mb-1">
+                    Khả dụng
+                  </p>
+                  <p className="text-base font-black text-green-600">
+                    {totalAvailable}
+                  </p>
                 </div>
                 <div className="p-3 bg-orange-50/50 rounded-2xl border border-white text-center">
-                  <p className="text-[9px] font-black text-orange-600/50 uppercase mb-1">Đang khóa</p>
-                  <p className="text-base font-black text-orange-600">{totalReserved}</p>
+                  <p className="text-[9px] font-black text-orange-600/50 uppercase mb-1">
+                    Đang khóa
+                  </p>
+                  <p className="text-base font-black text-orange-600">
+                    {totalReserved}
+                  </p>
                 </div>
               </div>
 
@@ -224,15 +285,21 @@ function AdjustStockContent() {
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                     <MdAttachMoney className="text-xs" /> Giá bán lẻ
                   </p>
-                  <p className="text-sm font-black text-[#1A1A2E]">{formatPrice(currentPrice || 0)}</p>
+                  <p className="text-sm font-black text-[#1A1A2E]">
+                    {formatPrice(currentPrice || 0)}
+                  </p>
                 </div>
                 <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-white">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                     <MdInfoOutline className="text-xs" /> Tình trạng
                   </p>
-                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter ${
-                    itemDetails?.isActive ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
-                  }`}>
+                  <span
+                    className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter ${
+                      itemDetails?.isActive
+                        ? "bg-green-100 text-green-600"
+                        : "bg-gray-100 text-gray-400"
+                    }`}
+                  >
                     {itemDetails?.isActive ? "Đang bán" : "Bản nháp"}
                   </span>
                 </div>
@@ -250,8 +317,12 @@ function AdjustStockContent() {
                   <MdOutlineInventory />
                 </div>
                 <div>
-                  <h2 className="text-lg font-black text-[#1A1A2E]">Thông tin điều chỉnh</h2>
-                  <p className="text-xs font-bold text-gray-400">Chọn kho hàng và nhập số lượng cần thay đổi</p>
+                  <h2 className="text-lg font-black text-[#1A1A2E]">
+                    Thông tin điều chỉnh
+                  </h2>
+                  <p className="text-xs font-bold text-gray-400">
+                    Chọn kho hàng và nhập số lượng cần thay đổi
+                  </p>
                 </div>
               </div>
             </div>
@@ -308,7 +379,11 @@ function AdjustStockContent() {
                 <div className="flex items-center gap-2 p-4 bg-blue-50/50 rounded-2xl border border-blue-100/30">
                   <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
                   <p className="text-[11px] font-bold text-blue-600/80 leading-relaxed italic">
-                    Gợi ý: Nhập số <span className="text-green-600 font-black">DƯƠNG</span> để nhập thêm hàng, số <span className="text-red-600 font-black">ÂM</span> để xuất kho thực tế.
+                    Gợi ý: Nhập số{" "}
+                    <span className="text-green-600 font-black">DƯƠNG</span> để
+                    nhập thêm hàng, số{" "}
+                    <span className="text-red-600 font-black">ÂM</span> để xuất
+                    kho thực tế.
                   </p>
                 </div>
               </div>
@@ -326,15 +401,18 @@ function AdjustStockContent() {
               <ul className="space-y-4 text-xs font-medium text-white/70 leading-relaxed">
                 <li className="flex gap-3">
                   <span className="text-[#4ECDC4] font-black">01.</span>
-                  Dữ liệu tồn kho sẽ được cập nhật ngay lập tức sau khi xác nhận.
+                  Dữ liệu tồn kho sẽ được cập nhật ngay lập tức sau khi xác
+                  nhận.
                 </li>
                 <li className="flex gap-3">
                   <span className="text-[#4ECDC4] font-black">02.</span>
-                  Vui lòng kiểm tra kỹ mã kho hàng trước khi thực hiện giao dịch.
+                  Vui lòng kiểm tra kỹ mã kho hàng trước khi thực hiện giao
+                  dịch.
                 </li>
                 <li className="flex gap-3">
                   <span className="text-[#4ECDC4] font-black">03.</span>
-                  Lịch sử điều chỉnh sẽ được lưu lại để phục vụ công tác đối soát.
+                  Lịch sử điều chỉnh sẽ được lưu lại để phục vụ công tác đối
+                  soát.
                 </li>
               </ul>
             </div>
@@ -347,11 +425,13 @@ function AdjustStockContent() {
 
 export default function AdjustStockPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#17409A]"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#17409A]"></div>
+        </div>
+      }
+    >
       <AdjustStockContent />
     </Suspense>
   );

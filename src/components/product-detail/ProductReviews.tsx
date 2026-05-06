@@ -643,7 +643,7 @@ export default function ProductReviews({
         <ReviewCarousel reviews={filtered} accentColor={accentColor} />
 
         {/* ── Write a comment form ── */}
-        {canReview && user?.id && orderItemIdForReview && (
+        {canReview && user?.id && orderItemIdForReview ? (
           <WriteReviewForm
             accentColor={accentColor}
             existingReview={myReview}
@@ -702,7 +702,19 @@ export default function ProductReviews({
               }
             }}
           />
-        )}
+        ) : user?.id ? (
+          <div className="mt-16 py-12 flex flex-col items-center justify-center text-center bg-[#F4F7FF] rounded-3xl border border-[#E5E7EB]">
+            <svg className="w-16 h-16 mb-4" fill="none" viewBox="0 0 24 24" stroke={accentColor} opacity={0.6}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <p className="text-[#1A1A2E] font-black text-lg md:text-xl mb-2" style={{ fontFamily: "'Fredoka', 'Nunito', sans-serif" }}>
+              Hãy mua hàng để được đánh giá sản phẩm này
+            </p>
+            <p className="text-[#6B7280] text-sm max-w-md px-4 leading-relaxed">
+              Chỉ những khách hàng đã mua và trải nghiệm sản phẩm mới có thể để lại đánh giá nhằm đảm bảo tính khách quan nhất.
+            </p>
+          </div>
+        ) : null}
       </div>
     </section>
   );

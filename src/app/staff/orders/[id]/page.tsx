@@ -6,11 +6,13 @@ import { orderService } from "@/services/order.service";
 import { addressService } from "@/services/address.service";
 import { fulfillmentService } from "@/services/fulfillment.service";
 import { userService } from "@/services/user.service";
+import { shippingService } from "@/services/shipping.service";
 import { useToast } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
 import OrderDetailsView, { OrderDetailsSkeleton } from "@/components/admin/orders/OrderDetailsView";
 import type { Order, AddressDetail, UserDetail } from "@/types";
 import type { FulfillmentResponse } from "@/types/responses";
+import { MdAutorenew } from "react-icons/md";
 
 const BACKEND_STATUSES = [
   { value: "PENDING", label: "Chờ duyệt" },
@@ -39,7 +41,7 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> =
 export default function OrderDetailsPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const { success, error } = useToast();
+  const { success, error, warning } = useToast();
   
   const [order, setOrder] = useState<Order | null>(null);
   const [address, setAddress] = useState<AddressDetail | null>(null);
@@ -106,20 +108,85 @@ export default function OrderDetailsPage() {
   };
 
   const handlePushToGhtk = async () => {
-    if (!order) return;
+    if (!order || !address) {
+      warning("Thiếu thông tin đơn hàng hoặc địa chỉ để đẩy đơn");
+      return;
+    }
+
     try {
       setPushingGhtk(true);
-      const res = await fulfillmentService.create({
+      
+      // Helper to clean address fields (remove redundant province/city names)
+      const cleanField = (val: string) => {
+        if (!val) return "";
+        return val.split(',')[0].trim();
+      };
+
+      // 1. Prepare GHTK request
+      const ghtkRequest = {
+        // Use a more unique ID for testing to avoid ORDER_ID_EXIST
+        orderId: `${order.orderNumber}_${Date.now()}`, 
+        customerName: address.fullName,
+        customerPhone: address.phoneNumber,
+        customerAddress: address.line1,
+        customerProvince: cleanField(address.state),
+        customerDistrict: cleanField(address.city),
+        customerWard: cleanField(address.line2 || ""),
+        hamlet: "Khác", // Bypass GHTK error 30302 by providing a default hamlet
+        pickMoney: 0,
+        value: order.grandTotal,
+        transport: "road",
+        products: order.orderItems.map(item => ({
+          name: item.productName || item.productNameSnapshot || "Sản phẩm",
+          weight: item.weightSnapshot || 500,
+          quantity: item.quantity,
+          productCode: item.sku || ""
+        }))
+      };
+
+      // 2. Submit to GHTK
+      const ghtkRes = await shippingService.submitExpressOrder(ghtkRequest);
+      
+      if (!ghtkRes.isSuccess || !ghtkRes.value.success) {
+        error(ghtkRes.value?.message || "Đẩy đơn sang GHTK thất bại từ phía vận chuyển");
+        return;
+      }
+
+      const realLabel = ghtkRes.value.order?.label;
+      if (!realLabel) {
+        error("Không nhận được mã vận đơn từ GHTK");
+        return;
+      }
+
+      // 3. Save fulfillment record with real label
+      const fulfillRes = await fulfillmentService.create({
         orderId: order.orderId,
         carrier: "GHTK",
-        trackingNumber: `GHTK-${Date.now()}`,
+        trackingNumber: realLabel,
       });
-      if (res.isSuccess && res.value) {
-        setFulfillment(res.value);
-        success("Đã đẩy đơn sang GHTK thành công");
+
+      if (fulfillRes.isSuccess && fulfillRes.value) {
+        setFulfillment(fulfillRes.value);
+        
+        // 4. Update order status to SHIPPING
+        try {
+          await orderService.updateOrderStatus(order.orderId, { 
+            status: "SHIPPING",
+            notes: `Tự động chuyển trạng thái sau khi đẩy đơn sang GHTK (Mã: ${realLabel})` 
+          });
+          setOrder({ ...order, status: "SHIPPING" });
+        } catch (statusErr) {
+          console.error("Failed to update status after GHTK push:", statusErr);
+          warning("Đã đẩy đơn thành công nhưng không thể tự động cập nhật trạng thái đơn hàng");
+        }
+
+        success("Đã đẩy đơn sang GHTK thành công với mã: " + realLabel);
+      } else {
+        warning("GHTK đã nhận đơn nhưng không thể lưu thông tin vận chuyển vào hệ thống");
       }
-    } catch (err) {
-      error("Đẩy đơn sang GHTK thất bại");
+    } catch (err: any) {
+      console.error("GHTK Push Error:", err);
+      error(err.message || "Đã xảy ra lỗi khi đẩy đơn sang GHTK");
     } finally {
       setPushingGhtk(false);
     }

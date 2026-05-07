@@ -20,6 +20,7 @@ import { formatPrice } from "@/utils/currency";
 
 interface ProductDetailsViewProps {
   product: ProductDetail;
+  reviews?: any[];
   onBack?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -28,6 +29,7 @@ interface ProductDetailsViewProps {
 
 export default function ProductDetailsView({
   product,
+  reviews = [],
   onBack,
   onEdit,
   onDelete,
@@ -279,6 +281,66 @@ export default function ProductDetailsView({
               )) || (
                 <div className="col-span-full py-12 text-center text-gray-300 font-bold uppercase tracking-widest border-2 border-dashed border-[#F4F7FF] rounded-[32px]">
                   Chưa có ảnh ma trận
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Reviews Section */}
+          <section className="bg-white rounded-[40px] p-12 shadow-sm border border-white/50 space-y-8">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-yellow-50 flex items-center justify-center text-yellow-600">
+                <MdStar className="text-3xl" />
+              </div>
+              <h2 className="text-2xl font-black text-[#1A1A2E] uppercase tracking-wider">Đánh giá sản phẩm ({reviews?.length || 0})</h2>
+            </div>
+
+            <div className="space-y-6">
+              {reviews && reviews.length > 0 ? (
+                reviews.map((rev, idx) => (
+                  <div key={idx} className="p-6 bg-[#F4F7FF] rounded-[32px] border border-white shadow-sm">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-white border border-gray-100 flex items-center justify-center overflow-hidden">
+                          {rev.userAvatar ? (
+                            <img src={rev.userAvatar} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <MdStar className="text-gray-300 text-2xl" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-[#1A1A2E]">{rev.userName || "Người dùng ẩn danh"}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <MdStar 
+                                key={i} 
+                                className={`text-xs ${i < rev.rating ? "text-yellow-400" : "text-gray-200"}`} 
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        {new Date(rev.createdAt).toLocaleDateString("vi-VN")}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 font-medium leading-relaxed">
+                      {rev.comment || "Không có nhận xét."}
+                    </p>
+                    {rev.mediaUrls && rev.mediaUrls.length > 0 && (
+                      <div className="flex gap-3 mt-4">
+                        {rev.mediaUrls.map((url: string, i: number) => (
+                          <div key={i} className="w-20 h-20 rounded-xl overflow-hidden border border-white shadow-sm">
+                            <img src={url} className="w-full h-full object-cover" alt="" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center text-gray-300 font-bold uppercase tracking-widest border-2 border-dashed border-[#F4F7FF] rounded-[32px]">
+                  Chưa có đánh giá nào
                 </div>
               )}
             </div>

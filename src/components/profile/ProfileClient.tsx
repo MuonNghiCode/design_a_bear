@@ -8,11 +8,15 @@ import { useToast } from "@/contexts/ToastContext";
 import { ROLE_CFG } from "@/data/profile";
 import { userService } from "@/services/user.service";
 import { addressService } from "@/services/address.service";
+import { mediaService } from "@/services/media.service";
 import type { Address } from "@/types";
 import {
   isValidVietnamPhoneNumber,
   normalizePhoneNumber,
 } from "@/utils/address";
+import { useFavorite } from "@/contexts/FavoriteContext";
+import { orderService } from "@/services/order.service";
+import { reviewService } from "@/services/review.service";
 import ProfileHero from "./ProfileHero";
 import ProfileStats from "./ProfileStats";
 import ProfileInfoCard, { type AddressForm } from "./ProfileInfoCard";
@@ -51,10 +55,14 @@ export default function ProfileClient() {
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [saveProfileMessage, setSaveProfileMessage] = useState<string | null>(
     null,
   );
   const [saveProfileError, setSaveProfileError] = useState<string | null>(null);
+  const { items: favoriteItems } = useFavorite();
+  const [ordersCount, setOrdersCount] = useState(0);
+  const [reviewsCount, setReviewsCount] = useState(0);
   const [currentAddressId, setCurrentAddressId] = useState<string | null>(null);
 
   const heroRef = useRef<HTMLDivElement>(null);
@@ -88,12 +96,28 @@ export default function ProfileClient() {
     let isMounted = true;
 
     const loadProfileData = async () => {
-      const [profileResult, addressResult] = await Promise.allSettled([
+      const [profileResult, addressResult, ordersResult, reviewsResult] = await Promise.allSettled([
         userService.getProfile(),
         addressService.getMyAddresses(),
+        orderService.getOrdersByUserId(user.id),
+        reviewService.getUserReviews(user.id),
       ]);
 
       if (!isMounted) return;
+
+      if (
+        ordersResult.status === "fulfilled" &&
+        ordersResult.value.isSuccess
+      ) {
+        setOrdersCount(ordersResult.value.value?.length || 0);
+      }
+
+      if (
+        reviewsResult.status === "fulfilled" &&
+        reviewsResult.value.isSuccess
+      ) {
+        setReviewsCount(reviewsResult.value.value?.length || 0);
+      }
 
       if (
         profileResult.status === "fulfilled" &&
@@ -179,6 +203,22 @@ export default function ProfileClient() {
   const handleLogout = () => {
     logout();
     router.push("/auth");
+  };
+  
+  const handleAvatarChange = async (file: File) => {
+    try {
+      setIsUploadingAvatar(true);
+      const res = await mediaService.uploadMedia(file, "avatars");
+      if (res.isFailure || !res.value?.publicUrl) {
+        throw new Error(res.error?.description || "Không thể tải ảnh lên");
+      }
+      setAvatarUrl(res.value.publicUrl);
+      toast.success("Đã tải ảnh lên. Nhấn Lưu để cập nhật hồ sơ.");
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi khi tải ảnh");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -274,7 +314,7 @@ export default function ProfileClient() {
         }
       }
 
-      updateCurrentUser({ name: name.trim() });
+      updateCurrentUser({ name: name.trim(), avatar: avatarUrl });
 
       setSaveProfileMessage("Đã cập nhật thông tin cá nhân thành công.");
       toast.success("Cập nhật thông tin cá nhân thành công.");
@@ -316,10 +356,17 @@ export default function ProfileClient() {
           editMode={editMode}
           onEditToggle={() => setEditMode((v) => !v)}
           onLogout={handleLogout}
+          onAvatarChange={handleAvatarChange}
+          isUploadingAvatar={isUploadingAvatar}
         />
       </div>
 
-      <ProfileStats />
+      <ProfileStats 
+        ordersCount={ordersCount} 
+        favoritesCount={favoriteItems.length}
+        reviewsCount={reviewsCount}
+        points={1260}
+      />
 
       <div className="max-w-screen-2xl mx-auto px-8 md:px-16 pb-20 grid grid-cols-1 xl:grid-cols-4 gap-8">
         <div className="xl:col-span-1 flex flex-col gap-6">

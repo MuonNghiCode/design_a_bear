@@ -4,14 +4,45 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import PawDecoration from "./PawDecoration";
 
-const STATS = [
-  { value: "10,000+", label: "Gia đình tin dùng" },
-  { value: "4.9/5", label: "Đánh giá trung bình" },
-  { value: "98%", label: "Hài lòng" },
-];
+import { useEffect, useState } from "react";
+import { productService } from "@/services/product.service";
+import { reviewService } from "@/services/review.service";
 
 export default function AuthBrandPanel() {
   const router = useRouter();
+  const [stats, setStats] = useState([
+    { value: "500+", label: "Sản phẩm" },
+    { value: "4.9/5", label: "Đánh giá" },
+    { value: "98%", label: "Hài lòng" },
+  ]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [prodRes, revRes] = await Promise.allSettled([
+          productService.getProducts({ pageIndex: 1, pageSize: 1 }),
+          reviewService.getAllReviews({ pageIndex: 1, pageSize: 1 }),
+        ]);
+
+        const newStats = [...stats];
+
+        if (prodRes.status === "fulfilled" && prodRes.value.isSuccess) {
+          const total = prodRes.value.value?.totalCount || 0;
+          newStats[0] = { value: `${total}+`, label: "Sản phẩm" };
+        }
+
+        if (revRes.status === "fulfilled" && revRes.value.isSuccess) {
+          const total = revRes.value.value?.totalCount || 0;
+          newStats[1] = { value: `${total}+`, label: "Đánh giá" };
+        }
+
+        setStats(newStats);
+      } catch (e) {
+        console.error("Failed to fetch brand stats", e);
+      }
+    };
+    fetchStats();
+  }, []);
 
   return (
     <div className="hidden lg:flex relative z-10 flex-1 flex-col justify-between px-12 py-10">
@@ -78,12 +109,11 @@ export default function AuthBrandPanel() {
         </p>
       </div>
 
-      {/* Stats bar */}
       <div className="flex items-center bg-white/10 backdrop-blur-md rounded-2xl overflow-hidden border border-white/15">
-        {STATS.map((s, i) => (
+        {stats.map((s, i) => (
           <div
             key={s.label}
-            className={`flex-1 text-center py-3 ${i < STATS.length - 1 ? "border-r border-white/15" : ""}`}
+            className={`flex-1 text-center py-3 ${i < stats.length - 1 ? "border-r border-white/15" : ""}`}
           >
             <p className="text-white font-black text-xl">{s.value}</p>
             <p className="text-white/55 text-xs mt-0.5">{s.label}</p>

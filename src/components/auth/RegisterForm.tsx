@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import InputField from "./InputField";
 import SocialButtons from "./SocialButtons";
@@ -17,6 +17,7 @@ import { useToast } from "@/contexts/ToastContext";
 import type { GoogleCompleteProfileRequest, RegisterRequest } from "@/types";
 import CustomDropdown from "@/components/shared/CustomDropdown";
 import { z } from "zod";
+import { mediaService } from "@/services/media.service";
 
 interface RegisterFormProps {
   onSwitchLogin: () => void;
@@ -117,9 +118,6 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
   const [googleProfileErrors, setGoogleProfileErrors] =
     useState<GoogleProfileErrors>({});
 
-  const cloudinaryCloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const cloudinaryUploadPreset =
-    process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   // Registration form state
   const [formData, setFormData] = useState<RegisterRequest>({
@@ -172,12 +170,48 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
       setError("");
     };
 
-  const handleVerificationOtpChange = (value: string) => {
-    setVerificationData((prev) => ({
-      ...prev,
-      otp: value,
-    }));
+
+  const otpRefs = useRef<(HTMLInputElement | null)[]>(new Array(6).fill(null));
+
+  const handleOtpBoxChange = (index: number, value: string) => {
+    // Only allow numbers
+    if (value && !/^\d+$/.test(value)) return;
+
+    const newOtpArr = verificationData.otp.split("");
+    // Ensure array has 6 elements
+    while (newOtpArr.length < 6) newOtpArr.push("");
+
+    // Take only the last char if multiple are pasted/typed
+    const char = value.slice(-1);
+    newOtpArr[index] = char;
+    
+    const newOtp = newOtpArr.join("");
+    setVerificationData(prev => ({ ...prev, otp: newOtp }));
     setError("");
+
+    // Auto focus next
+    if (char && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !verificationData.otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").slice(0, 6).replace(/\D/g, "");
+    if (!pasted) return;
+
+    setVerificationData(prev => ({ ...prev, otp: pasted }));
+    setError("");
+    
+    // Focus last box or the next empty box
+    const nextIdx = Math.min(pasted.length, 5);
+    otpRefs.current[nextIdx]?.focus();
   };
 
   const handleGoogleProfileChange = (
@@ -238,38 +272,14 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
       setAvatarFileName(file.name);
       setError("");
 
-      if (!cloudinaryCloudName || !cloudinaryUploadPreset) {
-        info(
-          "Chưa cấu hình upload ảnh tự động. Bạn hãy dán Avatar URL thủ công.",
-        );
-        return;
-      }
-
       setIsUploadingAvatar(true);
-      const form = new FormData();
-      form.append("file", file);
-      form.append("upload_preset", cloudinaryUploadPreset);
+      const uploadRes = await mediaService.uploadMedia(file, "avatars");
 
-      const uploadResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudinaryCloudName}/image/upload`,
-        {
-          method: "POST",
-          body: form,
-        },
-      );
-
-      if (!uploadResponse.ok) {
-        throw new Error("Upload ảnh thất bại");
+      if (uploadRes.isFailure || !uploadRes.value?.publicUrl) {
+        throw new Error(uploadRes.error?.description || "Upload ảnh thất bại");
       }
 
-      const uploaded = (await uploadResponse.json()) as {
-        secure_url?: string;
-      };
-
-      const uploadedUrl = uploaded.secure_url;
-      if (!uploadedUrl) {
-        throw new Error("Không nhận được URL ảnh sau khi upload");
-      }
+      const uploadedUrl = uploadRes.value.publicUrl;
 
       setFormData((prev) => ({
         ...prev,
@@ -280,8 +290,8 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
         avatarUrl: undefined,
       }));
       success("Đã tải ảnh lên và tự điền Avatar URL");
-    } catch {
-      const message = "Không thể tải ảnh từ máy của bạn";
+    } catch (err: any) {
+      const message = err.message || "Không thể tải ảnh từ máy của bạn";
       setError(message);
       toastError(message);
     } finally {
@@ -626,14 +636,23 @@ export default function RegisterForm({ onSwitchLogin }: RegisterFormProps) {
         </div>
 
         <form onSubmit={handleVerifyEmail} method="POST" className="field-item space-y-4">
-          <InputField
-            type="text"
-            placeholder="Nhập mã OTP"
-            name="otp"
-            value={verificationData.otp}
-            onChange={handleVerificationOtpChange}
-            rightIcon={<IoMailOutline />}
-          />
+          <div className="flex justify-between gap-2 mb-6" onPaste={handleOtpPaste}>
+            {[0, 1, 2, 3, 4, 5].map((idx) => (
+              <input
+                key={idx}
+                ref={(el) => {
+                  otpRefs.current[idx] = el;
+                }}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={verificationData.otp[idx] || ""}
+                onChange={(e) => handleOtpBoxChange(idx, e.target.value)}
+                onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                className="w-12 h-14 text-center text-xl font-black rounded-xl border-2 border-[#E5E7EB] bg-white/50 focus:border-[#17409A] focus:bg-white outline-none transition-all duration-200"
+              />
+            ))}
+          </div>
 
           {error && <div className="text-red-500 text-sm">{error}</div>}
 

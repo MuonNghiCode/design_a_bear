@@ -25,10 +25,13 @@ export default function ProductIssueModal({
   const [description, setDescription] = useState("");
   const [requestRefund, setRequestRefund] = useState(false);
   const [images, setImages] = useState<File[]>([]);
+  const [bankName, setBankName] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
+  const [bankAccountImage, setBankAccountImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  const { success, error } = useToast();
+  const { success, error: toastError } = useToast();
 
   useEffect(() => {
     setMounted(true);
@@ -40,10 +43,16 @@ export default function ProductIssueModal({
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       if (images.length + filesArray.length > 5) {
-        error("Bạn chỉ có thể tải lên tối đa 5 hình ảnh");
+        toastError("Bạn chỉ có thể tải lên tối đa 5 hình ảnh");
         return;
       }
       setImages((prev) => [...prev, ...filesArray]);
+    }
+  };
+
+  const handleBankImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setBankAccountImage(e.target.files[0]);
     }
   };
 
@@ -54,30 +63,49 @@ export default function ProductIssueModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) {
-      error("Vui lòng nhập mô tả sự cố");
+      toastError("Vui lòng nhập mô tả sự cố");
+      return;
+    }
+
+    if (requestRefund && !bankName.trim() && !bankAccount.trim() && !bankAccountImage) {
+      toastError("Vui lòng cung cấp thông tin ngân hàng hoặc ảnh tài khoản để hoàn tiền");
       return;
     }
 
     try {
       setIsSubmitting(true);
 
-      // 1. Upload images
+      // 1. Upload evidence images
       const uploadedUrls: string[] = [];
       for (const file of images) {
         const uploadRes = await mediaService.uploadMedia(file, "issues");
         if (uploadRes.isSuccess && uploadRes.value?.publicUrl) {
           uploadedUrls.push(uploadRes.value.publicUrl);
         } else {
-          throw new Error("Lỗi khi tải ảnh lên");
+          throw new Error("Lỗi khi tải ảnh bằng chứng lên");
         }
       }
 
-      // 2. Submit report
+      // 2. Upload bank account image if exists
+      let bankAccountImageUrl = "";
+      if (bankAccountImage) {
+        const uploadRes = await mediaService.uploadMedia(bankAccountImage, "refunds");
+        if (uploadRes.isSuccess && uploadRes.value?.publicUrl) {
+          bankAccountImageUrl = uploadRes.value.publicUrl;
+        } else {
+          throw new Error("Lỗi khi tải ảnh tài khoản ngân hàng lên");
+        }
+      }
+
+      // 3. Submit report
       const res = await productIssueService.createIssueReport({
         orderItemId,
         description,
         requestRefund,
         evidenceUrls: uploadedUrls,
+        bankName: bankName.trim() || undefined,
+        bankAccountNumber: bankAccount.trim() || undefined,
+        bankAccountImageUrl: bankAccountImageUrl || undefined,
       });
 
       if (res.isSuccess) {
@@ -88,12 +116,15 @@ export default function ProductIssueModal({
         setDescription("");
         setRequestRefund(false);
         setImages([]);
+        setBankName("");
+        setBankAccount("");
+        setBankAccountImage(null);
       } else {
-        error(res.error?.description || "Có lỗi xảy ra khi tạo báo cáo");
+        toastError(res.error?.description || "Có lỗi xảy ra khi tạo báo cáo");
       }
     } catch (err: any) {
       console.error("Submit error:", err);
-      error(err.message || "Đã xảy ra lỗi, vui lòng thử lại sau");
+      toastError(err.message || "Đã xảy ra lỗi, vui lòng thử lại sau");
     } finally {
       setIsSubmitting(false);
     }
@@ -181,38 +212,114 @@ export default function ProductIssueModal({
               </div>
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer group mt-2">
-              <div className="relative flex items-center justify-center w-5 h-5 mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={requestRefund}
-                  onChange={(e) => setRequestRefund(e.target.checked)}
-                  className="peer appearance-none w-5 h-5 border-2 border-[#D7DEEF] rounded-md checked:bg-[#17409A] checked:border-[#17409A] transition-colors cursor-pointer"
-                />
-                <svg
-                  className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 13l4 4L19 7"
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative flex items-center justify-center w-5 h-5 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={requestRefund}
+                    onChange={(e) => setRequestRefund(e.target.checked)}
+                    className="peer appearance-none w-5 h-5 border-2 border-[#D7DEEF] rounded-md checked:bg-[#17409A] checked:border-[#17409A] transition-colors cursor-pointer"
                   />
-                </svg>
-              </div>
-              <div>
-                <p className="text-sm font-black text-[#1A1A2E] group-hover:text-[#17409A] transition-colors">
-                  Tôi muốn yêu cầu hoàn tiền
-                </p>
-                <p className="text-xs text-[#6B7280] font-semibold mt-0.5">
-                  Chọn mục này nếu bạn muốn hoàn tiền thay vì gửi bảo hành / sửa
-                  chữa.
-                </p>
-              </div>
-            </label>
+                  <svg
+                    className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-[#1A1A2E] group-hover:text-[#17409A] transition-colors">
+                    Tôi muốn yêu cầu hoàn tiền
+                  </p>
+                  <p className="text-xs text-[#6B7280] font-semibold mt-0.5">
+                    Chọn mục này nếu bạn muốn hoàn tiền thay vì gửi bảo hành / sửa
+                    chữa.
+                  </p>
+                </div>
+              </label>
+
+              {requestRefund && (
+                <div className="bg-[#F4F7FF] rounded-2xl p-5 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#17409A]" />
+                    <h4 className="text-xs font-black text-[#1A1A2E] uppercase tracking-wider">
+                      Thông tin hoàn tiền
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black text-[#9CA3AF] uppercase tracking-widest mb-1.5 ml-1">
+                        Tên ngân hàng
+                      </label>
+                      <input
+                        type="text"
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        placeholder="Ví dụ: Vietcombank, MB Bank..."
+                        className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-[#9CA3AF] uppercase tracking-widest mb-1.5 ml-1">
+                        Số tài khoản / STK
+                      </label>
+                      <input
+                        type="text"
+                        value={bankAccount}
+                        onChange={(e) => setBankAccount(e.target.value)}
+                        placeholder="Nhập số tài khoản của bạn..."
+                        className="w-full bg-white rounded-xl px-4 py-2.5 text-xs font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/20 transition-all shadow-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="h-px flex-1 bg-[#D7DEEF]" />
+                      <span className="text-[10px] font-black text-[#9CA3AF] uppercase">Hoặc tải ảnh tài khoản</span>
+                      <div className="h-px flex-1 bg-[#D7DEEF]" />
+                    </div>
+                    
+                    {bankAccountImage ? (
+                      <div className="relative group rounded-xl overflow-hidden aspect-[16/9] border-2 border-[#17409A]/20">
+                        <img 
+                          src={URL.createObjectURL(bankAccountImage)} 
+                          alt="Bank Account" 
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setBankAccountImage(null)}
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-all"
+                        >
+                          <MdDelete className="text-2xl" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="w-full h-24 border-2 border-dashed border-[#D7DEEF] rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-white hover:border-[#17409A]/40 transition-all text-[#9CA3AF] hover:text-[#17409A]">
+                        <MdCloudUpload className="text-2xl mb-1" />
+                        <span className="text-xs font-bold">Tải lên ảnh thẻ/QR tài khoản</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleBankImageChange}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </form>
         </div>
 

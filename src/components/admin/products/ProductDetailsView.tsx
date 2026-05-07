@@ -29,6 +29,7 @@ interface ProductDetailsViewProps {
 
 export default function ProductDetailsView({
   product,
+  reviews = [],
   onBack,
   onEdit,
   onDelete,

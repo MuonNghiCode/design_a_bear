@@ -107,16 +107,16 @@ export default function ProfileClient() {
 
       if (
         ordersResult.status === "fulfilled" &&
-        ordersResult.value
+        ordersResult.value.isSuccess
       ) {
-        setOrdersCount(ordersResult.value.length || 0);
+        setOrdersCount(ordersResult.value.value?.length || 0);
       }
 
       if (
         reviewsResult.status === "fulfilled" &&
-        reviewsResult.value
+        reviewsResult.value.isSuccess
       ) {
-        setReviewsCount(reviewsResult.value.length || 0);
+        setReviewsCount(reviewsResult.value.value?.length || 0);
       }
 
       if (

@@ -17,6 +17,8 @@ interface Props {
   editMode: boolean;
   onEditToggle: () => void;
   onLogout: () => void;
+  onAvatarChange?: (file: File) => void;
+  isUploadingAvatar?: boolean;
 }
 
 export default function ProfileHero({
@@ -27,8 +29,17 @@ export default function ProfileHero({
   editMode,
   onEditToggle,
   onLogout,
+  onAvatarChange,
+  isUploadingAvatar,
 }: Props) {
   const displayAvatar = avatarUrl || user.avatar;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onAvatarChange) {
+      onAvatarChange(file);
+    }
+  };
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-[#17409A] via-[#12317A] to-[#0E2A66] rounded-b-[48px] shadow-xl">
@@ -49,7 +60,7 @@ export default function ProfileHero({
           <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
             {/* Avatar with luxury border */}
             <div className="ac relative shrink-0 group">
-              <div className="w-28 h-28 md:w-32 md:h-32 rounded-[32px] bg-gradient-to-br from-[#4ECDC4] to-[#17409A] border-4 border-white/20 flex items-center justify-center text-white font-black text-4xl shadow-2xl shadow-[#0E2A66]/40 hover:scale-105 transition-all duration-300 relative overflow-hidden">
+              <div className={`w-28 h-28 md:w-32 md:h-32 rounded-[32px] bg-gradient-to-br from-[#4ECDC4] to-[#17409A] border-4 border-white/20 flex items-center justify-center text-white font-black text-4xl shadow-2xl shadow-[#0E2A66]/40 hover:scale-105 transition-all duration-300 relative overflow-hidden ${editMode ? 'cursor-pointer' : ''}`}>
                 {displayAvatar ? (
                   <img
                     src={displayAvatar}
@@ -59,6 +70,20 @@ export default function ProfileHero({
                   />
                 ) : (
                   initials
+                )}
+
+                {editMode && (
+                  <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    {isUploadingAvatar ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <IoPencilOutline className="text-2xl mb-1" />
+                        <span className="text-[10px] font-black uppercase tracking-wider">Đổi ảnh</span>
+                      </>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                  </label>
                 )}
               </div>
               <span className="absolute bottom-2 right-2 w-4 h-4 bg-[#4ECDC4] rounded-full border-2 border-white shadow-md group-hover:scale-110 transition-transform duration-300" />

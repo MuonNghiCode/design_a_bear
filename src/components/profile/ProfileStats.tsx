@@ -6,7 +6,12 @@ import {
   IoStarOutline,
   IoGiftOutline,
 } from "react-icons/io5";
-import { PROFILE_STATS } from "@/data/profile";
+interface ProfileStatsProps {
+  ordersCount?: number;
+  favoritesCount?: number;
+  points?: number;
+  reviewsCount?: number;
+}
 
 const STAT_ICONS = {
   "Đơn hàng": IoBagOutline,
@@ -18,11 +23,23 @@ const STAT_ICONS = {
   React.ComponentType<{ className?: string; style?: React.CSSProperties }>
 >;
 
-export default function ProfileStats() {
+export default function ProfileStats({
+  ordersCount = 0,
+  favoritesCount = 0,
+  points = 1260,
+  reviewsCount = 0,
+}: ProfileStatsProps) {
+  const stats = [
+    { label: "Đơn hàng", value: ordersCount.toString(), color: "#17409A" },
+    { label: "Yêu thích", value: favoritesCount.toString(), color: "#FF6B9D" },
+    { label: "Điểm tích lũy", value: points.toLocaleString("vi-VN"), color: "#FFD93D" },
+    { label: "Đánh giá", value: reviewsCount.toString(), color: "#4ECDC4" },
+  ];
+
   return (
     <div className="max-w-screen-2xl mx-auto px-8 md:px-16 mt-10 mb-10" style={{ fontFamily: "'Nunito', sans-serif" }}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {PROFILE_STATS.map(({ label, value, color }) => {
+        {stats.map(({ label, value, color }) => {
           const Icon = STAT_ICONS[label];
           return (
             <div

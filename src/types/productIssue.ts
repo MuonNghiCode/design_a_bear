@@ -3,6 +3,9 @@ export interface CreateProductIssueRequest {
   description: string;
   requestRefund: boolean;
   evidenceUrls: string[];
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountImageUrl?: string;
 }
 
 export interface ResolveProductIssueRequest {

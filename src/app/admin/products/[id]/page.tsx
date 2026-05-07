@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useToast } from "@/contexts/ToastContext";
-import { productService } from "@/services";
+import { productService, reviewService } from "@/services";
 import ConfirmDialog from "@/components/admin/common/ConfirmDialog";
 import ProductDetailsView from "@/components/admin/products/ProductDetailsView";
 import type { ProductDetail } from "@/types";
@@ -15,18 +15,27 @@ export default function ProductDetailPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const res = await productService.getProductById(id as string);
-        if (res.isSuccess && res.value) {
-          setProduct(res.value);
+        const [prodRes, revRes] = await Promise.all([
+          productService.getProductById(id as string),
+          reviewService.getProductReviews(id as string, { pageIndex: 1, pageSize: 100 })
+        ]);
+
+        if (prodRes.isSuccess && prodRes.value) {
+          setProduct(prodRes.value);
         } else {
           toast.error("Không tìm thấy sản phẩm");
           router.push("/admin/products");
+        }
+
+        if (revRes.isSuccess && revRes.value) {
+          setReviews(revRes.value.items || []);
         }
       } catch (err) {
         toast.error("Đã có lỗi xảy ra");
@@ -68,6 +77,7 @@ export default function ProductDetailPage() {
     <>
       <ProductDetailsView
         product={product}
+        reviews={reviews}
         onBack={() => router.back()}
         onEdit={() => router.push(`/admin/products/${id}/edit`)}
         onDelete={() => setIsDeleteDialogOpen(true)}

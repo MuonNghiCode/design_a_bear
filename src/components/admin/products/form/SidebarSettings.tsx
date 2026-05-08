@@ -70,7 +70,8 @@ export const SidebarSettings = ({
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Pricing Section - Hidden because price is variant-based */}
+      {/* 
       <section className="bg-white rounded-[32px] p-8 shadow-sm border border-white/50 space-y-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-[16px] bg-orange-50 flex items-center justify-center text-orange-600">
@@ -88,6 +89,7 @@ export const SidebarSettings = ({
           />
         </div>
       </section>
+      */}
 
       {/* Classification Section */}
       <section className="bg-white rounded-[32px] p-8 shadow-sm border border-white/50 space-y-8">
@@ -139,8 +141,15 @@ export const SidebarSettings = ({
             </div>
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-gray-50">
-            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Phụ kiện đi kèm</label>
+          <div className={`space-y-4 pt-6 border-t border-gray-50 transition-all ${!formData.isPersonalizable ? "opacity-50 pointer-events-none" : ""}`}>
+            <div className="flex items-center justify-between ml-2">
+              <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Phụ kiện đi kèm</label>
+              {!formData.isPersonalizable && (
+                <span className="text-[9px] font-black text-red-500 uppercase tracking-tighter bg-red-50 px-2 py-1 rounded-md border border-red-100">
+                  Bật cá nhân hóa để chọn
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-1 gap-3">
               {accessoriesList.filter(acc => acc.isActive).map(acc => {
                 const isSelected = formData.accessoryIds.includes(acc.accessoryId);
@@ -148,6 +157,7 @@ export const SidebarSettings = ({
                   <button
                     key={acc.accessoryId}
                     type="button"
+                    disabled={!formData.isPersonalizable}
                     onClick={() => onMultiSelect("accessoryIds", acc.accessoryId)}
                     className={`p-3 rounded-[20px] border-2 transition-all flex items-center gap-4 shadow-sm ${
                       isSelected

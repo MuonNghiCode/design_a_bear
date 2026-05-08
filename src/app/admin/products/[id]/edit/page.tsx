@@ -170,7 +170,7 @@ export default function EditProductPage() {
             description: p.description || "",
             isPersonalizable: p.isPersonalizable,
             isActive: p.isActive,
-            price: p.price,
+            price: 0, // Force price to 0 as it's now variant-based
             sku: p.sku || "",
             weightGram: p.weightGram,
             stockQuantity: p.stockQuantity || 0,
@@ -225,7 +225,18 @@ export default function EditProductPage() {
   };
 
   const handleToggle = (name: string) => {
-    setFormData(prev => ({ ...prev, [name]: !prev[name as keyof UpdateProductRequest] }));
+    setFormData(prev => {
+      const newValue = !prev[name as keyof UpdateProductRequest];
+      const newData = { ...prev, [name]: newValue };
+      
+      // Nếu tắt Cá nhân hóa, tự động xóa hết phụ kiện và tổ hợp ảnh đã chọn
+      if (name === "isPersonalizable" && newValue === false) {
+        newData.accessoryIds = [];
+        newData.comboImages = [];
+      }
+      
+      return newData;
+    });
   };
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -351,7 +362,7 @@ export default function EditProductPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await productService.updateProduct(id as string, formData);
+      const res = await productService.updateProduct(id as string, { ...formData, price: 0 });
       if (res.isSuccess) {
         toast.success("Cập nhật thành công!");
         router.push("/admin/products");
@@ -402,6 +413,10 @@ export default function EditProductPage() {
             selectedAccessories={selectedAccessories}
             isGeneratingAI={isGeneratingAI}
             onAdd={() => {
+              if (formData.accessoryIds.length === 0) {
+                toast.error("Vui lòng chọn ít nhất một phụ kiện trước khi thêm tổ hợp");
+                return;
+              }
               const newCombo = {
                 combinationKey: "",
                 imageUrl: "",

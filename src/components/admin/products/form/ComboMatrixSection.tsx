@@ -48,13 +48,25 @@ export const ComboMatrixSection = ({
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dựa trên ảnh gấu gốc & AI Gemini</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-50 text-amber-600 text-[11px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all shadow-sm"
-        >
-          <MdAdd className="text-xl" /> Thêm tổ hợp
-        </button>
+        <div className="flex items-center gap-3">
+          {!selectedAccessories || selectedAccessories.length === 0 ? (
+            <span className="text-[9px] font-black text-amber-600 uppercase tracking-tighter bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
+              Chọn phụ kiện trước khi thêm tổ hợp
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onAdd}
+            disabled={!selectedAccessories || selectedAccessories.length === 0}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-sm ${
+              !selectedAccessories || selectedAccessories.length === 0
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                : "bg-amber-50 text-amber-600 hover:bg-amber-100"
+            }`}
+          >
+            <MdAdd className="text-xl" /> Thêm tổ hợp
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6">

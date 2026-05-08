@@ -138,10 +138,12 @@ export default function ProductDetailsView({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
               <div className="space-y-6">
+                {/* 
                 <div className="flex justify-between items-center py-4 border-b border-gray-50">
                   <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Giá bán hiện tại</span>
                   <span className="text-2xl font-black text-[#17409A] font-mono">{formatPrice(product.price)}</span>
                 </div>
+                */}
                 <div className="flex justify-between items-center py-4 border-b border-gray-50">
                   <span className="text-[11px] font-black text-gray-400 uppercase tracking-wider">Trọng lượng</span>
                   <span className="text-lg font-bold text-[#1A1A2E] font-mono">{product.weightGram}g</span>

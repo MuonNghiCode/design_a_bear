@@ -56,10 +56,19 @@ export default function EditAccessoryPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === "number" ? Number(value) : value
-    }));
+    setFormData(prev => {
+      const val = type === "number" ? Number(value) : value;
+      const newData = { ...prev, [name]: val };
+      
+      // Tự động tính giá bán: (Base + Assembly) * 1.2 (lợi nhuận 20%) làm tròn lên
+      if (name === "baseCost" || name === "assemblyCost") {
+        const bc = name === "baseCost" ? Number(val) : prev.baseCost;
+        const ac = name === "assemblyCost" ? Number(val) : prev.assemblyCost;
+        newData.targetPrice = Math.ceil((bc + ac) * 1.2);
+      }
+      
+      return newData;
+    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,7 +149,7 @@ export default function EditAccessoryPage() {
             fileInputRef={fileInputRef}
             isEdit={true} 
           />
-          <AccessoryInventoryInfo formData={formData} onChange={handleChange} />
+          <AccessoryInventoryInfo formData={formData} onChange={handleChange} hideStock={true} />
         </div>
 
         <div className="lg:col-span-4">

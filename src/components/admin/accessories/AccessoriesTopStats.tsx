@@ -56,7 +56,9 @@ export default function AccessoriesTopStats() {
           <p className="text-[#9CA3AF] text-[10px] font-black tracking-[0.2em] uppercase mb-1">
             Tổng quan
           </p>
-          <h2 className="text-[#1A1A2E] font-black text-lg font-fredoka">Phụ kiện nổi bật</h2>
+          <h2 className="text-[#1A1A2E] font-black text-lg font-fredoka">
+            Phụ kiện nổi bật
+          </h2>
         </div>
         <div className="w-10 h-10 rounded-2xl bg-[#4ECDC415] text-[#4ECDC4] flex items-center justify-center">
           <MdInventory className="text-xl" />
@@ -97,8 +99,10 @@ export default function AccessoriesTopStats() {
             </div>
 
             <div className="flex flex-col items-end gap-1">
-              <div className={`text-[10px] font-black px-2 py-0.5 rounded-full ${a.isActive ? "bg-emerald-50 text-emerald-600" : "bg-gray-50 text-gray-400"}`}>
-                {a.isActive ? "ACTIVE" : "DRAFT"}
+              <div
+                className={`text-[10px] font-black px-2 py-0.5 rounded-full ${a.isActive ? "bg-emerald-50 text-emerald-600" : "bg-gray-50 text-gray-400"}`}
+              >
+                {a.isActive ? "Đang bán" : "Bản nháp"}
               </div>
             </div>
           </div>

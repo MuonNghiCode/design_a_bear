@@ -8,6 +8,7 @@ import {
   IoShieldCheckmarkOutline,
   IoConstructOutline,
 } from "react-icons/io5";
+import { ProductReview } from "@/types";
 import OrdersTab from "./tabs/OrdersTab";
 import WishlistTab from "./tabs/WishlistTab";
 import ReviewsTab from "./tabs/ReviewsTab";
@@ -27,6 +28,7 @@ interface Props {
   onSwitch: (key: string) => void;
   tabContentRef: React.RefObject<HTMLDivElement | null>;
   onLogout: () => void;
+  userReviews?: ProductReview[];
 }
 
 export default function ProfileTabs({
@@ -34,6 +36,7 @@ export default function ProfileTabs({
   onSwitch,
   tabContentRef,
   onLogout,
+  userReviews = [],
 }: Props) {
   return (
     <div className="xl:col-span-3 bg-white rounded-3xl p-8 md:p-10 shadow-sm min-h-[640px] border border-slate-50 flex flex-col justify-between">
@@ -63,7 +66,7 @@ export default function ProfileTabs({
         <div ref={tabContentRef} className="animate-in fade-in duration-500">
           {tab === "orders" && <OrdersTab />}
           {tab === "wishlist" && <WishlistTab />}
-          {tab === "reviews" && <ReviewsTab />}
+          {tab === "reviews" && <ReviewsTab initialReviews={userReviews} />}
           {tab === "issues" && <ProductIssuesTab />}
           {tab === "security" && <SecurityTab onLogout={onLogout} />}
         </div>

@@ -11,10 +11,7 @@ import {
 import gsap from "gsap";
 import { useFavorite } from "@/contexts/FavoriteContext";
 
-function formatPrice(price: number | undefined | null) {
-  if (price === undefined || price === null) return "0 đ";
-  return price.toLocaleString("vi-VN") + " đ";
-}
+
 
 /* Empty wishlist illustration */
 function EmptyState() {
@@ -211,9 +208,7 @@ export default function FavoriteDrawer() {
                           {item.productName}
                         </p>
                       </Link>
-                      <p className="font-bold text-sm text-[#FF6B9D] mt-1">
-                        {formatPrice(item.productPrice)}
-                      </p>
+
                     </div>
 
                     <div className="flex items-center justify-between mt-2">

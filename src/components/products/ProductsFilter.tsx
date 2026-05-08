@@ -7,8 +7,6 @@ import CustomDropdown from "@/components/shared/CustomDropdown";
 
 export const CATEGORIES = [
   { id: "all", label: "Tất cả" },
-  { id: "complete", label: "Sản phẩm hoàn chỉnh" },
-  { id: "bear", label: "Gấu bông" },
 ];
 
 export const SORT_OPTIONS = [
@@ -56,45 +54,31 @@ export default function ProductsFilter({
   return (
     <div
       ref={barRef}
-      className="bg-[#F4F7FF]/95 backdrop-blur-md border-b border-[#E5E7EB] py-3 md:py-4"
+      className="bg-[#F4F7FF]/95 backdrop-blur-md border-b border-[#E5E7EB] py-3 md:py-4 sticky top-[80px] z-[40]"
     >
       <div className="max-w-screen-2xl mx-auto px-4 md:px-16">
         <div className="flex items-center gap-3 md:gap-4 justify-between flex-wrap md:flex-nowrap">
-          {/* Category pills — horizontal scroll on mobile */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide shrink-0">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => onCategoryChange(cat.id)}
-                className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                  activeCategory === cat.id
-                    ? "bg-[#17409A] text-white shadow-md"
-                    : "bg-white text-[#6B7280] border border-[#E5E7EB] hover:border-[#17409A] hover:text-[#17409A]"
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Right: search + sort + count */}
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            {/* Product count */}
-            <span className="text-[#6B7280] text-xs font-semibold whitespace-nowrap hidden lg:block">
-              {productCount} sản phẩm
-            </span>
-
-            {/* Search */}
-            <div className="relative flex-1 md:w-56 lg:w-72">
-              <IoSearchOutline className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-4 h-4" />
+          {/* Left: Search */}
+          <div className="flex items-center gap-3 w-full md:w-auto flex-1">
+            <div className="relative w-full md:w-80 lg:w-96">
+              <IoSearchOutline className="absolute left-4 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-5 h-5" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Tìm kiếm..."
-                className="w-full pl-9 pr-4 py-2.5 rounded-2xl bg-white border border-[#E5E7EB] text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:border-[#17409A] focus:ring-2 focus:ring-[#17409A]/10 transition-all"
+                placeholder="Tìm kiếm sản phẩm..."
+                className="w-full pl-11 pr-4 py-3 rounded-2xl bg-white border border-[#E5E7EB] text-sm text-[#1A1A2E] placeholder-[#9CA3AF] focus:outline-none focus:border-[#17409A] focus:ring-4 focus:ring-[#17409A]/5 transition-all shadow-sm"
               />
             </div>
+            {/* Product count (Desktop) */}
+            <span className="text-[#6B7280] text-xs font-bold whitespace-nowrap hidden lg:block bg-white px-3 py-1.5 rounded-lg border border-[#E5E7EB]">
+              {productCount} sản phẩm
+            </span>
+          </div>
+
+          {/* Right: sort + wishlist */}
+          <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+
 
             {/* Sort dropdown */}
             <div className="hidden md:block min-w-48">

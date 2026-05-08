@@ -7,10 +7,7 @@ import { useFavorite } from "@/contexts/FavoriteContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/contexts/ToastContext";
 
-function formatPrice(price: number | undefined | null) {
-  if (price === undefined || price === null) return "0 đ";
-  return price.toLocaleString("vi-VN") + " đ";
-}
+
 
 export default function WishlistTab() {
   const { favorites, items, loading, toggleFavorite } = useFavorite();
@@ -130,9 +127,6 @@ export default function WishlistTab() {
                 </h4>
               </Link>
               <div className="flex items-center justify-between mt-1">
-                <p className="font-black text-lg text-[#17409A]">
-                  {formatPrice(item.productPrice)}
-                </p>
                 <span className="text-[10px] font-black uppercase bg-[#F4F7FF] text-[#17409A] px-2.5 py-1 rounded-lg border border-slate-100">
                   Gấu bông
                 </span>

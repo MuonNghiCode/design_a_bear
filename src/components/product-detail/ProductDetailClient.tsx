@@ -62,11 +62,11 @@ export default function ProductDetailClient({
   const effectiveRules = useMemo(() => {
     // If backend provided specific rules, prioritize them (and filter available)
     if (personalizationRules && personalizationRules.length > 0) {
-      return personalizationRules;
+      return personalizationRules.filter(rule => rule.addonProduct.isActive);
     }
 
     // Fallback to mapping linked accessories directly
-    const availableAccessories = (product.accessories || []);
+    const availableAccessories = (product.accessories || []).filter(acc => acc.isActive);
 
     if (availableAccessories.length > 0) {
       return availableAccessories.map(

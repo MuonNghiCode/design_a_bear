@@ -81,7 +81,7 @@ export default function ProductsClient({
           ...item,
           normalizedType: (item.productType || "").trim().toUpperCase(),
         }))
-        .filter((item) => item.normalizedType !== "ACCESSORY");
+        .filter((item) => item.normalizedType !== "ACCESSORY" && item.isActive);
 
       setAllItems(sanitized);
       setPageIndex(1);

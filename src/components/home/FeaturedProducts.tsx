@@ -42,9 +42,11 @@ export default function FeaturedProducts() {
 
   // Fetch 4 sản phẩm mới nhất
   useEffect(() => {
-    getProducts({ pageIndex: 1, pageSize: 4, sortBy: "newest" })
+    getProducts({ pageIndex: 1, pageSize: 20, sortBy: "newest" })
       .then((data) => {
-        const cardProps = data.items.map(mapToCardProps);
+        // Lọc các sản phẩm đang hoạt động và lấy 4 cái đầu tiên
+        const activeItems = data.items.filter(item => item.isActive).slice(0, 4);
+        const cardProps = activeItems.map(mapToCardProps);
         setProducts(cardProps);
       })
       .catch(() => {

@@ -5,11 +5,19 @@ import { MdInfo, MdLink, MdKeyboardArrowDown } from "react-icons/md";
 
 interface BasicInfoSectionProps {
   formData: any;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  onChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => void;
   isEdit?: boolean;
 }
 
-export const BasicInfoSection = ({ formData, onChange, isEdit }: BasicInfoSectionProps) => {
+export const BasicInfoSection = ({
+  formData,
+  onChange,
+  isEdit,
+}: BasicInfoSectionProps) => {
   return (
     <section className="bg-white rounded-[32px] p-8 shadow-sm border border-white/50 space-y-8">
       <div className="flex items-center gap-4">
@@ -21,7 +29,9 @@ export const BasicInfoSection = ({ formData, onChange, isEdit }: BasicInfoSectio
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2 md:col-span-2">
-          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Tên sản phẩm</label>
+          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">
+            Tên sản phẩm
+          </label>
           <input
             name="name"
             value={formData.name}
@@ -32,7 +42,9 @@ export const BasicInfoSection = ({ formData, onChange, isEdit }: BasicInfoSectio
         </div>
 
         <div className="space-y-2">
-          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Loại sản phẩm</label>
+          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">
+            Loại sản phẩm
+          </label>
           <div className="relative">
             <select
               name="productType"
@@ -41,8 +53,9 @@ export const BasicInfoSection = ({ formData, onChange, isEdit }: BasicInfoSectio
               className="w-full bg-[#F4F7FF] rounded-[16px] px-8 py-5 text-base font-bold text-[#1A1A2E] outline-none border-2 border-transparent focus:border-[#17409A]/30 transition-all appearance-none shadow-inner pr-14 cursor-pointer"
             >
               <option value="BASE_BEAR">Gấu cơ bản (Base Bear)</option>
-              <option value="ACCESSORY">Phụ kiện (Accessory)</option>
-              <option value="COMPLETE_BEAR">Gấu hoàn chỉnh (Complete Bear)</option>
+              <option value="COMPLETE_BEAR">
+                Gấu hoàn chỉnh (Complete Bear)
+              </option>
               <option value="Standard">Sản phẩm tiêu chuẩn (Standard)</option>
             </select>
             <MdKeyboardArrowDown className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 text-2xl pointer-events-none" />
@@ -50,7 +63,9 @@ export const BasicInfoSection = ({ formData, onChange, isEdit }: BasicInfoSectio
         </div>
 
         <div className="space-y-2">
-          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Mã SKU</label>
+          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">
+            Mã SKU
+          </label>
           <div className="relative">
             <MdInfo className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
             <input
@@ -65,7 +80,9 @@ export const BasicInfoSection = ({ formData, onChange, isEdit }: BasicInfoSectio
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Mô tả chi tiết</label>
+          <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">
+            Mô tả chi tiết
+          </label>
           <textarea
             name="description"
             value={formData.description}

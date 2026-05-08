@@ -142,7 +142,7 @@ export const SidebarSettings = ({
           <div className="space-y-4 pt-6 border-t border-gray-50">
             <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-2">Phụ kiện đi kèm</label>
             <div className="grid grid-cols-1 gap-3">
-              {accessoriesList.map(acc => {
+              {accessoriesList.filter(acc => acc.isActive).map(acc => {
                 const isSelected = formData.accessoryIds.includes(acc.accessoryId);
                 return (
                   <button

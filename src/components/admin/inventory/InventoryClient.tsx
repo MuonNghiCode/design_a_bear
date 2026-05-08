@@ -164,14 +164,29 @@ export default function InventoryClient() {
       });
 
       // Add Variant Rows immediately after
-      invs.forEach((inv) => {
+      if (invs.length > 0) {
+        invs.forEach((inv) => {
+          rows.push({
+            ...item,
+            ...inv,
+            id: inv.inventoryId, // Use unique inventory ID
+            isVariant: true,
+          });
+        });
+      } else {
+        // If no inventory records exist, add a "default" variant row to allow Nhập/Xuất
         rows.push({
           ...item,
-          ...inv,
-          id: inv.inventoryId, // Use unique inventory ID
+          id: `default-${item.id}`,
+          identityId: item.id, // The ID of product or accessory
           isVariant: true,
+          sizeTag: "Mặc định",
+          onHand: 0,
+          reserved: 0,
+          totalAvailable: 0,
+          isDefaultVariant: true,
         });
-      });
+      }
     });
     return rows;
   }, [items, inventories]);

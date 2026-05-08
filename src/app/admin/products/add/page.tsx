@@ -175,10 +175,18 @@ export default function AddProductPage() {
   };
 
   const handleToggle = (name: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: !prev[name as keyof CreateProductRequest]
-    }));
+    setFormData(prev => {
+      const newValue = !prev[name as keyof CreateProductRequest];
+      const newData = { ...prev, [name]: newValue };
+      
+      // Nếu tắt Cá nhân hóa, tự động xóa hết phụ kiện và tổ hợp ảnh đã chọn
+      if (name === "isPersonalizable" && newValue === false) {
+        newData.accessoryIds = [];
+        newData.comboImages = [];
+      }
+      
+      return newData;
+    });
   };
 
   const handleMultiSelect = (name: string, id: string) => {
@@ -236,6 +244,10 @@ export default function AddProductPage() {
   };
 
   const handleAddCombo = () => {
+    if (formData.accessoryIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một phụ kiện trước khi thêm tổ hợp");
+      return;
+    }
     setFormData(prev => ({ ...prev, comboImages: [...(prev.comboImages || []), { combinationKey: "", imageUrl: "" }] }));
   };
 
@@ -351,7 +363,7 @@ export default function AddProductPage() {
     }
     setIsSubmitting(true);
     try {
-      const res = await productService.createProduct(formData);
+      const res = await productService.createProduct({ ...formData, price: 0 });
       if (res.isSuccess) {
         toast.success("Thêm sản phẩm thành công!");
         router.push("/admin/products");

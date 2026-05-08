@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const product = await getProductByParam(id);
 
-  if (!product) {
+  if (!product || !product.isActive) {
     return {
       title: "San pham khong ton tai",
       description: "Khong tim thay san pham ban dang tim.",
@@ -84,7 +84,7 @@ export default async function ProductDetailPage({ params }: Props) {
   try {
     const product = await getProductByParam(id);
 
-    if (!product) {
+    if (!product || !product.isActive) {
       notFound();
     }
 
@@ -109,7 +109,7 @@ export default async function ProductDetailPage({ params }: Props) {
       const allRes = await productService.getProducts({ pageSize: 4 });
       if (!allRes.isFailure && allRes.value?.items) {
         related = allRes.value.items
-          .filter((p) => p.productId !== product.productId)
+          .filter((p) => p.productId !== product.productId && p.isActive)
           .slice(0, 4)
           .map(
             (p) =>

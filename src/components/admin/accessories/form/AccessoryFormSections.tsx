@@ -140,7 +140,15 @@ export function AccessoryBasicInfo({
   );
 }
 
-export function AccessoryInventoryInfo({ formData, onChange }: { formData: AccessoryFormData, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+export function AccessoryInventoryInfo({ 
+  formData, 
+  onChange, 
+  hideStock = false 
+}: { 
+  formData: AccessoryFormData, 
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void,
+  hideStock?: boolean 
+}) {
   return (
     <div className="bg-white rounded-[32px] p-8 border border-[#F4F7FF] shadow-sm space-y-8">
       <div className="flex items-center gap-3 pb-2 border-b border-[#F4F7FF]">
@@ -151,16 +159,18 @@ export function AccessoryInventoryInfo({ formData, onChange }: { formData: Acces
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <label className="text-[11px] font-black text-[#9CA3AF] uppercase tracking-widest ml-1">Số lượng tồn kho</label>
-          <input
-            type="number"
-            name="stockQuantity"
-            value={formData.stockQuantity}
-            onChange={onChange}
-            className="w-full px-6 py-4 bg-[#F4F7FF] border-2 border-transparent rounded-2xl focus:bg-white focus:border-[#17409A]/20 transition-all outline-none font-bold text-[#1A1A2E]"
-          />
-        </div>
+        {!hideStock && (
+          <div className="space-y-2">
+            <label className="text-[11px] font-black text-[#9CA3AF] uppercase tracking-widest ml-1">Số lượng tồn kho</label>
+            <input
+              type="number"
+              name="stockQuantity"
+              value={formData.stockQuantity}
+              onChange={onChange}
+              className="w-full px-6 py-4 bg-[#F4F7FF] border-2 border-transparent rounded-2xl focus:bg-white focus:border-[#17409A]/20 transition-all outline-none font-bold text-[#1A1A2E]"
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-[11px] font-black text-[#9CA3AF] uppercase tracking-widest ml-1">Giá bán dự kiến</label>

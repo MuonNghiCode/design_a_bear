@@ -9,7 +9,7 @@ import { ROLE_CFG } from "@/data/profile";
 import { userService } from "@/services/user.service";
 import { addressService } from "@/services/address.service";
 import { mediaService } from "@/services/media.service";
-import type { Address } from "@/types";
+import type { Address, ProductReview } from "@/types";
 import {
   isValidVietnamPhoneNumber,
   normalizePhoneNumber,
@@ -63,6 +63,7 @@ export default function ProfileClient() {
   const { items: favoriteItems } = useFavorite();
   const [ordersCount, setOrdersCount] = useState(0);
   const [reviewsCount, setReviewsCount] = useState(0);
+  const [userReviews, setUserReviews] = useState<ProductReview[]>([]);
   const [currentAddressId, setCurrentAddressId] = useState<string | null>(null);
 
   const heroRef = useRef<HTMLDivElement>(null);
@@ -116,7 +117,9 @@ export default function ProfileClient() {
         reviewsResult.status === "fulfilled" &&
         reviewsResult.value.isSuccess
       ) {
-        setReviewsCount(reviewsResult.value.value?.length || 0);
+        const reviews = reviewsResult.value.value || [];
+        setUserReviews(reviews);
+        setReviewsCount(reviews.length);
       }
 
       if (
@@ -397,6 +400,7 @@ export default function ProfileClient() {
           onSwitch={switchTab}
           tabContentRef={tabContentRef}
           onLogout={handleLogout}
+          userReviews={userReviews}
         />
       </div>
     </div>

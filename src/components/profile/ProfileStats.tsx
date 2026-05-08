@@ -6,6 +6,7 @@ import {
   IoStarOutline,
   IoGiftOutline,
 } from "react-icons/io5";
+import { PROFILE_STATS } from "@/data/profile";
 interface ProfileStatsProps {
   ordersCount?: number;
   favoritesCount?: number;
@@ -38,8 +39,8 @@ export default function ProfileStats({
 
   return (
     <div className="max-w-screen-2xl mx-auto px-8 md:px-16 mt-10 mb-10" style={{ fontFamily: "'Nunito', sans-serif" }}>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map(({ label, value, color }) => {
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+        {PROFILE_STATS.map(({ label, value, color }) => {
           const Icon = STAT_ICONS[label];
           return (
             <div

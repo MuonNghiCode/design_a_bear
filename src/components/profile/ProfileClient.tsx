@@ -389,7 +389,7 @@ export default function ProfileClient() {
             setAddressForm={setAddressForm}
             onSave={() => void handleSaveProfile()}
           />
-          <ProfileMembershipCard />
+          {/* <ProfileMembershipCard /> */}
         </div>
 
         <ProfileTabs

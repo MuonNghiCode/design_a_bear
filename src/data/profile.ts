@@ -53,7 +53,6 @@ export const PROFILE_REVIEWS: ProfileReview[] = [
 export const PROFILE_STATS: ProfileStat[] = [
   { label: "Đơn hàng", value: "3", color: "#17409A" },
   { label: "Yêu thích", value: "7", color: "#FF6B9D" },
-  { label: "Điểm tích lũy", value: "1.260", color: "#FFD93D" },
   { label: "Đánh giá", value: "2", color: "#4ECDC4" },
 ];
 

@@ -38,13 +38,17 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export default function ReviewsTab() {
+interface Props {
+  initialReviews?: ProductReview[];
+}
+
+export default function ReviewsTab({ initialReviews = [] }: Props) {
   const { user } = useAuth();
   const { getProductById } = useProductDetailApi();
   const { getUserReviews, updateReview, deleteReview, loading, error } =
     useReviewApi();
 
-  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>(initialReviews);
   const [productNameMap, setProductNameMap] = useState<Record<string, string>>(
     {},
   );
@@ -68,8 +72,11 @@ export default function ReviewsTab() {
 
     const data = await getUserReviews(user.id);
     setReviews(data);
+    await fetchProductNames(data);
+  };
 
-    const ids = Array.from(new Set(data.map((r) => r.productId)));
+  const fetchProductNames = async (reviewList: ProductReview[]) => {
+    const ids = Array.from(new Set(reviewList.map((r) => r.productId)));
     const missingIds = ids.filter((id) => !productNameMap[id]);
     if (missingIds.length === 0) return;
 
@@ -94,11 +101,16 @@ export default function ReviewsTab() {
   };
 
   useEffect(() => {
-    loadReviews().catch(() => {
-      // error state is handled by hook
-    });
+    if (initialReviews.length > 0) {
+      setReviews(initialReviews);
+      void fetchProductNames(initialReviews);
+    } else {
+      loadReviews().catch(() => {
+        // error state is handled by hook
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, initialReviews]);
 
   const startEdit = (review: ProductReview) => {
     setEditingReviewId(review.reviewId);
@@ -191,10 +203,18 @@ export default function ReviewsTab() {
         return (
           <div key={r.reviewId} className="bg-[#F8F9FF] rounded-2xl p-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[#1A1A2E] font-bold text-sm">
-                {productNameMap[r.productId] ??
-                  `Sản phẩm #${r.productId.slice(-6)}`}
-              </p>
+              <div className="flex flex-col">
+                <p className="text-[#1A1A2E] font-bold text-sm">
+                  {productNameMap[r.productId] || (
+                    <span className="text-[#9CA3AF] animate-pulse">
+                      Đang tải tên sản phẩm...
+                    </span>
+                  )}
+                </p>
+                <p className="text-[10px] text-[#9CA3AF] font-medium">
+                  ID: {r.productId.slice(-8).toUpperCase()}
+                </p>
+              </div>
               <span className="text-[#9CA3AF] text-[10px] font-semibold">
                 {formatDateTime(r.createdAt)}
               </span>
@@ -280,16 +300,24 @@ export default function ReviewsTab() {
                 </p>
 
                 {r.reviewReplies.length > 0 && (
-                  <div className="mt-3 space-y-2">
+                  <div className="mt-3 space-y-2 animate-in slide-in-from-top-2 duration-300">
                     {r.reviewReplies.map((reply) => (
                       <div
                         key={reply.replyId}
-                        className="rounded-xl bg-white border border-[#E5E7EB] px-3 py-2"
+                        className="rounded-2xl bg-[#F0F4FF] border border-[#17409A15] p-4 shadow-sm"
                       >
-                        <p className="text-[11px] font-black text-[#17409A] mb-1">
-                          Phản hồi từ nhân viên
-                        </p>
-                        <p className="text-xs text-[#4B5563] font-semibold leading-relaxed">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-6 h-6 rounded-lg bg-[#17409A] flex items-center justify-center text-white text-[10px] font-black shadow-sm">
+                            AD
+                          </div>
+                          <p className="text-[11px] font-black text-[#17409A] uppercase tracking-wider">
+                            Phản hồi từ quản trị viên
+                          </p>
+                          <span className="text-[10px] text-[#9CA3AF] font-semibold ml-auto">
+                            {formatDateTime(reply.createdAt)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#1A1A2E] font-bold leading-relaxed">
                           {reply.content}
                         </p>
                       </div>
